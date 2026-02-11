@@ -333,3 +333,55 @@ class MeetingPoint(models.Model):
 
     def __str__(self):
         return self.description[:50]
+
+
+# ─── التوصيات (Recommendations) لتاب Recommendation Overview ───
+ICON_CHOICES = [
+    ("check-circle", "✓ Check Circle (توصية منجزة)"),
+    ("scanner", "📟 RF Scanner"),
+    ("people", "👥 People/Team"),
+    ("document", "📄 Document"),
+    ("box", "📦 Box/Package"),
+    ("chart", "📊 Chart/Analytics"),
+    ("settings", "⚙️ Settings"),
+    ("lightbulb", "💡 Lightbulb/Idea"),
+    ("clock", "⏰ Clock/Time"),
+    ("arrow-up", "⬆️ Arrow Up/Improvement"),
+    ("custom", "🖼️ Custom Image"),
+]
+
+
+class Recommendation(models.Model):
+    """توصية رئيسية تظهر في تاب Recommendation Overview."""
+    title = models.CharField(max_length=200, help_text="عنوان التوصية (مثال: Enhance Packing List Sheet)")
+    description = models.TextField(help_text="وصف التوصية بالتفصيل")
+    icon_type = models.CharField(
+        max_length=20,
+        choices=ICON_CHOICES,
+        default="check-circle",
+        help_text="نوع الأيقونة المعروضة بجانب التوصية"
+    )
+    custom_icon = models.ImageField(
+        upload_to="recommendation_icons/",
+        null=True,
+        blank=True,
+        help_text="صورة مخصصة للأيقونة (فقط لو اخترت Custom Image)"
+    )
+    icon_bg_color = models.CharField(
+        max_length=20,
+        default="#f5f5f0",
+        help_text="لون خلفية الأيقونة (مثل #f5f5f0)"
+    )
+    display_order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="ترتيب ظهور التوصية: الأصغر يظهر أولاً"
+    )
+    is_active = models.BooleanField(default=True, help_text="لو مقفولة مش هتظهر في الواجهة")
+
+    class Meta:
+        verbose_name = "Recommendation (توصية)"
+        verbose_name_plural = "Recommendations (التوصيات)"
+        ordering = ["display_order", "id"]
+
+    def __str__(self):
+        return self.title[:80]

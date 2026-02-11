@@ -1546,11 +1546,11 @@ class UploadExcelViewRoche(View):
                 wh_result = self.warehouse_tab(request)
                 return JsonResponse(wh_result, safe=False)
             if selected_tab == "recommendation":
-                recommendation_html = (
-                    '<div class="recommendation-overview p-4">'
-                    '<h5 class="fw-bold mb-3" style="color: #2c2f33;">Recommendation Overview</h5>'
-                    '<p class="text-muted mb-0">Content for this tab can be added here.</p>'
-                    "</div>"
+                recommendations = context_helpers.get_recommendations_list()
+                recommendation_html = render_to_string(
+                    "components/ui-kits/tab-bootstrap/components/recommendation-cards.html",
+                    {"recommendations": recommendations},
+                    request=request,
                 )
                 return JsonResponse({"detail_html": recommendation_html}, safe=False)
 
@@ -1594,6 +1594,7 @@ class UploadExcelViewRoche(View):
                 "wh_data_rows": context_helpers.get_wh_data_rows_list(),
                 "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
                 "phases_sections": context_helpers.get_phases_sections_list(),
+                "recommendations": context_helpers.get_recommendations_list(),
             }
             return render(request, self.template_name, render_context)
 
@@ -1990,6 +1991,7 @@ class UploadExcelViewRoche(View):
             "warehouse_overview": warehouse_overview,
             "wh_data_rows": wh_data_rows,
             "dashboard_theme": dashboard_theme,
+            "recommendations": context_helpers.get_recommendations_list(),
         }
         if (selected_tab or "").lower() == "dashboard":
             try:

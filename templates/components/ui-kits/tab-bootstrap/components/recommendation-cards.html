@@ -1,0 +1,177 @@
+{% load static %}
+{# كروت التوصيات (Key Recommendations) لتاب Recommendation Overview #}
+<style>
+  .recommendations-section {
+    margin-bottom: 2rem;
+  }
+  .recommendations-container {
+    background: linear-gradient(145deg, #f8f9f5 0%, #f0f2eb 100%);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  }
+  .recommendations-title {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: #2c2f33;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .recommendation-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e8ebe5;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .recommendation-card:last-child {
+    margin-bottom: 0;
+  }
+  .recommendation-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  }
+  .recommendation-icon {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+  .recommendation-icon img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+  }
+  .recommendation-icon svg {
+    width: 28px;
+    height: 28px;
+  }
+  .recommendation-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .recommendation-content h6 {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #2c2f33;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.3;
+  }
+  .recommendation-content p {
+    font-size: 0.9rem;
+    color: #5a5f66;
+    margin: 0;
+    line-height: 1.6;
+  }
+  /* Icon type specific styles */
+  .icon-check-circle {
+    color: #2e7d32;
+  }
+  .icon-scanner {
+    color: #5a6b5a;
+  }
+  .icon-people {
+    color: #5a6b5a;
+  }
+  .icon-document {
+    color: #5a6b5a;
+  }
+  .icon-box {
+    color: #5a6b5a;
+  }
+  .icon-chart {
+    color: #5a6b5a;
+  }
+  .icon-settings {
+    color: #5a6b5a;
+  }
+  .icon-lightbulb {
+    color: #f9a825;
+  }
+  .icon-clock {
+    color: #5a6b5a;
+  }
+  .icon-arrow-up {
+    color: #2e7d32;
+  }
+  @media (max-width: 767.98px) {
+    .recommendations-container {
+      padding: 1.25rem;
+    }
+    .recommendation-card {
+      padding: 1rem;
+    }
+    .recommendation-icon {
+      width: 40px;
+      height: 40px;
+      min-width: 40px;
+      font-size: 1.25rem;
+    }
+    .recommendation-content h6 {
+      font-size: 0.95rem;
+    }
+    .recommendation-content p {
+      font-size: 0.85rem;
+    }
+  }
+</style>
+
+<div class="recommendations-section">
+  <div class="recommendations-container">
+    <h4 class="recommendations-title">Key Recommendations</h4>
+    
+    {% if recommendations %}
+    {% for rec in recommendations %}
+    <div class="recommendation-card">
+      <div class="recommendation-icon icon-{{ rec.icon_type }}" style="background-color: {{ rec.icon_bg_color }};">
+        {% if rec.icon_type == "custom" and rec.custom_icon %}
+        <img src="{{ rec.custom_icon }}" alt="icon">
+        {% elif rec.icon_type == "check-circle" %}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        {% elif rec.icon_type == "scanner" %}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.5 6.5v3h-3v-3h3M11 5H5v6h6V5zm-1.5 9.5v3h-3v-3h3M11 13H5v6h6v-6zm6.5-6.5v3h-3v-3h3M19 5h-6v6h6V5zm-6 8h1.5v1.5H13V13zm1.5 1.5H16V16h-1.5v-1.5zM16 13h1.5v1.5H16V13zm-3 3h1.5v1.5H13V16zm1.5 1.5H16V19h-1.5v-1.5zM16 16h1.5v1.5H16V16zm1.5-1.5H19V16h-1.5v-1.5zm0 3H19V19h-1.5v-1.5zM19 13h-1.5v1.5H19V13z"/></svg>
+        {% elif rec.icon_type == "people" %}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        {% elif rec.icon_type == "document" %}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+        {% elif rec.icon_type == "box" %}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 16H5V6h14v13z"/></svg>
+        {% elif rec.icon_type == "chart" %}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/></svg>
+        {% elif rec.icon_type == "settings" %}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        {% elif rec.icon_type == "lightbulb" %}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M9 21c0 .5.4 1 1 1h4c.6 0 1-.5 1-1v-1H9v1zm3-19C8.1 2 5 5.1 5 9c0 2.4 1.2 4.5 3 5.7V17c0 .5.4 1 1 1h6c.6 0 1-.5 1-1v-2.3c1.8-1.3 3-3.4 3-5.7 0-3.9-3.1-7-7-7z"/></svg>
+        {% elif rec.icon_type == "clock" %}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8z"/><path d="M12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+        {% elif rec.icon_type == "arrow-up" %}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z"/></svg>
+        {% else %}
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        {% endif %}
+      </div>
+      <div class="recommendation-content">
+        <h6>{{ rec.title }}</h6>
+        <p>{{ rec.description }}</p>
+      </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="text-center py-5 px-3 rounded-3" style="background: #fff; border: 1px dashed #dee2e6">
+      <p class="text-muted mb-2 fs-5">لا توجد توصيات حتى الآن.</p>
+      <p class="small text-muted mb-0">
+        من الأدمن: Recommendations → Add Recommendation لإضافة توصيات جديدة.
+      </p>
+    </div>
+    {% endif %}
+  </div>
+</div>

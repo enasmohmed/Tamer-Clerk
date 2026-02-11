@@ -190,3 +190,27 @@ def get_wh_data_rows_list():
         ]
     except Exception:
         return []
+
+
+def get_recommendations_list():
+    """يرجع قائمة التوصيات النشطة لتاب Recommendation Overview."""
+    try:
+        from .models import Recommendation
+        recs = Recommendation.objects.filter(is_active=True).order_by("display_order", "id")
+        result = [
+            {
+                "id": r.id,
+                "title": r.title,
+                "description": r.description,
+                "icon_type": r.icon_type,
+                "custom_icon": r.custom_icon.url if r.custom_icon else None,
+                "icon_bg_color": r.icon_bg_color or "#f5f5f0",
+                "display_order": r.display_order,
+            }
+            for r in recs
+        ]
+        print(f"📋 [Recommendations] Found {len(result)} active recommendations")  # للتتبع
+        return result
+    except Exception as e:
+        print(f"❌ [Recommendations] Error: {e}")  # للتتبع
+        return []

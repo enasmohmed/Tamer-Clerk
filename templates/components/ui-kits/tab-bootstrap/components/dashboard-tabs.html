@@ -200,7 +200,7 @@
         >
           <!-- 🟦 اللوجو -->
           <img
-            src="{% static 'assets/images/logo-ecam.png' %}"
+            src="{% static 'assets/images/tamer_logistics_logo.png' %}"
             alt="Saudi Aramco Logo"
             style="
               height: 48px;
@@ -217,7 +217,7 @@
             <h4
               style="font-size: 20px; font-weight: 800; color: #000; margin: 0"
             >
-              Saudi Aramco
+            Tamer Clerk 
             </h4>
             <p
               class="mt-1 f-m-light"
@@ -298,85 +298,85 @@
           </div>
           {% else %}
           <!-- ✅ حالة وجود بيانات -->
-          <div
-            class="d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4"
-          >
-            <!-- اختيار الشهر -->
-            <div class="d-flex align-items-center">
-              <div class="custom-select-wrapper">
-                <select id="month-select" class="custom-select">
-                  <option value="">-- All Months --</option>
-                  {% for m in months %}
-                  <option value="{{ m }}">{{ m }}</option>
-                  {% endfor %}
-                </select>
-              </div>
-              <!-- فلتر الكوارتر -->
+<!--          <div-->
+<!--            class="d-flex flex-wrap align-items-center justify-content-end gap-3 mb-4"-->
+<!--          >-->
+<!--            &lt;!&ndash; اختيار الشهر &ndash;&gt;-->
+<!--            <div class="d-flex align-items-center">-->
+<!--              <div class="custom-select-wrapper">-->
+<!--                <select id="month-select" class="custom-select">-->
+<!--                  <option value="">&#45;&#45; All Months &#45;&#45;</option>-->
+<!--                  {% for m in months %}-->
+<!--                  <option value="{{ m }}">{{ m }}</option>-->
+<!--                  {% endfor %}-->
+<!--                </select>-->
+<!--              </div>-->
+<!--              &lt;!&ndash; فلتر الكوارتر &ndash;&gt;-->
 
-              <!-- 
-              <div class="custom-select-wrapper">
-                <select id="quarter-select" class="custom-select">
-                  <option value="">-- All Quarters --</option>
-                  <option value="Q1-2025">Q1 - 2025 (Jan - Feb - Mar)</option>
-                  <option value="Q2-2025">Q2 - 2025 (Apr - May - Jun)</option>
-                  <option value="Q3-2025">Q3 - 2025 (Jul - Aug - Sep)</option>
-                  <option value="Q4-2025">Q4 - 2025 (Oct - Nov - Dec)</option>
-                </select>
-              </div>
-              -->
-              <button id="export-excel-btn" class="btn btn-download-excel ms-3">
-                📥 Download Excel
-              </button>
-            </div>
-            <!-- زر رفع الملف -->
-            <button id="uploadBtn" class="upload-btn-small mb-0">
-              Upload File
-            </button>
-            <input
-              type="file"
-              id="uploadExcelInput"
-              name="excel_file"
-              class="d-none"
-            />
-            <!-- مودال كود الرفع -->
-            <div
-              class="modal fade"
-              id="codeModal"
-              tabindex="-1"
-              aria-hidden="true"
-            >
-              <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                  <form id="codeForm">
-                    <div class="modal-header">
-                      <h5 class="modal-title">Enter Upload Code</h5>
-                      <button
-                        type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"
-                        aria-label="Close"
-                      ></button>
-                    </div>
-                    <div class="modal-body">
-                      <input
-                        type="password"
-                        id="upload_code"
-                        maxlength="4"
-                        class="form-control text-center"
-                        placeholder="****"
-                        required
-                      />
-                    </div>
-                    <div class="modal-footer">
-                      <button type="submit" class="btn btn-primary">
-                        Confirm
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
+<!--              &lt;!&ndash; -->
+<!--              <div class="custom-select-wrapper">-->
+<!--                <select id="quarter-select" class="custom-select">-->
+<!--                  <option value="">&#45;&#45; All Quarters &#45;&#45;</option>-->
+<!--                  <option value="Q1-2025">Q1 - 2025 (Jan - Feb - Mar)</option>-->
+<!--                  <option value="Q2-2025">Q2 - 2025 (Apr - May - Jun)</option>-->
+<!--                  <option value="Q3-2025">Q3 - 2025 (Jul - Aug - Sep)</option>-->
+<!--                  <option value="Q4-2025">Q4 - 2025 (Oct - Nov - Dec)</option>-->
+<!--                </select>-->
+<!--              </div>-->
+<!--              &ndash;&gt;-->
+<!--              <button id="export-excel-btn" class="btn btn-download-excel ms-3">-->
+<!--                📥 Download Excel-->
+<!--              </button>-->
+<!--            </div>-->
+<!--            &lt;!&ndash; زر رفع الملف &ndash;&gt;-->
+<!--            <button id="uploadBtn" class="upload-btn-small mb-0">-->
+<!--              Upload File-->
+<!--            </button>-->
+<!--            <input-->
+<!--              type="file"-->
+<!--              id="uploadExcelInput"-->
+<!--              name="excel_file"-->
+<!--              class="d-none"-->
+<!--            />-->
+<!--            &lt;!&ndash; مودال كود الرفع &ndash;&gt;-->
+<!--            <div-->
+<!--              class="modal fade"-->
+<!--              id="codeModal"-->
+<!--              tabindex="-1"-->
+<!--              aria-hidden="true"-->
+<!--            >-->
+<!--              <div class="modal-dialog modal-dialog-centered">-->
+<!--                <div class="modal-content">-->
+<!--                  <form id="codeForm">-->
+<!--                    <div class="modal-header">-->
+<!--                      <h5 class="modal-title">Enter Upload Code</h5>-->
+<!--                      <button-->
+<!--                        type="button"-->
+<!--                        class="btn-close"-->
+<!--                        data-bs-dismiss="modal"-->
+<!--                        aria-label="Close"-->
+<!--                      ></button>-->
+<!--                    </div>-->
+<!--                    <div class="modal-body">-->
+<!--                      <input-->
+<!--                        type="password"-->
+<!--                        id="upload_code"-->
+<!--                        maxlength="4"-->
+<!--                        class="form-control text-center"-->
+<!--                        placeholder="****"-->
+<!--                        required-->
+<!--                      />-->
+<!--                    </div>-->
+<!--                    <div class="modal-footer">-->
+<!--                      <button type="submit" class="btn btn-primary">-->
+<!--                        Confirm-->
+<!--                      </button>-->
+<!--                    </div>-->
+<!--                  </form>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </div>-->
           {% if data_is_uploaded %} 
           {% include 'components/ui-kits/alert/components/alert.html' %} 
           {% endif %}
@@ -397,10 +397,12 @@
               <button class="nav-link" data-tab="meeting points">Meeting Points & Actions</button>
             </li>
           </ul>
-          <!-- 🔹 محتوى تاب Warehouse: كروت ديناميك حسب البيانات في الأدمن -->
+          <!-- 🔹 محتوى التابات: Warehouse / Recommendation / Meeting Points -->
           <div id="tab-content" class="card p-4 shadow-sm bg-white mt-3">
             {% if active_tab == "warehouse" %}
               {% include 'components/ui-kits/tab-bootstrap/components/warehouse-cards.html' with warehouse_overview=warehouse_overview wh_data_rows=wh_data_rows %}
+            {% elif active_tab == "recommendation" %}
+              {% include 'components/ui-kits/tab-bootstrap/components/recommendation-cards.html' with recommendations=recommendations %}
             {% else %}
             <p class="text-muted text-center mb-0">No data available for this tab.</p>
             {% endif %}

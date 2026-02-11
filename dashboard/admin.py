@@ -20,6 +20,7 @@ from .models import (
     WarehouseMetric,
     DashboardTheme,
     MeetingPoint,
+    Recommendation,
 )
 
 
@@ -183,3 +184,25 @@ class MeetingPointAdmin(admin.ModelAdmin):
     search_fields = ("description",)
     ordering = ("-created_at", "target_date", "assigned_to")
     fields = ("description", "is_done", "created_at", "target_date", "assigned_to")
+
+
+# ─── التوصيات (Recommendations) ───
+@admin.register(Recommendation)
+class RecommendationAdmin(admin.ModelAdmin):
+    list_display = ("title", "icon_type", "display_order", "is_active")
+    list_editable = ("icon_type", "display_order", "is_active")
+    list_filter = ("is_active", "icon_type")
+    search_fields = ("title", "description")
+    ordering = ("display_order", "id")
+    fieldsets = (
+        (None, {
+            "fields": ("title", "description")
+        }),
+        ("الأيقونة", {
+            "fields": ("icon_type", "custom_icon", "icon_bg_color"),
+            "description": "اختر نوع الأيقونة أو ارفع صورة مخصصة"
+        }),
+        ("الإعدادات", {
+            "fields": ("display_order", "is_active")
+        }),
+    )
