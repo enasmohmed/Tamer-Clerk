@@ -1,4 +1,4 @@
-# ترتيب التسجيل = ترتيب الظهور في الأدمن (اتبعي 1 → 2 → … → 8 لإنشاء كارد المستودع)
+# Registration order = display order in admin (follow 1 → 2 → … → 8 to create warehouse card)
 
 from django.contrib import admin
 from django.shortcuts import redirect, render
@@ -24,7 +24,7 @@ from .models import (
 )
 
 
-# ─── 1. الحالات (للمستودع وللمراحل) ───
+# ─── 1. Status (For Warehouse and Phases) ───
 @admin.register(Status)
 class StatusAdmin(admin.ModelAdmin):
     list_display = ("name", "color_hex", "is_warehouse_status", "is_phase_status", "display_order")
@@ -32,14 +32,14 @@ class StatusAdmin(admin.ModelAdmin):
     list_filter = ("is_warehouse_status", "is_phase_status")
 
 
-# ─── 2. وحدات الأعمال ───
+# ─── 2. Business Units ───
 @admin.register(BusinessUnit)
 class BusinessUnitAdmin(admin.ModelAdmin):
     list_display = ("name", "display_order")
     list_editable = ("display_order",)
 
 
-# ─── 3. أنظمة الأعمال ───
+# ─── 3. Business Systems ───
 @admin.register(BusinessSystem)
 class BusinessSystemAdmin(admin.ModelAdmin):
     list_display = ("name", "business_unit", "display_order")
@@ -47,14 +47,14 @@ class BusinessSystemAdmin(admin.ModelAdmin):
     list_filter = ("business_unit",)
 
 
-# ─── 4. النشاطات ───
+# ─── 4. Activities ───
 @admin.register(Activity)
 class ActivityAdmin(admin.ModelAdmin):
     list_display = ("name", "display_order")
     list_editable = ("display_order",)
 
 
-# ─── 5. المستودعات ───
+# ─── 5. Warehouses ───
 @admin.register(Warehouse)
 class WarehouseAdmin(admin.ModelAdmin):
     list_display = ("name", "status", "phase1_pct", "phase2_pct", "display_order")
@@ -62,7 +62,7 @@ class WarehouseAdmin(admin.ModelAdmin):
     list_filter = ("status",)
 
 
-# ─── 6. ربط المستودع بوحدة أعمال + نظام (جدول Business | System | الحالة داخل الكارد) ───
+# ─── 6. Warehouse Business System Link (Business | System | Status table in card) ───
 @admin.register(WarehouseBusinessSystem)
 class WarehouseBusinessSystemAdmin(admin.ModelAdmin):
     list_display = ("warehouse", "business_unit", "system", "system_name_override", "system_status", "display_order")
@@ -70,14 +70,14 @@ class WarehouseBusinessSystemAdmin(admin.ModelAdmin):
     list_filter = ("warehouse", "business_unit", "system_status")
 
 
-# ─── 7. ملخص الموظفين للمستودع ───
+# ─── 7. Warehouse Employee Summary ───
 @admin.register(WarehouseEmployeeSummary)
 class WarehouseEmployeeSummaryAdmin(admin.ModelAdmin):
     list_display = ("warehouse", "allocated_count", "pending_or_edit_count", "phase_label", "phase_status_label")
     list_editable = ("allocated_count", "pending_or_edit_count", "phase_label", "phase_status_label")
 
 
-# ─── 8. حالة المرحلة (جدول Phase Status داخل الكارد) ───
+# ─── 8. Phase Status (Phase Status table in card) ───
 @admin.register(WarehousePhaseStatus)
 class WarehousePhaseStatusAdmin(admin.ModelAdmin):
     list_display = ("warehouse", "business_unit", "activity", "status", "start_date", "end_date")
@@ -85,7 +85,7 @@ class WarehousePhaseStatusAdmin(admin.ModelAdmin):
     list_filter = ("warehouse", "business_unit", "activity", "status")
 
 
-# ─── 8-bis. سكشن Phases (عنوان + نقاط) ───
+# ─── Phase Section (Title + Points) ───
 class PhasePointInline(admin.TabularInline):
     model = PhasePoint
     extra = 1
@@ -98,7 +98,7 @@ class PhaseSectionAdmin(admin.ModelAdmin):
     inlines = [PhasePointInline]
 
 
-# ─── جدول تحت كاردز Warehouses Overview (WH | Emp No | Full Name | Business | Business 2) ───
+# ─── Table below Warehouses Overview (WH | Emp No | Full Name | Business | Business 2) ───
 @admin.register(WHDataRow)
 class WHDataRowAdmin(admin.ModelAdmin):
     list_display = ("wh", "emp_no", "full_name", "business", "business_2", "display_order")
@@ -130,18 +130,18 @@ class WHDataRowAdmin(admin.ModelAdmin):
                 clear_before = form.cleaned_data.get("clear_before_import")
                 if clear_before:
                     deleted, _ = self.model.objects.all().delete()
-                    messages.info(request, f"تم حذف {deleted} صف قديم.")
+                    messages.info(request, f"Deleted {deleted} old rows.")
                 created_count, err_list = import_wh_data_rows_from_excel(excel_file, sheet_name=sheet_name)
                 if created_count > 0:
                     messages.success(
                         request,
-                        f"تم استيراد {created_count} صف بنجاح.",
+                        f"Successfully imported {created_count} rows.",
                     )
                 if err_list:
                     for err in err_list[:10]:
                         messages.warning(request, err)
                     if len(err_list) > 10:
-                        messages.warning(request, f"... و {len(err_list) - 10} رسالة أخرى.")
+                        messages.warning(request, f"... and {len(err_list) - 10} more messages.")
                 if created_count > 0 or not err_list:
                     return redirect("admin:dashboard_whdatarow_changelist")
         else:
@@ -149,13 +149,13 @@ class WHDataRowAdmin(admin.ModelAdmin):
         context = {
             **self.admin_site.each_context(request),
             "form": form,
-            "title": "استيراد WH Data Rows من Excel",
+            "title": "Import WH Data Rows from Excel",
             "opts": self.model._meta,
         }
         return render(request, "admin/dashboard/whdatarow/import_excel.html", context)
 
 
-# ─── نماذج إضافية (جداول Region / Warehouse في الداشبورد، الثيم، نقاط الاجتماع) ───
+# ─── Additional Models (Region / Warehouse tables in dashboard, Theme, Meeting Points) ───
 @admin.register(Region)
 class RegionAdmin(admin.ModelAdmin):
     list_display = ("name", "skus", "available", "utilization_pct", "display_order")
@@ -171,9 +171,50 @@ class WarehouseMetricAdmin(admin.ModelAdmin):
 
 @admin.register(DashboardTheme)
 class DashboardThemeAdmin(admin.ModelAdmin):
-    list_display = ("key", "value", "description")
-    list_editable = ("value", "description")
+    list_display = ("key", "value", "color_preview", "description", "category")
+    list_editable = ("value",)
+    list_filter = ("category",)
     search_fields = ("key", "description")
+    ordering = ("category", "key")
+    change_list_template = "admin/dashboard/dashboardtheme/change_list.html"
+    
+    def color_preview(self, obj):
+        if obj.value and obj.value.startswith("#"):
+            return f'<div style="width:30px;height:20px;background:{obj.value};border:1px solid #ccc;border-radius:3px;"></div>'
+        return "—"
+    color_preview.short_description = "Preview"
+    color_preview.allow_tags = True
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "initialize-defaults/",
+                self.admin_site.admin_view(self.initialize_defaults_view),
+                name="dashboard_dashboardtheme_initialize",
+            ),
+            path(
+                "reset-defaults/",
+                self.admin_site.admin_view(self.reset_defaults_view),
+                name="dashboard_dashboardtheme_reset",
+            ),
+        ]
+        return custom + urls
+    
+    def initialize_defaults_view(self, request):
+        from .models import DashboardTheme
+        created_count, updated_count = DashboardTheme.initialize_defaults(reset_all=False)
+        if created_count > 0:
+            messages.success(request, f"Added {created_count} new theme colors.")
+        else:
+            messages.info(request, "All theme colors already exist. Use 'Reset to Defaults' to update them.")
+        return redirect("admin:dashboard_dashboardtheme_changelist")
+    
+    def reset_defaults_view(self, request):
+        from .models import DashboardTheme
+        created_count, updated_count = DashboardTheme.initialize_defaults(reset_all=True)
+        messages.success(request, f"Reset complete! Created: {created_count}, Updated: {updated_count} colors to new Green+Teal palette.")
+        return redirect("admin:dashboard_dashboardtheme_changelist")
 
 
 @admin.register(MeetingPoint)
@@ -186,7 +227,7 @@ class MeetingPointAdmin(admin.ModelAdmin):
     fields = ("description", "is_done", "created_at", "target_date", "assigned_to")
 
 
-# ─── التوصيات (Recommendations) ───
+# ─── Recommendations ───
 @admin.register(Recommendation)
 class RecommendationAdmin(admin.ModelAdmin):
     list_display = ("title", "icon_type", "display_order", "is_active")
@@ -198,11 +239,11 @@ class RecommendationAdmin(admin.ModelAdmin):
         (None, {
             "fields": ("title", "description")
         }),
-        ("الأيقونة", {
+        ("Icon Settings", {
             "fields": ("icon_type", "custom_icon", "icon_bg_color"),
-            "description": "اختر نوع الأيقونة أو ارفع صورة مخصصة"
+            "description": "Choose icon type or upload a custom image"
         }),
-        ("الإعدادات", {
+        ("Settings", {
             "fields": ("display_order", "is_active")
         }),
     )

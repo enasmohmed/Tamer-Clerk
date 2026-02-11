@@ -1,0 +1,47 @@
+{% extends "admin/change_list.html" %}
+{% load i18n admin_urls %}
+
+{% block object-tools-items %}
+<li>
+    <a href="{% url 'admin:dashboard_dashboardtheme_initialize' %}" class="button" style="background: #1a5f2a; padding: 10px 15px; margin-right: 10px;">
+        ➕ Add Missing Colors
+    </a>
+</li>
+<li>
+    <a href="{% url 'admin:dashboard_dashboardtheme_reset' %}" class="button" style="background: #0d9488; padding: 10px 15px;" onclick="return confirm('This will reset ALL colors to the new Green+Teal palette. Continue?');">
+        🔄 Reset to Green+Teal Palette
+    </a>
+</li>
+{{ block.super }}
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<style>
+    /* Color preview styling */
+    td.field-color_preview div {
+        display: inline-block;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    
+    /* Category badges */
+    td.field-category {
+        font-weight: 500;
+    }
+    
+    /* Editable value field - make it wider */
+    td.field-value input {
+        width: 120px !important;
+        font-family: monospace;
+        text-align: center;
+    }
+    
+    /* Header styling */
+    #changelist-filter h3 {
+        background: #417690;
+        color: white;
+        padding: 8px;
+        border-radius: 4px;
+    }
+</style>
+{% endblock %}

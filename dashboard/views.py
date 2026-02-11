@@ -1969,7 +1969,7 @@ class UploadExcelViewRoche(View):
             data_is_uploaded = True
             warehouse_overview = []
             wh_data_rows = []
-            dashboard_theme = {}
+            dashboard_theme = context_helpers.get_dashboard_theme_dict()
             phases_sections = []
 
         all_tab_data = self.filter_all_tabs(

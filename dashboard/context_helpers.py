@@ -1,18 +1,27 @@
-# context_helpers.py — دوال لدمج بيانات الموديلز (ثيم، مناطق، مستودعات) في سياق الداشبورد
+# context_helpers.py — Functions to merge model data (theme, regions, warehouses) into dashboard context
 
 
 def get_dashboard_theme_dict():
-    """يرجع قاموساً key -> value من DashboardTheme للاستخدام في التمبلت (ألوان الداشبورد)."""
+    """Returns a key -> value dictionary from DashboardTheme for template use (dashboard colors)."""
     try:
-        from .models import DashboardTheme
+        from .models import DashboardTheme, DEFAULT_THEME_COLORS
         qs = DashboardTheme.objects.all()
-        return {t.key: t.value or "" for t in qs}
+        theme_dict = {t.key: t.value or "" for t in qs}
+        
+        # Fill in defaults for any missing keys
+        for key, value, description, category in DEFAULT_THEME_COLORS:
+            if key not in theme_dict or not theme_dict[key]:
+                theme_dict[key] = value
+        
+        return theme_dict
     except Exception:
-        return {}
+        # Return defaults if database error
+        from .models import DEFAULT_THEME_COLORS
+        return {key: value for key, value, desc, cat in DEFAULT_THEME_COLORS}
 
 
 def get_regions_table_from_db():
-    """يرجع قائمة قواميس من موديل Region لجدول returns_region_table."""
+    """Returns a list of dictionaries from Region model for returns_region_table."""
     try:
         from .models import Region
         rows = Region.objects.all()
@@ -30,7 +39,7 @@ def get_regions_table_from_db():
 
 
 def get_warehouse_metrics_table_from_db():
-    """يرجع قائمة قواميس من موديل WarehouseMetric لجدول inventory_warehouse_table."""
+    """Returns a list of dictionaries from WarehouseMetric model for inventory_warehouse_table."""
     try:
         from .models import WarehouseMetric
         rows = WarehouseMetric.objects.all()
@@ -49,12 +58,12 @@ def get_warehouse_metrics_table_from_db():
 
 def get_phases_sections_list():
     """
-    يرجع قائمة أقسام Phases (عنوان + نقاط) لعرضها في Accordion تحت كاردز المستودعات.
-    كل عنصر عبارة عن:
+    Returns a list of Phase sections (title + points) to display in Accordion below warehouse cards.
+    Each element is:
       {
         "id": section.id,
         "title": section.title,
-        "points": ["نقطة 1", "نقطة 2", ...],
+        "points": ["Point 1", "Point 2", ...],
       }
     """
     try:
@@ -75,8 +84,8 @@ def get_phases_sections_list():
 
 def get_warehouse_overview_list():
     """
-    يرجع قائمة مستودعات مع business_systems و employee_summary و phase_statuses
-    لعرض كروت المستودعات (مثل صورة التابات الأولى).
+    Returns a list of warehouses with business_systems, employee_summary, and phase_statuses
+    to display warehouse cards (like the first tabs image).
     """
     try:
         from .models import (
@@ -89,7 +98,7 @@ def get_warehouse_overview_list():
         result = []
         from .models import SYSTEM_STATUS_CHOICES
 
-        # ألوان حالة النظام: Pending = برتقالي، Completed = أخضر
+        # System status colors: Pending = orange, Completed = green
         _system_status_colors = {
             "pending_ph1": "#f57c00",
             "ph1_completed": "#2e7d32",
@@ -110,7 +119,7 @@ def get_warehouse_overview_list():
                 })
             try:
                 emp = wh.employee_summary
-                # النسبة للشارت الدائري: (Pending or edit count / Allocated count) * 100 — يظهر الشارت لو Allocated معرّف
+                # Chart percentage: (Pending or edit count / Allocated count) * 100 — chart shows if Allocated is defined
                 chart_pct = None
                 if emp.allocated_count is not None:
                     if emp.allocated_count > 0:
@@ -144,7 +153,7 @@ def get_warehouse_overview_list():
                     "start_date": ps.start_date,
                     "end_date": ps.end_date,
                 })
-            # لون شارة المستودع: لو اللون فارغ أو رصاصي نستخدم لون حسب الاسم (Active → أخضر، Partial → برتقالي)
+            # Warehouse badge color: if empty or gray, use color based on name (Active → green, Partial → orange)
             status_color = "#6c757d"
             if wh.status:
                 hex_val = (wh.status.color_hex or "").strip()
@@ -174,7 +183,7 @@ def get_warehouse_overview_list():
 
 
 def get_wh_data_rows_list():
-    """يرجع قائمة صفوف الجدول تحت كاردز Warehouses Overview (WH | Emp No | Full Name | Business | Business 2)."""
+    """Returns a list of table rows below Warehouses Overview cards (WH | Emp No | Full Name | Business | Business 2)."""
     try:
         from .models import WHDataRow
         rows = WHDataRow.objects.select_related("business", "business_2").all()
@@ -193,7 +202,7 @@ def get_wh_data_rows_list():
 
 
 def get_recommendations_list():
-    """يرجع قائمة التوصيات النشطة لتاب Recommendation Overview."""
+    """Returns a list of active recommendations for Recommendation Overview tab."""
     try:
         from .models import Recommendation
         recs = Recommendation.objects.filter(is_active=True).order_by("display_order", "id")
@@ -209,8 +218,8 @@ def get_recommendations_list():
             }
             for r in recs
         ]
-        print(f"📋 [Recommendations] Found {len(result)} active recommendations")  # للتتبع
+        print(f"[Recommendations] Found {len(result)} active recommendations")  # For debugging
         return result
     except Exception as e:
-        print(f"❌ [Recommendations] Error: {e}")  # للتتبع
+        print(f"[Recommendations] Error: {e}")  # For debugging
         return []

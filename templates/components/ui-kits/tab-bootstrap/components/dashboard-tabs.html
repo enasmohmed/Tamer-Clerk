@@ -1,20 +1,35 @@
 {% load static %} {% load sass_tags %} {% csrf_token %}
+
+{# CSS Variables from Dashboard Theme - All tab colors customizable from Admin #}
+<style>
+  :root {
+    /* Tab Colors from Admin Theme */
+    --tab-active-bg: {{ dashboard_theme.tab_active_bg|default:"#1a5f2a" }};
+    --tab-active-text: {{ dashboard_theme.tab_active_text|default:"#ffffff" }};
+    --tab-inactive-bg: {{ dashboard_theme.tab_inactive_bg|default:"#ffffff" }};
+    --tab-inactive-text: {{ dashboard_theme.tab_inactive_text|default:"#1a5f2a" }};
+    --tab-border-color: {{ dashboard_theme.tab_border_color|default:"#1a5f2a" }};
+    --tab-hover-bg: {{ dashboard_theme.tab_hover_bg|default:"#e8f5e9" }};
+    --primary-color: {{ dashboard_theme.primary_color|default:"#1a5f2a" }};
+  }
+</style>
+
 <style>
   .nav-tabs .nav-link {
-    background-color: #f7f9fc;
-    color: #007bff;
+    background-color: var(--tab-inactive-bg);
+    color: var(--tab-inactive-text);
     border: none;
     transition: all 0.2s ease-in-out;
   }
   .nav-tabs .nav-link:hover {
-    background-color: #eaf2ff;
+    background-color: var(--tab-hover-bg);
   }
   .nav-tabs .nav-link.active {
-    background-color: #9084ad;
-    color: #fff !important;
+    background-color: var(--tab-active-bg);
+    color: var(--tab-active-text) !important;
   }
 
-  /* 🎨 تنسيق التابات بشكل احترافي */
+  /* Tab Styling */
   #dashboard-tabs {
     display: flex;
     justify-content: center;
@@ -24,38 +39,38 @@
   }
 
   #dashboard-tabs button {
-    background: #e8f1fb;
-    color: #004b8d;
-    border: 1px solid #c9e0fa;
+    background: var(--tab-inactive-bg);
+    color: var(--tab-inactive-text);
+    border: 1px solid var(--tab-border-color);
     border-radius: 10px;
     padding: 10px 20px;
     font-weight: 600;
     font-size: 15px;
     transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 75, 141, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   #dashboard-tabs button:hover {
-    background: #d4e7ff;
-    color: #003366;
+    background: var(--tab-hover-bg);
+    color: var(--tab-inactive-text);
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 75, 141, 0.15);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   }
 
   #dashboard-tabs button.active {
-    background: #9084ad !important;
-    color: #ffff;
-    border-color: #9084ad !important;
-    box-shadow: 0 3px 6px rgba(0, 123, 255, 0.25);
+    background: var(--tab-active-bg) !important;
+    color: var(--tab-active-text) !important;
+    border-color: var(--tab-active-bg) !important;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
     transform: scale(1.03);
     font-weight: bold;
   }
 
   .btn-download-excel {
-    background: #9084ad !important;
-    color: #ffff !important;
-    border-color: #9084ad !important;
-    box-shadow: 0 3px 6px rgba(0, 123, 255, 0.25);
+    background: var(--tab-active-bg) !important;
+    color: var(--tab-active-text) !important;
+    border-color: var(--tab-active-bg) !important;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
     transform: scale(1.03);
     font-weight: bold;
   }
@@ -230,72 +245,72 @@
         <div class="card-body mb-5">
           {% if not data_is_uploaded %}
           <!-- ✅ أول مرة (رفع ملف Excel) -->
-          <div class="card shadow-sm p-4 border-0 text-center">
-            <h5 class="fw-bold mb-3 text-primary">
-              📊 Upload Roche KPI Excel File
-            </h5>
-            <form
-              method="post"
-              enctype="multipart/form-data"
-              class="d-inline-block"
-              id="uploadForm"
-            >
-              {% csrf_token %}
-              <input type="hidden" name="upload_code" id="hidden_upload_code" />
-              <div class="mb-3">
-                <label for="excel_file" class="form-label fw-semibold"
-                  >Select Excel File:</label
-                >
-                {{ form.excel_file }}
-              </div>
-              <button
-                type="button"
-                class="btn btn-primary px-4"
-                data-bs-toggle="modal"
-                data-bs-target="#codeModalInitial"
-              >
-                Upload & Analyze
-              </button>
-            </form>
-            <!-- 💬 مودال إدخال الكود -->
-            <div
-              class="modal fade"
-              id="codeModalInitial"
-              tabindex="-1"
-              aria-hidden="true"
-            >
-              <div class="modal-dialog modal-dialog-centered">
-                <div class="modal-content">
-                  <form id="codeForm">
-                    <div class="modal-header">
-                      <h5 class="modal-title">Enter Upload Code</h5>
-                      <button
-                        type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal"
-                        aria-label="Close"
-                      ></button>
-                    </div>
-                    <div class="modal-body">
-                      <input
-                        type="password"
-                        id="upload_code"
-                        maxlength="4"
-                        class="form-control text-center"
-                        placeholder="****"
-                        required
-                      />
-                    </div>
-                    <div class="modal-footer">
-                      <button type="submit" class="btn btn-primary">
-                        Confirm
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            </div>
-          </div>
+<!--          <div class="card shadow-sm p-4 border-0 text-center">-->
+<!--            <h5 class="fw-bold mb-3 text-primary">-->
+<!--              📊 Upload Roche KPI Excel File-->
+<!--            </h5>-->
+<!--            <form-->
+<!--              method="post"-->
+<!--              enctype="multipart/form-data"-->
+<!--              class="d-inline-block"-->
+<!--              id="uploadForm"-->
+<!--            >-->
+<!--              {% csrf_token %}-->
+<!--              <input type="hidden" name="upload_code" id="hidden_upload_code" />-->
+<!--              <div class="mb-3">-->
+<!--                <label for="excel_file" class="form-label fw-semibold"-->
+<!--                  >Select Excel File:</label-->
+<!--                >-->
+<!--                {{ form.excel_file }}-->
+<!--              </div>-->
+<!--              <button-->
+<!--                type="button"-->
+<!--                class="btn btn-primary px-4"-->
+<!--                data-bs-toggle="modal"-->
+<!--                data-bs-target="#codeModalInitial"-->
+<!--              >-->
+<!--                Upload & Analyze-->
+<!--              </button>-->
+<!--            </form>-->
+<!--            &lt;!&ndash; 💬 مودال إدخال الكود &ndash;&gt;-->
+<!--            <div-->
+<!--              class="modal fade"-->
+<!--              id="codeModalInitial"-->
+<!--              tabindex="-1"-->
+<!--              aria-hidden="true"-->
+<!--            >-->
+<!--              <div class="modal-dialog modal-dialog-centered">-->
+<!--                <div class="modal-content">-->
+<!--                  <form id="codeForm">-->
+<!--                    <div class="modal-header">-->
+<!--                      <h5 class="modal-title">Enter Upload Code</h5>-->
+<!--                      <button-->
+<!--                        type="button"-->
+<!--                        class="btn-close"-->
+<!--                        data-bs-dismiss="modal"-->
+<!--                        aria-label="Close"-->
+<!--                      ></button>-->
+<!--                    </div>-->
+<!--                    <div class="modal-body">-->
+<!--                      <input-->
+<!--                        type="password"-->
+<!--                        id="upload_code"-->
+<!--                        maxlength="4"-->
+<!--                        class="form-control text-center"-->
+<!--                        placeholder="****"-->
+<!--                        required-->
+<!--                      />-->
+<!--                    </div>-->
+<!--                    <div class="modal-footer">-->
+<!--                      <button type="submit" class="btn btn-primary">-->
+<!--                        Confirm-->
+<!--                      </button>-->
+<!--                    </div>-->
+<!--                  </form>-->
+<!--                </div>-->
+<!--              </div>-->
+<!--            </div>-->
+<!--          </div>-->
           {% else %}
           <!-- ✅ حالة وجود بيانات -->
 <!--          <div-->
@@ -377,8 +392,8 @@
 <!--              </div>-->
 <!--            </div>-->
 <!--          </div>-->
-          {% if data_is_uploaded %} 
-          {% include 'components/ui-kits/alert/components/alert.html' %} 
+          {% if data_is_uploaded %}
+          {% include 'components/ui-kits/alert/components/alert.html' %}
           {% endif %}
           <div id="filter-message"></div>
           <!-- 🔹 Warehouse + Meeting Points -->
