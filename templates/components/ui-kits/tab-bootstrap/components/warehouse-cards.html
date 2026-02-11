@@ -1,0 +1,339 @@
+{% load static %}
+{# كروت المستودعات (مثل صورة التابات — Jeddah, Riyadh, Dammam, Abha) #}
+<style>
+  .warehouse-cards-section {
+    margin-bottom: 2rem;
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+  .warehouse-cards-section .warehouse-cards-row > [class*="col-"] {
+    min-width: 0;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  .warehouse-card-panel {
+    background: #fff;
+    border: 1px solid #e1e5ea;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    height: 100%;
+    max-width: 100%;
+  }
+  .warehouse-card-panel .wh-body {
+    padding: 1rem 1.25rem;
+    overflow: hidden;
+    max-width: 100%;
+  }
+  .warehouse-card-panel .wh-body .row {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+    max-width: 100%;
+    width: 100%;
+  }
+  .warehouse-card-panel .wh-body .row > [class*="col-"] {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .warehouse-card-panel .wh-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #e1e5ea;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .warehouse-card-panel .wh-header .wh-name {
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #2c2f33;
+    margin: 0;
+  }
+  .warehouse-card-panel .wh-status-badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 8px;
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.85rem;
+  }
+  .warehouse-card-panel .wh-table {
+    font-size: 0.875rem;
+    border-collapse: collapse;
+  }
+  .warehouse-card-panel .wh-table th {
+    background: #2e7d32;
+    color: #fff;
+    padding: 0.5rem 0.75rem;
+  }
+  .warehouse-card-panel .wh-table td {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid #eee;
+  }
+  .warehouse-card-panel .wh-quadrant:first-child {
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  @media (min-width: 768px) {
+    .warehouse-card-panel .wh-quadrant:first-child {
+      border-right: 1px solid #e1e5ea;
+      padding-right: 0.75rem;
+    }
+    .warehouse-card-panel .wh-quadrant-emp {
+      padding-left: 0.75rem;
+    }
+  }
+  /* جدول Business | System | Status: أعمدة متساوية + بيانات في المنتصف (العرض من الـ class) */
+  .warehouse-card-panel .wh-table-biz-system {
+    width: 100%;
+    font-size: 0.8125rem;
+  }
+  .warehouse-card-panel .wh-table-biz-system th,
+  .warehouse-card-panel .wh-table-biz-system td {
+    padding: 0.4rem 0.5rem;
+    text-align: center;
+  }
+  .warehouse-card-panel .wh-table-biz-system .phase-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    display: inline-block;
+  }
+  .warehouse-card-panel .wh-section-title {
+    font-weight: 600;
+    margin: 0 0 0.5rem 0;
+    color: #2c2f33;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .warehouse-card-panel .wh-quadrant {
+    padding: 0.5rem 0;
+    min-height: 0;
+    box-sizing: border-box;
+  }
+  .warehouse-card-panel .wh-quadrant-emp {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    overflow: hidden;
+  }
+  .warehouse-card-panel .wh-body .row {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
+  }
+  .warehouse-card-panel .wh-body .row > [class*="col-"] {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  .warehouse-card-panel .phase-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+  .warehouse-card-panel .wh-emp-capsule {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    background: #f0f4f0;
+    border-radius: 999px;
+    font-size: 0.875rem;
+  }
+  .warehouse-card-panel .wh-emp-donut-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.75rem;
+    min-height: 140px;
+  }
+  .warehouse-card-panel .wh-emp-donut {
+    width: 130px;
+    height: 130px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .warehouse-card-panel .wh-emp-donut-inner {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #2c2f33;
+  }
+  .warehouse-cards-section .warehouse-cards-row > .col-md-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+  .warehouse-card-panel .wh-phase-row {
+    padding-top: 0.75rem;
+  }
+  .warehouse-card-panel .wh-phase-line {
+    font-size: 0.9rem;
+    color: #2c2f33;
+  }
+  .warehouse-card-panel .wh-phase-label {
+    min-width: 4.5rem;
+  }
+  .warehouse-card-panel .wh-phase-pct {
+    min-width: 2.5rem;
+    font-weight: 600;
+    color: #2e7d32;
+  }
+  @media (max-width: 767.98px) {
+    .warehouse-cards-section .warehouse-cards-row > .col-md-6 {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+    .warehouse-card-panel .wh-table {
+      font-size: 0.8rem;
+    }
+    .warehouse-card-panel .wh-table th,
+    .warehouse-card-panel .wh-table td {
+      padding: 0.4rem 0.5rem;
+    }
+  }
+</style>
+<div class="warehouse-cards-section">
+  <h5 class="mb-3 fw-bold" style="color: #2c2f33">Warehouses Overview</h5>
+  <div class="row g-3 warehouse-cards-row">
+    {% for item in warehouse_overview %}
+    <div class="col-12 col-md-6">
+      <div class="warehouse-card-panel">
+        <div class="wh-header">
+          <h6 class="wh-name">{{ item.warehouse.name }}</h6>
+          <span
+            class="wh-status-badge"
+            style="background-color: {{ item.status_color }};"
+            >{{ item.status_name|default:"—" }}</span
+          >
+        </div>
+        <div class="wh-body">
+          <div class="row g-2">
+            <div class="col-12 col-md-8 wh-quadrant">
+              {% if item.business_systems %}
+              <table class="wh-table wh-table-biz-system mb-0 table-equal-cols">
+                <thead>
+                  <tr>
+                    <th>Business</th>
+                    <th>System</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for row in item.business_systems %}
+                  <tr>
+                    <td>{{ row.business }}</td>
+                    <td>{{ row.system }}</td>
+                    <td>
+                      {% if row.status_name %}
+                      <span
+                        class="phase-badge"
+                        style="background-color: {{ row.status_color }};"
+                        >{{ row.status_name }}</span
+                      >
+                      {% else %}
+                      <span class="text-muted">—</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+              {% else %}
+              <table class="wh-table wh-table-biz-system mb-0 table-equal-cols">
+                <thead>
+                  <tr>
+                    <th>Business</th>
+                    <th>System</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td colspan="3" class="text-muted small">—</td>
+                  </tr>
+                </tbody>
+              </table>
+              {% endif %}
+            </div>
+            <div class="col-12 col-md-4 wh-quadrant wh-quadrant-emp">
+              <div class="wh-section-title">
+                <i class="bi bi-people-fill small text-secondary"></i> Employees Summary
+              </div>
+              <div class="wh-emp-capsule">
+                {% if item.employee_summary.allocated_count is not None %}
+                <span class="text-success">✓ {{ item.employee_summary.allocated_count }} Employee</span>
+                {% endif %}
+                {% if item.employee_summary.pending_or_edit_count %}
+                <span class="text-secondary">✎ {{ item.employee_summary.pending_or_edit_count }}</span>
+                {% endif %}
+                {% if item.employee_summary.phase_label %}
+                <span class="text-success">✓ {{ item.employee_summary.phase_label }}</span>
+                {% endif %}
+                {% if item.employee_summary.phase_status_label %}
+                <span class="text-success">✓ {{ item.employee_summary.phase_status_label }}</span>
+                {% endif %}
+                {% if not item.employee_summary.allocated_count and not item.employee_summary.phase_label %}
+                <span class="text-muted">—</span>
+                {% endif %}
+              </div>
+              {% if item.employee_summary.employee_chart_pct is not None %}
+              <div class="wh-emp-donut-wrap">
+                <div
+                  class="wh-emp-donut"
+                  style="background: conic-gradient(#f57c00 0% {{ item.employee_summary.employee_chart_pct }}%, #e8ece8 {{ item.employee_summary.employee_chart_pct }}% 100%);"
+                >
+                  <div class="wh-emp-donut-inner">{{ item.employee_summary.employee_chart_pct }}%</div>
+                </div>
+              </div>
+              {% endif %}
+            </div>
+            <hr>
+            {# Phase 1 و Phase 2 مع نسبة الإنجاز (تدخلها من الأدمن: Warehouses → Phase1 pct / Phase2 pct) #}
+            <div class="col-12 wh-quadrant wh-phase-row">
+              <div class="wh-phase-line d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <div class="wh-phase-item d-flex align-items-center gap-2">
+                  <span class="wh-phase-label fw-semibold">Phase 1</span>
+                  <span class="wh-phase-dash flex-grow-1" style="border-bottom: 2px dashed #dee2e6; min-width: 2rem;"></span>
+                  <span class="wh-phase-pct">{% if item.phase1_pct is not None %}{{ item.phase1_pct }}%{% else %}—{% endif %}</span>
+                </div>
+                <div class="wh-phase-item d-flex align-items-center gap-2">
+                  <span class="wh-phase-label fw-semibold">Phase 2</span>
+                  <span class="wh-phase-dash flex-grow-1" style="border-bottom: 2px dashed #dee2e6; min-width: 2rem;"></span>
+                  <span class="wh-phase-pct">{% if item.phase2_pct is not None %}{{ item.phase2_pct }}%{% else %}—{% endif %}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+      <div class="text-center py-5 px-3 rounded-3" style="background: #f8f9fa; border: 1px dashed #dee2e6">
+        <p class="text-muted mb-2 fs-5">لا توجد مستودعات حتى الآن.</p>
+        <p class="small text-muted mb-0">
+          من الأدمن: Warehouses → Add Warehouse، ثم أضف له Business Systems و Employee Summary و Phase Status حسب
+          <a href="#" class="text-primary">خطوات إنشاء الكارد</a>.
+        </p>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
