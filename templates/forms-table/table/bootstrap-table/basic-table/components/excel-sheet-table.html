@@ -1,114 +1,114 @@
 {% load static %} {% load custom_tags %} {% load sass_tags %}
 
 <style>
-  .table-top {
-    margin-top: 3rem !important;
-  }
-  .table-card {
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 1.5rem;
-    background-color: #fff;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    margin-bottom: 1.5rem;
+    .table-top {
+      margin-top: 3rem !important;
+    }
+    .table-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1.5rem;
+      background-color: #fff;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 1.5rem;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .table-card .table-responsive {
+      flex: 1;
+    }
+
+    .custom-scrollbar {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #888;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #555;
+    }
+    .table-responsive {
+      padding: 1.5rem;
+      background-color: #fff;
+    }
+
+    .badge:empty {
+      display: block !important;
+    }
+
+    /* KPI cards row — مثل Roche Monthly Business Review */
+    .kpi-cards-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+  .kpi-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 34px 22px;
     height: 100%;
-    display: flex;
-    flex-direction: column;
+    box-shadow: 0 10px 28px rgba(0,0,0,.08);
+    transition: all .25s ease;
   }
 
-  .table-card .table-responsive {
-    flex: 1;
-  }
+    .kpi-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 16px 36px rgba(0,0,0,.12);
+    }
 
-  .custom-scrollbar {
-    max-height: 500px;
-    overflow-y: auto;
-  }
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 8px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #888;
-    border-radius: 4px;
-  }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #555;
-  }
-  .table-responsive {
-    padding: 1.5rem;
-    background-color: #fff;
-  }
+    .kpi-icon {
+      font-size: 44px;
+      margin-bottom: 16px;
+    }
 
-  .badge:empty {
-    display: block !important;
-  }
+    .kpi-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #6c757d;
+      margin-bottom: 6px;
+    }
 
-  /* KPI cards row — مثل Roche Monthly Business Review */
-  .kpi-cards-row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 1.5rem;
-  }
- .kpi-card {
-  background: #fff;
-  border-radius: 20px;
-  padding: 34px 22px;
-  height: 100%;
-  box-shadow: 0 10px 28px rgba(0,0,0,.08);
-  transition: all .25s ease;
-}
+    .kpi-value {
+      font-size: 36px;
+      font-weight: 800;
+    }
 
-.kpi-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 16px 36px rgba(0,0,0,.12);
-}
+    .kpi-card.success {
+      border-top: 5px solid #198754;
+    }
 
-.kpi-icon {
-  font-size: 44px;
-  margin-bottom: 16px;
-}
+    .kpi-card.danger {
+      border-top: 5px solid #dc3545;
+    }
 
-.kpi-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #6c757d;
-  margin-bottom: 6px;
-}
+    .form-select {
+      border-radius: 10px;
+    }
 
-.kpi-value {
-  font-size: 36px;
-  font-weight: 800;
-}
+    .card {
+      border-radius: 16px;
+    }
 
-.kpi-card.success {
-  border-top: 5px solid #198754;
-}
+    .filter-row .form-select {
+      min-height: 40px;
+      font-size: 0.95rem;
+    }
 
-.kpi-card.danger {
-  border-top: 5px solid #dc3545;
-}
-
-.form-select {
-  border-radius: 10px;
-}
-
-.card {
-  border-radius: 16px;
-}
-
-.filter-row .form-select {
-  min-height: 40px;
-  font-size: 0.95rem;
-}
-
-.filter-row .form-label {
-  white-space: nowrap;
-}
+    .filter-row .form-label {
+      white-space: nowrap;
+    }
 
 </style>
 

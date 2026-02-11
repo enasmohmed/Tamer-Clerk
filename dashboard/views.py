@@ -1593,6 +1593,7 @@ class UploadExcelViewRoche(View):
                 "warehouse_overview": context_helpers.get_warehouse_overview_list(),
                 "wh_data_rows": context_helpers.get_wh_data_rows_list(),
                 "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
+                "phases_sections": context_helpers.get_phases_sections_list(),
             }
             return render(request, self.template_name, render_context)
 
@@ -1962,11 +1963,13 @@ class UploadExcelViewRoche(View):
             warehouse_overview = context_helpers.get_warehouse_overview_list()
             wh_data_rows = context_helpers.get_wh_data_rows_list()
             dashboard_theme = context_helpers.get_dashboard_theme_dict()
+            phases_sections = context_helpers.get_phases_sections_list()
         else:
             data_is_uploaded = True
             warehouse_overview = []
             wh_data_rows = []
             dashboard_theme = {}
+            phases_sections = []
 
         all_tab_data = self.filter_all_tabs(
             request=request, selected_month=selected_month or None
@@ -2784,6 +2787,7 @@ class UploadExcelViewRoche(View):
             warehouse_overview = context_helpers.get_warehouse_overview_list()
             wh_data_rows = context_helpers.get_wh_data_rows_list()
             dashboard_theme = context_helpers.get_dashboard_theme_dict()
+            phases_sections = context_helpers.get_phases_sections_list()
             html = render_to_string(
                 "components/ui-kits/tab-bootstrap/components/dashboard-overview.html",
                 {
@@ -2794,6 +2798,7 @@ class UploadExcelViewRoche(View):
                     "warehouse_overview": warehouse_overview,
                     "wh_data_rows": wh_data_rows,
                     "dashboard_theme": dashboard_theme,
+                    "phases_sections": phases_sections,
                 },
                 request=request,
             )
@@ -7350,12 +7355,14 @@ class UploadExcelViewRoche(View):
             warehouse_overview = context_helpers.get_warehouse_overview_list()
             wh_data_rows = context_helpers.get_wh_data_rows_list()
             dashboard_theme = context_helpers.get_dashboard_theme_dict()
+            phases_sections = context_helpers.get_phases_sections_list()
             html = render_to_string(
                 "components/ui-kits/tab-bootstrap/components/warehouse-cards.html",
                 {
                     "warehouse_overview": warehouse_overview,
                     "wh_data_rows": wh_data_rows,
                     "dashboard_theme": dashboard_theme,
+                    "phases_sections": phases_sections,
                 },
                 request=request,
             )

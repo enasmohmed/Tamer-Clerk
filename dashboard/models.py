@@ -174,6 +174,43 @@ class WarehousePhaseStatus(models.Model):
         return f"{self.warehouse.name} / {self.business_unit.name} / {self.activity.name}"
 
 
+# ─── سكشن Phases (عنوان + نقاط) للجزء تحت الكاردز ───
+class PhaseSection(models.Model):
+    """قسم في سكشن Phases أسفل كروت المستودعات (مثل Accordion item)."""
+    title = models.CharField(max_length=200, help_text="عنوان المرحلة أو السؤال (مثال: Phase 1 details).")
+    display_order = models.PositiveSmallIntegerField(
+        default=0, help_text="ترتيب ظهور السكشن: الأصغر يظهر أولاً."
+    )
+    is_active = models.BooleanField(default=True, help_text="لو مقفولة مش هتظهر في الواجهة.")
+
+    class Meta:
+        verbose_name = "Phase Section (قسم مرحلة)"
+        verbose_name_plural = "Phase Sections (أقسام مراحل)"
+        ordering = ["display_order", "id"]
+
+    def __str__(self):
+        return self.title
+
+
+class PhasePoint(models.Model):
+    """نقطة (Bullet) داخل سكشن Phase واحد."""
+    section = models.ForeignKey(
+        PhaseSection, on_delete=models.CASCADE, related_name="points", help_text="المرحلة المرتبطة بالنقطة."
+    )
+    text = models.CharField(max_length=255, help_text="النص المختصر للنقطة.")
+    display_order = models.PositiveSmallIntegerField(
+        default=0, help_text="ترتيب ظهور النقطة داخل السكشن."
+    )
+
+    class Meta:
+        verbose_name = "Phase Point (نقطة مرحلة)"
+        verbose_name_plural = "Phase Points (نقاط مراحل)"
+        ordering = ["section", "display_order", "id"]
+
+    def __str__(self):
+        return self.text[:80]
+
+
 # ─── ملخص الموظفين للمستودع (عدد المعينين، رقم قلم، أو نص مثل Phase 1 Completed) ───
 class WarehouseEmployeeSummary(models.Model):
     warehouse = models.OneToOneField(

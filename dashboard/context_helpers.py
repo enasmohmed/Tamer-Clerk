@@ -47,6 +47,32 @@ def get_warehouse_metrics_table_from_db():
         return []
 
 
+def get_phases_sections_list():
+    """
+    يرجع قائمة أقسام Phases (عنوان + نقاط) لعرضها في Accordion تحت كاردز المستودعات.
+    كل عنصر عبارة عن:
+      {
+        "id": section.id,
+        "title": section.title,
+        "points": ["نقطة 1", "نقطة 2", ...],
+      }
+    """
+    try:
+        from .models import PhaseSection
+
+        sections = PhaseSection.objects.filter(is_active=True).prefetch_related("points")
+        return [
+            {
+                "id": s.id,
+                "title": s.title,
+                "points": [p.text for p in s.points.all()],
+            }
+            for s in sections
+        ]
+    except Exception:
+        return []
+
+
 def get_warehouse_overview_list():
     """
     يرجع قائمة مستودعات مع business_systems و employee_summary و phase_statuses

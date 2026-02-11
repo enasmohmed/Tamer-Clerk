@@ -6,10 +6,15 @@
     overflow-x: hidden;
     max-width: 100%;
   }
+  .warehouse-cards-section .warehouse-cards-row {
+    align-items: stretch;
+  }
   .warehouse-cards-section .warehouse-cards-row > [class*="col-"] {
     min-width: 0;
     padding-left: 0.5rem;
     padding-right: 0.5rem;
+    display: flex;
+    flex-direction: column;
   }
   .warehouse-card-panel {
     background: #fff;
@@ -17,7 +22,6 @@
     border-radius: 12px;
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
     overflow: hidden;
-    height: 100%;
     max-width: 100%;
   }
   .warehouse-card-panel .wh-body {
@@ -227,9 +231,10 @@
 <div class="warehouse-cards-section">
   <h5 class="mb-3 fw-bold" style="color: #2c2f33">Warehouses Overview</h5>
   <div class="row g-3 warehouse-cards-row">
+    {% if warehouse_overview %}
     {% for item in warehouse_overview %}
-    <div class="col-12 col-md-6">
-      <div class="warehouse-card-panel">
+    <div class="col-12 col-md-6 d-flex">
+      <div class="warehouse-card-panel w-100 h-100 d-flex flex-column">
         <div class="wh-header">
           <h6 class="wh-name">{{ item.warehouse.name }}</h6>
           <span
@@ -320,7 +325,6 @@
               {% endif %}
             </div>
             <hr>
-            {# Phase 1 و Phase 2 مع نسبة الإنجاز (تدخلها من الأدمن: Warehouses → Phase1 pct / Phase2 pct) #}
             <div class="col-12 wh-quadrant wh-phase-row">
               <div class="wh-phase-line d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <div class="wh-phase-item d-flex align-items-center gap-2">
@@ -350,22 +354,60 @@
       </div>
     </div>
     {% endfor %}
+    {% endif %}
   </div>
 
-  {# جدول في ديف لوحده تحت الكاردز مع فلتر لكل عمود #}
-  {% with rows=wh_data_rows %}
-  <div class="wh-data-table-section mt-5 pt-3">
-    <h5 class="fw-bold mb-3" style="color: #2c2f33; font-size: 1.35rem;">Data Table</h5>
-    <div class="wh-data-table-filters mb-2">
-      <div class="row g-2 align-items-center flex-wrap">
-        <div class="col-auto"><label class="form-label small mb-0 text-muted">Filter:</label></div>
-        <div class="col-6 col-md"><input type="text" class="form-control form-control-sm wh-filter-input" placeholder="WH" data-col="0" aria-label="Filter WH"></div>
-        <div class="col-6 col-md"><input type="text" class="form-control form-control-sm wh-filter-input" placeholder="Emp No" data-col="1" aria-label="Filter Emp No"></div>
-        <div class="col-6 col-md"><input type="text" class="form-control form-control-sm wh-filter-input" placeholder="Full Name" data-col="2" aria-label="Filter Full Name"></div>
-        <div class="col-6 col-md"><input type="text" class="form-control form-control-sm wh-filter-input" placeholder="Business" data-col="3" aria-label="Filter Business"></div>
-        <div class="col-6 col-md"><input type="text" class="form-control form-control-sm wh-filter-input" placeholder="Business 2" data-col="4" aria-label="Filter Business 2"></div>
+  {# سكشن Phases تحت الكاردز (ديناميك من الموديل PhaseSection + PhasePoint) #}
+  {% if phases_sections %}
+  <div class="mt-5">
+    <h6 class="fw-bold mb-3" style="color: #2c2f33;font-size: 20px;">Phases</h6>
+    <div class="accordion" id="phasesAccordion">
+      {% for section in phases_sections %}
+      {% with idx=forloop.counter %}
+      <div class="accordion-item">
+        <h2 class="accordion-header" id="phases-heading-{{ idx }}">
+          <button
+            class="accordion-button collapsed fw-semibold py-2"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#phases-collapse-{{ idx }}"
+            aria-expanded="false"
+            aria-controls="phases-collapse-{{ idx }}"
+          >
+            {{ section.title }}
+          </button>
+        </h2>
+        <div
+          id="phases-collapse-{{ idx }}"
+          class="accordion-collapse collapse"
+          aria-labelledby="phases-heading-{{ idx }}"
+        >
+          <div class="accordion-body small" style="font-size: 14px;">
+            {% if section.points %}
+            <ul class="mb-0 ps-0 list-unstyled">
+              {% for point in section.points %}
+              <li class="d-flex align-items-start gap-2">
+                <span class="text-warning fw-bold" style="line-height: 1;">•</span>
+                <span>{{ point }}</span>
+              </li>
+              {% endfor %}
+            </ul>
+            {% else %}
+            <span class="text-muted">لا توجد نقاط معرفة لهذه المرحلة حتى الآن.</span>
+            {% endif %}
+          </div>
+        </div>
       </div>
+      {% endwith %}
+      {% endfor %}
     </div>
+  </div>
+  {% endif %}
+
+  {# جدول تحت الكاردز: WH | Emp No | Full Name | Business | Business 2 — يظهر دائماً في تاب Warehouse #}
+  {% with rows=wh_data_rows %}
+  <div class="wh-data-table-wrap mt-5">
+    <h6 class="fw-bold mb-3" style="color: #2c2f33;font-size: 20px;">Data Table</h6>
     <div class="table-responsive">
       <table class="table table-bordered table-hover table-striped align-middle mb-0 wh-data-table">
         <thead class="table-dark">
@@ -379,7 +421,7 @@
         </thead>
         <tbody>
           {% for row in rows %}
-          <tr class="wh-data-row">
+          <tr>
             <td>{{ row.wh }}</td>
             <td>{{ row.emp_no }}</td>
             <td>{{ row.full_name }}</td>
@@ -387,7 +429,7 @@
             <td>{{ row.business_2 }}</td>
           </tr>
           {% empty %}
-          <tr class="wh-data-row wh-data-row-empty">
+          <tr>
             <td colspan="5" class="text-center text-muted py-4">لا توجد بيانات حتى الآن. من الأدمن: WH Data Rows → استيراد من Excel.</td>
           </tr>
           {% endfor %}
@@ -395,31 +437,5 @@
       </table>
     </div>
   </div>
-  <script>
-  (function() {
-    var section = document.querySelector('.wh-data-table-section');
-    if (!section) return;
-    var inputs = section.querySelectorAll('.wh-filter-input');
-    var rows = section.querySelectorAll('tbody tr.wh-data-row:not(.wh-data-row-empty)');
-    function filterTable() {
-      var vals = [];
-      inputs.forEach(function(inp) { vals.push((inp.value || '').trim().toLowerCase()); });
-      rows.forEach(function(tr) {
-        var cells = tr.querySelectorAll('td');
-        var show = true;
-        for (var i = 0; i < vals.length && i < cells.length; i++) {
-          if (!vals[i]) continue;
-          var cellText = (cells[i].textContent || '').trim().toLowerCase();
-          if (cellText.indexOf(vals[i]) === -1) { show = false; break; }
-        }
-        tr.style.display = show ? '' : 'none';
-      });
-    }
-    inputs.forEach(function(inp) {
-      inp.addEventListener('input', filterTable);
-      inp.addEventListener('keyup', filterTable);
-    });
-  })();
-  </script>
   {% endwith %}
 </div>

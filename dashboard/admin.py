@@ -13,6 +13,8 @@ from .models import (
     WarehouseBusinessSystem,
     WarehouseEmployeeSummary,
     WarehousePhaseStatus,
+    PhaseSection,
+    PhasePoint,
     WHDataRow,
     Region,
     WarehouseMetric,
@@ -80,6 +82,19 @@ class WarehousePhaseStatusAdmin(admin.ModelAdmin):
     list_display = ("warehouse", "business_unit", "activity", "status", "start_date", "end_date")
     list_editable = ("status", "start_date", "end_date")
     list_filter = ("warehouse", "business_unit", "activity", "status")
+
+
+# ─── 8-bis. سكشن Phases (عنوان + نقاط) ───
+class PhasePointInline(admin.TabularInline):
+    model = PhasePoint
+    extra = 1
+
+
+@admin.register(PhaseSection)
+class PhaseSectionAdmin(admin.ModelAdmin):
+    list_display = ("title", "display_order", "is_active")
+    list_editable = ("display_order", "is_active")
+    inlines = [PhasePointInline]
 
 
 # ─── جدول تحت كاردز Warehouses Overview (WH | Emp No | Full Name | Business | Business 2) ───
