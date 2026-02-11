@@ -217,14 +217,17 @@ $(document).ready(function () {
 function loadMeetingPoints(status = 'all') {
   const url = `{% url 'dashboard:upload_excel' %}?status=${status}`;
 
-  fetch(url)
+  fetch(url, {
+    headers: { "X-Requested-With": "XMLHttpRequest" }
+  })
     .then(response => {
       if (!response.ok) throw new Error("❌ Network response was not ok");
       return response.json();
     })
     .then(data => {
-      $("#meeting-body").html($(data.detail_html).find("tbody").html());
-
+      if (data.detail_html) {
+        $("#meeting-body").html($(data.detail_html).find("tbody").html());
+      }
       if (data.done_count !== undefined && data.total_count !== undefined) {
         $("#done-count").text(data.done_count);
         $("#total-count").text(data.total_count);

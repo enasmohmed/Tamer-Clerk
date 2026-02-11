@@ -1536,6 +1536,44 @@ class UploadExcelViewRoche(View):
     @method_decorator(cache_control(max_age=3600, public=True), name="get")
     def get(self, request):
         # --------------------------
+        # طلبات AJAX للتابات (حتى مع USE_WAREHOUSE_TAB_ONLY): إرجاع JSON وليس الصفحة الكاملة
+        # --------------------------
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            selected_tab = (request.GET.get("tab") or "").strip().lower()
+            if selected_tab == "meeting points":
+                return self.meeting_points_tab(request)
+            if getattr(self, "USE_WAREHOUSE_TAB_ONLY", False) and selected_tab == "warehouse":
+                wh_result = self.warehouse_tab(request)
+                return JsonResponse(wh_result, safe=False)
+            if selected_tab == "recommendation":
+                recommendation_html = (
+                    '<div class="recommendation-overview p-4">'
+                    '<h5 class="fw-bold mb-3" style="color: #2c2f33;">Recommendation Overview</h5>'
+                    '<p class="text-muted mb-0">Content for this tab can be added here.</p>'
+                    "</div>"
+                )
+                return JsonResponse({"detail_html": recommendation_html}, safe=False)
+
+        # فلتر Meeting Points: طلب بـ status فقط (بدون tab) — نرجع JSON حتى بدون هيدر AJAX
+        if request.GET.get("status") and not request.GET.get("tab"):
+            status_filter = request.GET.get("status", "all")
+            meeting_html = self.get_meeting_points_section_html(
+                request, status_filter
+            )
+            meeting_points = MeetingPoint.objects.all()
+            done_count = meeting_points.filter(is_done=True).count()
+            total_count = meeting_points.count()
+            return JsonResponse(
+                {
+                    "meeting_section_html": meeting_html,
+                    "detail_html": meeting_html,
+                    "done_count": done_count,
+                    "total_count": total_count,
+                },
+                safe=False,
+            )
+
+        # --------------------------
         # وضع Warehouse فقط: لا نفتح الإكسل ولا نستدعي أي دوال ثقيلة — تحميل سريع
         # --------------------------
         if getattr(self, "USE_WAREHOUSE_TAB_ONLY", False):
@@ -1607,10 +1645,22 @@ class UploadExcelViewRoche(View):
             and request.GET.get("status")
             and not request.GET.get("tab")
         ):
+            status_filter = request.GET.get("status", "all")
             meeting_html = self.get_meeting_points_section_html(
-                request, request.GET.get("status", "all")
+                request, status_filter
             )
-            return JsonResponse({"meeting_section_html": meeting_html}, safe=False)
+            meeting_points = MeetingPoint.objects.all()
+            done_count = meeting_points.filter(is_done=True).count()
+            total_count = meeting_points.count()
+            return JsonResponse(
+                {
+                    "meeting_section_html": meeting_html,
+                    "detail_html": meeting_html,
+                    "done_count": done_count,
+                    "total_count": total_count,
+                },
+                safe=False,
+            )
 
         if action == "export_excel":
             if quarter_error:
@@ -1935,6 +1985,7 @@ class UploadExcelViewRoche(View):
             "all_tab_data": all_tab_data,
             "raw_tab_data": None,
             "warehouse_overview": warehouse_overview,
+            "wh_data_rows": wh_data_rows,
             "dashboard_theme": dashboard_theme,
         }
         if (selected_tab or "").lower() == "dashboard":
@@ -2731,6 +2782,7 @@ class UploadExcelViewRoche(View):
             tabs_for_display = clean_tabs
 
             warehouse_overview = context_helpers.get_warehouse_overview_list()
+            wh_data_rows = context_helpers.get_wh_data_rows_list()
             dashboard_theme = context_helpers.get_dashboard_theme_dict()
             html = render_to_string(
                 "components/ui-kits/tab-bootstrap/components/dashboard-overview.html",
@@ -2740,6 +2792,7 @@ class UploadExcelViewRoche(View):
                     "meeting_data": meeting_data,
                     "status_filter": status_filter,
                     "warehouse_overview": warehouse_overview,
+                    "wh_data_rows": wh_data_rows,
                     "dashboard_theme": dashboard_theme,
                 },
                 request=request,
@@ -7295,11 +7348,13 @@ class UploadExcelViewRoche(View):
         """
         try:
             warehouse_overview = context_helpers.get_warehouse_overview_list()
+            wh_data_rows = context_helpers.get_wh_data_rows_list()
             dashboard_theme = context_helpers.get_dashboard_theme_dict()
             html = render_to_string(
                 "components/ui-kits/tab-bootstrap/components/warehouse-cards.html",
                 {
                     "warehouse_overview": warehouse_overview,
+                    "wh_data_rows": wh_data_rows,
                     "dashboard_theme": dashboard_theme,
                 },
                 request=request,

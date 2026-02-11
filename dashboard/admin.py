@@ -1,6 +1,9 @@
 # ترتيب التسجيل = ترتيب الظهور في الأدمن (اتبعي 1 → 2 → … → 8 لإنشاء كارد المستودع)
 
 from django.contrib import admin
+from django.shortcuts import redirect, render
+from django.urls import path
+from django.contrib import messages
 from .models import (
     Status,
     BusinessUnit,
@@ -86,6 +89,54 @@ class WHDataRowAdmin(admin.ModelAdmin):
     list_editable = ("display_order",)
     list_filter = ("business", "business_2")
     search_fields = ("wh", "emp_no", "full_name")
+    change_list_template = "admin/dashboard/whdatarow/change_list.html"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "import-excel/",
+                self.admin_site.admin_view(self.import_excel_view),
+                name="dashboard_whdatarow_import_excel",
+            ),
+        ]
+        return custom + urls
+
+    def import_excel_view(self, request):
+        from .forms import WHDataRowExcelUploadForm
+        from .wh_data_import import import_wh_data_rows_from_excel
+
+        if request.method == "POST":
+            form = WHDataRowExcelUploadForm(request.POST, request.FILES)
+            if form.is_valid():
+                excel_file = request.FILES["excel_file"]
+                sheet_name = (form.cleaned_data.get("sheet_name") or "").strip() or "part_2"
+                clear_before = form.cleaned_data.get("clear_before_import")
+                if clear_before:
+                    deleted, _ = self.model.objects.all().delete()
+                    messages.info(request, f"تم حذف {deleted} صف قديم.")
+                created_count, err_list = import_wh_data_rows_from_excel(excel_file, sheet_name=sheet_name)
+                if created_count > 0:
+                    messages.success(
+                        request,
+                        f"تم استيراد {created_count} صف بنجاح.",
+                    )
+                if err_list:
+                    for err in err_list[:10]:
+                        messages.warning(request, err)
+                    if len(err_list) > 10:
+                        messages.warning(request, f"... و {len(err_list) - 10} رسالة أخرى.")
+                if created_count > 0 or not err_list:
+                    return redirect("admin:dashboard_whdatarow_changelist")
+        else:
+            form = WHDataRowExcelUploadForm()
+        context = {
+            **self.admin_site.each_context(request),
+            "form": form,
+            "title": "استيراد WH Data Rows من Excel",
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/dashboard/whdatarow/import_excel.html", context)
 
 
 # ─── نماذج إضافية (جداول Region / Warehouse في الداشبورد، الثيم، نقاط الاجتماع) ───

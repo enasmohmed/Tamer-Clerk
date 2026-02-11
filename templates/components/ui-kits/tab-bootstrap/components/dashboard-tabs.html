@@ -381,27 +381,26 @@
           {% include 'components/ui-kits/alert/components/alert.html' %} 
           {% endif %}
           <div id="filter-message"></div>
-          <!-- 🔹 تاب Warehouse فقط — كروت المستودعات ديناميك من الأدمن -->
+          <!-- 🔹 Warehouse + Meeting Points -->
           <ul
             class="nav nav-tabs mt-4 justify-content-start"
             id="dashboard-tabs"
             role="tablist"
           >
             <li class="nav-item" role="presentation">
-              <button class="nav-link active" data-tab="warehouse">Warehouse</button>
+              <button class="nav-link active" data-tab="warehouse">Warehouse Overview</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-tab="recommendation">Recommendation Overview</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-tab="meeting points">Meeting Points & Actions</button>
             </li>
           </ul>
           <!-- 🔹 محتوى تاب Warehouse: كروت ديناميك حسب البيانات في الأدمن -->
           <div id="tab-content" class="card p-4 shadow-sm bg-white mt-3">
             {% if active_tab == "warehouse" %}
-              {% if warehouse_overview %}
-                {% include 'components/ui-kits/tab-bootstrap/components/warehouse-cards.html' with warehouse_overview=warehouse_overview %}
-              {% else %}
-                <div class="text-center text-muted py-5">
-                  <p class="mb-2">لا توجد مستودعات حتى الآن.</p>
-                  <p class="small">أضف مستودعات من لوحة الأدمن (Warehouses) واربطها بـ Business Systems و Employee Summary و Phase Status لظهور الكروت هنا.</p>
-                </div>
-              {% endif %}
+              {% include 'components/ui-kits/tab-bootstrap/components/warehouse-cards.html' with warehouse_overview=warehouse_overview wh_data_rows=wh_data_rows %}
             {% else %}
             <p class="text-muted text-center mb-0">No data available for this tab.</p>
             {% endif %}

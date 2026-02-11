@@ -192,8 +192,9 @@ class WarehouseEmployeeSummary(models.Model):
         return f"{self.warehouse.name}: {self.allocated_count if self.allocated_count is not None else '—'} allocated"
 
 
-# ─── جدول Region (Region, SKUs, Available, Utilization %) في تاب Returns ───
+# ─── تبع تاب Dashboard → قسم Returns: جدول Region (Region | SKUs | Available | Utilization %) ───
 class Region(models.Model):
+    """بيانات جدول Returns في الداشبورد (container-fluid-dashboard). الأعمدة: Region, SKUs, Available, Utilization %."""
     name = models.CharField(max_length=120)
     skus = models.CharField(max_length=80, blank=True)
     available = models.CharField(max_length=80, blank=True)
@@ -209,8 +210,9 @@ class Region(models.Model):
         return self.name
 
 
-# ─── جدول Warehouse في الداشبورد (Warehouse, SKUs, Available Space, Utilization %) ───
+# ─── تبع تاب Dashboard → قسم Inventory: جدول Warehouse (Warehouse | SKUs | Available Space | Utilization %) ───
 class WarehouseMetric(models.Model):
+    """بيانات جدول Warehouse/Inventory في الداشبورد (container-fluid-dashboard). الأعمدة: Warehouse, SKUs, Available Space, Utilization %."""
     warehouse = models.ForeignKey(
         Warehouse, on_delete=models.CASCADE, related_name="metrics", null=True, blank=True
     )
