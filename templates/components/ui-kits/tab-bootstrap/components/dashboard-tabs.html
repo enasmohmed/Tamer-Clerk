@@ -403,10 +403,13 @@
             role="tablist"
           >
             <li class="nav-item" role="presentation">
-              <button class="nav-link active" data-tab="warehouse">Warehouse Overview</button>
+              <button class="nav-link active" data-tab="warehouse">Project Overview</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" data-tab="recommendation">Recommendation Overview</button>
+              <button class="nav-link" data-tab="recommendation">Progress Overview</button>
+            </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-tab="project tracker">Automation Tracker</button>
             </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link" data-tab="meeting points">Meeting Points & Actions</button>
@@ -417,7 +420,9 @@
             {% if active_tab == "warehouse" %}
               {% include 'components/ui-kits/tab-bootstrap/components/warehouse-cards.html' with warehouse_overview=warehouse_overview wh_data_rows=wh_data_rows %}
             {% elif active_tab == "recommendation" %}
-              {% include 'components/ui-kits/tab-bootstrap/components/recommendation-cards.html' with recommendations=recommendations %}
+              {% include 'components/ui-kits/tab-bootstrap/components/recommendation-cards.html' with recommendations=recommendations weekly_tracker_rows=weekly_tracker_rows %}
+            {% elif active_tab == "project tracker" %}
+              {% include 'components/ui-kits/tab-bootstrap/components/project-tracker-cards.html' with project_tracker_items=project_tracker_items %}
             {% else %}
             <p class="text-muted text-center mb-0">No data available for this tab.</p>
             {% endif %}
@@ -438,6 +443,28 @@
             </div>
           </div>
           <div id="data-container"></div>
+
+          <!-- Modal كلمة مرور Meeting Points & Actions -->
+          <div class="modal fade" id="meeting-points-password-modal" tabindex="-1" aria-labelledby="meeting-points-password-label" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title" id="meeting-points-password-label">Meeting Points & Actions</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <p class="text-muted small mb-3">This section is protected. Enter the password to view.</p>
+                  <input type="password" id="meeting-points-password-input" class="form-control" placeholder="Password" autocomplete="off" />
+                  <div id="meeting-points-password-error" class="invalid-feedback d-none"></div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                  <button type="button" class="btn btn-primary" id="meeting-points-password-submit">Unlock</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {% endif %}
         </div>
       </div>
@@ -724,6 +751,16 @@
         return;
       }
 
+      if (data.require_password) {
+        $("#tab-content").html(
+          "<p class='text-muted text-center mb-0'>This section is protected. Enter the password in the window below.</p>",
+        );
+        $("#meeting-points-password-error").addClass("d-none").text("");
+        $("#meeting-points-password-input").val("").removeClass("is-invalid");
+        $("#meeting-points-password-modal").modal("show");
+        return;
+      }
+
       if (selectedTab.toLowerCase() === "overview") {
         if (data.tab_cards && data.tab_cards.length > 0) {
           $("#cards-section")
@@ -833,21 +870,16 @@
     function loadTabData() {
       const month = $("#month-select").val() || "";
       const quarter = selectedQuarter || "";
-      const cacheKey = buildTabCacheKey(selectedTab, month, quarter);
-      const cachedPayload = readTabCache(cacheKey);
-      const skipLoader = !!cachedPayload;
-
-      if (cachedPayload) {
-        handleTabResponse(cachedPayload, { fromCache: true });
-      }
+      // تعطيل الكاش لكل التابات: الداتا كلها من الأدمن ويجب أن تظهر التحديثات فوراً
+      const cachedPayload = null;
 
       $.ajax({
         url: "{% url 'dashboard:upload_excel' %}",
         method: "GET",
         headers: { "X-Requested-With": "XMLHttpRequest" },
         data: { tab: selectedTab, month: month, quarter: quarter },
+        cache: false,
         beforeSend: function () {
-          if (skipLoader) return;
           if (quarter) {
             $("#quarter-loader").show();
           }
@@ -856,7 +888,10 @@
           );
         },
         success: function (data) {
-          writeTabCache(cacheKey, data);
+          if (data.require_password) {
+            handleTabResponse(data);
+            return;
+          }
           handleTabResponse(data);
         },
         error: function (err) {
@@ -890,7 +925,7 @@
       if (selectedTab.toLowerCase() === "all") {
         $("#cards-section").show();
       }
-      if (selectedTab.toLowerCase() === "warehouse") {
+      if (selectedTab.toLowerCase() === "warehouse" || selectedTab.toLowerCase() === "project tracker") {
         $("#cards-section").hide();
       }
 
@@ -917,10 +952,57 @@
     });
 
     // 🔹 أول تحميل: لا نستدعي AJAX لتاب Warehouse لأن المحتوى أتى من السيرفر بالفعل (كروت المستودعات)
-    // استدعاء loadTabData() كان يستبدل المحتوى بردّ AJAX ويسبب اختفاء الكروت
     if (selectedTab !== "warehouse") {
       loadTabData();
     }
+
+    // 🔹 كلمة مرور Meeting Points & Actions
+    function getCsrfToken() {
+      const el = document.querySelector("[name=csrfmiddlewaretoken]");
+      return el ? el.value : "";
+    }
+    $("#meeting-points-password-submit").on("click", function () {
+      const input = $("#meeting-points-password-input");
+      const errEl = $("#meeting-points-password-error");
+      const password = input.val().trim();
+      if (!password) {
+        errEl.removeClass("d-none").text("Please enter the password");
+        input.addClass("is-invalid");
+        return;
+      }
+      errEl.addClass("d-none").text("");
+      input.removeClass("is-invalid");
+      $.ajax({
+        url: "{% url 'dashboard:meeting_points_unlock' %}",
+        method: "POST",
+        headers: { "X-CSRFToken": getCsrfToken() },
+        data: { password: password, csrfmiddlewaretoken: getCsrfToken() },
+        success: function (res) {
+          if (res.ok) {
+            $("#meeting-points-password-modal").modal("hide");
+            loadTabData();
+          } else {
+            errEl.removeClass("d-none").text(res.message || "Error");
+            input.addClass("is-invalid");
+          }
+        },
+        error: function (xhr) {
+          let msg = "An error occurred. Please check the password.";
+          try {
+            const j = xhr.responseJSON;
+            if (j && j.message) msg = j.message;
+          } catch (e) {}
+          errEl.removeClass("d-none").text(msg);
+          input.addClass("is-invalid");
+        },
+      });
+    });
+    $("#meeting-points-password-input").on("keydown", function (e) {
+      if (e.which === 13) {
+        e.preventDefault();
+        $("#meeting-points-password-submit").click();
+      }
+    });
   });
 
   async function loadTab(tabName) {

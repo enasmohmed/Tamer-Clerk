@@ -21,6 +21,8 @@ from .models import (
     DashboardTheme,
     MeetingPoint,
     Recommendation,
+    ProjectTrackerItem,
+    WeeklyProjectTrackerRow,
 )
 
 
@@ -247,3 +249,114 @@ class RecommendationAdmin(admin.ModelAdmin):
             "fields": ("display_order", "is_active")
         }),
     )
+
+
+# ─── Weekly Project Tracker (Progress Overview tab) ───
+@admin.register(WeeklyProjectTrackerRow)
+class WeeklyProjectTrackerRowAdmin(admin.ModelAdmin):
+    list_display = ("week", "task_short", "status", "progress_pct", "impact_short", "display_order")
+    list_editable = ("display_order",)
+    list_filter = ("status",)
+    search_fields = ("week", "task", "impact")
+    change_list_template = "admin/dashboard/weeklyprojecttrackerrow/change_list.html"
+
+    def task_short(self, obj):
+        return (obj.task[:60] + "…") if obj.task and len(obj.task) > 60 else (obj.task or "—")
+
+    task_short.short_description = "Task"
+
+    def impact_short(self, obj):
+        return (obj.impact[:40] + "…") if obj.impact and len(obj.impact) > 40 else (obj.impact or "—")
+
+    impact_short.short_description = "Impact"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "import-excel/",
+                self.admin_site.admin_view(self.import_excel_view),
+                name="dashboard_weeklyprojecttrackerrow_import_excel",
+            ),
+        ]
+        return custom + urls
+
+    def import_excel_view(self, request):
+        from .forms import WeeklyProjectTrackerExcelUploadForm
+        from .weekly_tracker_import import import_weekly_tracker_from_excel
+
+        if request.method == "POST":
+            form = WeeklyProjectTrackerExcelUploadForm(request.POST, request.FILES)
+            if form.is_valid():
+                excel_file = request.FILES["excel_file"]
+                sheet_name = (form.cleaned_data.get("sheet_name") or "").strip() or "Weekly Tracker"
+                clear_before = form.cleaned_data.get("clear_before_import")
+                if clear_before:
+                    deleted, _ = self.model.objects.all().delete()
+                    messages.info(request, f"Deleted {deleted} old rows.")
+                created_count, err_list = import_weekly_tracker_from_excel(
+                    excel_file, sheet_name=sheet_name
+                )
+                if created_count > 0:
+                    messages.success(
+                        request,
+                        f"Successfully imported {created_count} rows.",
+                    )
+                if err_list:
+                    for err in err_list[:10]:
+                        messages.warning(request, err)
+                    if len(err_list) > 10:
+                        messages.warning(request, f"... and {len(err_list) - 10} more messages.")
+                if created_count > 0 or not err_list:
+                    return redirect("admin:dashboard_weeklyprojecttrackerrow_changelist")
+        else:
+            form = WeeklyProjectTrackerExcelUploadForm()
+        context = {
+            **self.admin_site.each_context(request),
+            "form": form,
+            "title": "Import Weekly Project Tracker from Excel",
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/dashboard/weeklyprojecttrackerrow/import_excel.html", context)
+
+
+# ─── Project Tracker ───
+@admin.register(ProjectTrackerItem)
+class ProjectTrackerItemAdmin(admin.ModelAdmin):
+    list_display = (
+        "description",
+        "person_name",
+        "company",
+        "start_date",
+        "brainstorming_badge",
+        "execution_badge",
+        "launch_badge",
+        "end_date",
+        "display_order",
+    )
+    list_editable = ("display_order",)
+    list_filter = (
+        "brainstorming_status",
+        "execution_status",
+        "launch_status",
+        "start_date",
+    )
+    date_hierarchy = "start_date"
+    search_fields = ("description", "person_name", "company")
+    ordering = ("-start_date", "display_order", "id")
+    list_per_page = 25
+
+    def brainstorming_badge(self, obj):
+        return obj.get_brainstorming_status_display() or "—"
+
+    brainstorming_badge.short_description = "Brainstorming"
+
+    def execution_badge(self, obj):
+        return obj.get_execution_status_display() or "—"
+
+    execution_badge.short_description = "Execution"
+
+    def launch_badge(self, obj):
+        return obj.get_launch_status_display() or "—"
+
+    launch_badge.short_description = "Launch"

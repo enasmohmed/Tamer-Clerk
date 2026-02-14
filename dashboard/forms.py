@@ -21,26 +21,50 @@ class ExcelUploadForm(forms.Form):
 
 
 class WHDataRowExcelUploadForm(forms.Form):
-    """رفع Excel لاستيراد صفوف جدول WH Data Rows (WH | Emp No | Full Name | Business | Business 2)."""
+    """Excel upload form for WH Data Rows (WH | Emp No | Full Name | Business | Business 2)."""
     excel_file = forms.FileField(
-        label="ملف Excel",
+        label="Excel file",
         required=True,
         widget=forms.ClearableFileInput(attrs={
             "accept": ".xlsx,.xlsm,.xls",
         }),
     )
     sheet_name = forms.CharField(
-        label="اسم الشيت",
+        label="Sheet name",
         initial="part_2",
         required=False,
         max_length=100,
-        help_text="اسم الشيت في الملف (الافتراضي: part_2).",
+        help_text="Sheet name in the file (default: part_2).",
     )
     clear_before_import = forms.BooleanField(
-        label="احذف البيانات الحالية قبل الاستيراد",
+        label="Clear existing data before import",
         required=False,
         initial=False,
-        help_text="فعّل هذا إن أردت حذف كل الصفوف الحالية ثم استيراد البيانات من الملف من جديد.",
+        help_text="Enable to delete all current rows before importing from the file.",
+    )
+
+
+class WeeklyProjectTrackerExcelUploadForm(forms.Form):
+    """Excel upload form for Weekly Project Tracker (Week | Task | Status | Progress % | Impact)."""
+    excel_file = forms.FileField(
+        label="Excel file",
+        required=True,
+        widget=forms.ClearableFileInput(attrs={
+            "accept": ".xlsx,.xlsm,.xls",
+        }),
+    )
+    sheet_name = forms.CharField(
+        label="Sheet name",
+        initial="Weekly Tracker",
+        required=False,
+        max_length=100,
+        help_text="Sheet name in the file (default: Weekly Tracker).",
+    )
+    clear_before_import = forms.BooleanField(
+        label="Clear existing data before import",
+        required=False,
+        initial=False,
+        help_text="Enable to delete all current rows before importing from the file.",
     )
 
 
@@ -52,6 +76,6 @@ class MeetingPointForm(forms.ModelForm):
             'description': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 2,
-                'placeholder': 'اكتب النقطة أو الإجراء هنا...',
+                'placeholder': 'Enter the meeting point or action here...',
             }),
         }

@@ -1,0 +1,17 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p class="help">Upload an Excel file (e.g. <strong>Weekly_Project_Tracker.xlsx</strong>) with sheet <strong>Weekly Tracker</strong> and columns: <strong>Week</strong>, <strong>Task</strong>, <strong>Status</strong> (Completed / In Progress / Not Started), <strong>Progress %</strong>, <strong>Impact</strong>. Enable "Clear existing data before import" to wipe the table before importing.</p>
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <table>
+    {{ form.as_table }}
+  </table>
+  <p style="margin-top: 1rem;">
+    <input type="submit" value="Import" class="default">
+    <a href="{% url 'admin:dashboard_weeklyprojecttrackerrow_changelist' %}" class="button cancel-link">Cancel</a>
+  </p>
+</form>
+{% endblock %}

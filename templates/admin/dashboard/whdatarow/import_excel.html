@@ -3,15 +3,15 @@
 
 {% block content %}
 <h1>{{ title }}</h1>
-<p class="help">ارفع ملف Excel (شيت <strong>part_2</strong>) بالأعمدة: <strong>WH</strong>, <strong>Emp No</strong>, <strong>Full Name</strong>, <strong>Busines/Business</strong>, <strong>Business 2</strong>. يمكنك تفعيل «احذف البيانات الحالية قبل الاستيراد» لمسح الجدول ثم استيراد الملف من جديد.</p>
+<p class="help">Upload an Excel file (sheet <strong>part_2</strong>) with columns: <strong>WH</strong>, <strong>Emp No</strong>, <strong>Full Name</strong>, <strong>Busines/Business</strong>, <strong>Business 2</strong>. Enable "Clear existing data before import" to wipe the table before importing.</p>
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
   <table>
     {{ form.as_table }}
   </table>
   <p style="margin-top: 1rem;">
-    <input type="submit" value="استيراد" class="default">
-    <a href="{% url 'admin:dashboard_whdatarow_changelist' %}" class="button cancel-link">إلغاء</a>
+    <input type="submit" value="Import" class="default">
+    <a href="{% url 'admin:dashboard_whdatarow_changelist' %}" class="button cancel-link">Cancel</a>
   </p>
 </form>
 {% endblock %}

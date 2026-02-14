@@ -1,11 +1,18 @@
 from django.urls import path
 from . import views
-from .views import UploadExcelViewRoche, MeetingPointListCreateView, ToggleMeetingPointView, DoneMeetingPointView
+from .views import (
+    UploadExcelViewRoche,
+    MeetingPointListCreateView,
+    ToggleMeetingPointView,
+    DoneMeetingPointView,
+    meeting_points_unlock,
+)
 
-app_name= 'dashboard'
+app_name = "dashboard"
 
 urlpatterns = [
-    path('', UploadExcelViewRoche.as_view(), name='upload_excel'),
+    path("", UploadExcelViewRoche.as_view(), name="upload_excel"),
+    path("meeting-points-unlock/", meeting_points_unlock, name="meeting_points_unlock"),
     # dashboard/urls.py
     path('quarter-ajax/', UploadExcelViewRoche.as_view(), name='quarter_ajax'),
 

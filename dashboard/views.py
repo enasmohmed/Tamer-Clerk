@@ -1157,6 +1157,10 @@ def get_dashboard_tab_context(request):
 
 
 @method_decorator(csrf_exempt, name="dispatch")
+@method_decorator(
+    cache_control(no_cache=True, no_store=True, must_revalidate=True, max_age=0),
+    name="dispatch",
+)
 class UploadExcelViewRoche(View):
     template_name = "index.html"
     excel_file_name = "all sheet.xlsm"
@@ -1547,12 +1551,25 @@ class UploadExcelViewRoche(View):
                 return JsonResponse(wh_result, safe=False)
             if selected_tab == "recommendation":
                 recommendations = context_helpers.get_recommendations_list()
+                weekly_tracker_rows = context_helpers.get_weekly_project_tracker_list()
                 recommendation_html = render_to_string(
                     "components/ui-kits/tab-bootstrap/components/recommendation-cards.html",
-                    {"recommendations": recommendations},
+                    {
+                        "recommendations": recommendations,
+                        "weekly_tracker_rows": weekly_tracker_rows,
+                        "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
+                    },
                     request=request,
                 )
                 return JsonResponse({"detail_html": recommendation_html}, safe=False)
+            if selected_tab == "project tracker":
+                project_tracker_items = context_helpers.get_project_tracker_list()
+                project_tracker_html = render_to_string(
+                    "components/ui-kits/tab-bootstrap/components/project-tracker-cards.html",
+                    {"project_tracker_items": project_tracker_items},
+                    request=request,
+                )
+                return JsonResponse({"detail_html": project_tracker_html}, safe=False)
 
         # فلتر Meeting Points: طلب بـ status فقط (بدون tab) — نرجع JSON حتى بدون هيدر AJAX
         if request.GET.get("status") and not request.GET.get("tab"):
@@ -1595,6 +1612,8 @@ class UploadExcelViewRoche(View):
                 "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
                 "phases_sections": context_helpers.get_phases_sections_list(),
                 "recommendations": context_helpers.get_recommendations_list(),
+                "weekly_tracker_rows": context_helpers.get_weekly_project_tracker_list(),
+                "project_tracker_items": context_helpers.get_project_tracker_list(),
             }
             return render(request, self.template_name, render_context)
 
@@ -1717,6 +1736,7 @@ class UploadExcelViewRoche(View):
                     request, effective_month
                 ),
                 "meeting points": lambda: self.meeting_points_tab(request),
+                "project tracker": lambda: self.project_tracker_tab(request),
                 "expiry": lambda: self.filter_expiry(
                     request,
                     effective_month,
@@ -1992,6 +2012,8 @@ class UploadExcelViewRoche(View):
             "wh_data_rows": wh_data_rows,
             "dashboard_theme": dashboard_theme,
             "recommendations": context_helpers.get_recommendations_list(),
+            "weekly_tracker_rows": context_helpers.get_weekly_project_tracker_list(),
+            "project_tracker_items": context_helpers.get_project_tracker_list(),
         }
         if (selected_tab or "").lower() == "dashboard":
             try:
@@ -7378,6 +7400,8 @@ class UploadExcelViewRoche(View):
         """
         🔹 عرض تاب Meeting Points & Action مع إمكانية الفلترة حسب الحالة (منتهية / غير منتهية)
         """
+        if not request.session.get("meeting_points_unlocked"):
+            return JsonResponse({"require_password": True})
         try:
             # ✅ جلب الحالة من الـ GET parameter
             status_filter = request.GET.get(
@@ -7445,6 +7469,46 @@ class UploadExcelViewRoche(View):
             return JsonResponse(
                 {"error": f"An error occurred while loading data: {e}"}, status=500
             )
+
+    def project_tracker_tab(self, request):
+        """تاب Project Tracker: عرض بيانات من الأدمن (project_tracker_items)."""
+        try:
+            project_tracker_items = context_helpers.get_project_tracker_list()
+            html = render_to_string(
+                "components/ui-kits/tab-bootstrap/components/project-tracker-cards.html",
+                {"project_tracker_items": project_tracker_items},
+                request=request,
+            )
+            return {"detail_html": html}
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return {"error": str(e), "detail_html": f"<div class='alert alert-danger'>⚠️ {e}</div>"}
+
+
+def meeting_points_unlock(request):
+    """
+    فك قفل تاب Meeting Points & Actions بإدخال كلمة المرور الصحيحة.
+    يخزن في الجلسة حتى إغلاق المتصفح.
+    """
+    if request.method != "POST":
+        return JsonResponse({"ok": False, "message": "Method not allowed"}, status=405)
+    password = request.POST.get("password", "").strip()
+    if not password:
+        try:
+            body = json.loads(request.body) if request.body else {}
+            password = (body.get("password") or "").strip()
+        except (ValueError, TypeError):
+            pass
+    if not password:
+        return JsonResponse({"ok": False, "message": "Password required"}, status=400)
+    expected = getattr(settings, "MEETING_POINTS_TAB_PASSWORD", None)
+    if not expected:
+        return JsonResponse({"ok": False, "message": "Not configured"}, status=500)
+    if password != expected:
+        return JsonResponse({"ok": False, "message": "Wrong password"}, status=400)
+    request.session["meeting_points_unlocked"] = True
+    return JsonResponse({"ok": True})
 
 
 class MeetingPointListCreateView(View):

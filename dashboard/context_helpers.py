@@ -5,18 +5,20 @@ def get_dashboard_theme_dict():
     """Returns a key -> value dictionary from DashboardTheme for template use (dashboard colors)."""
     try:
         from .models import DashboardTheme, DEFAULT_THEME_COLORS
+
         qs = DashboardTheme.objects.all()
         theme_dict = {t.key: t.value or "" for t in qs}
-        
+
         # Fill in defaults for any missing keys
         for key, value, description, category in DEFAULT_THEME_COLORS:
             if key not in theme_dict or not theme_dict[key]:
                 theme_dict[key] = value
-        
+
         return theme_dict
     except Exception:
         # Return defaults if database error
         from .models import DEFAULT_THEME_COLORS
+
         return {key: value for key, value, desc, cat in DEFAULT_THEME_COLORS}
 
 
@@ -24,6 +26,7 @@ def get_regions_table_from_db():
     """Returns a list of dictionaries from Region model for returns_region_table."""
     try:
         from .models import Region
+
         rows = Region.objects.all()
         return [
             {
@@ -42,6 +45,7 @@ def get_warehouse_metrics_table_from_db():
     """Returns a list of dictionaries from WarehouseMetric model for inventory_warehouse_table."""
     try:
         from .models import WarehouseMetric
+
         rows = WarehouseMetric.objects.all()
         return [
             {
@@ -69,7 +73,9 @@ def get_phases_sections_list():
     try:
         from .models import PhaseSection
 
-        sections = PhaseSection.objects.filter(is_active=True).prefetch_related("points")
+        sections = PhaseSection.objects.filter(is_active=True).prefetch_related(
+            "points"
+        )
         return [
             {
                 "id": s.id,
@@ -94,6 +100,7 @@ def get_warehouse_overview_list():
             WarehouseEmployeeSummary,
             WarehousePhaseStatus,
         )
+
         warehouses = Warehouse.objects.all()
         result = []
         from .models import SYSTEM_STATUS_CHOICES
@@ -105,18 +112,25 @@ def get_warehouse_overview_list():
             "pending_ph2": "#f57c00",
             "ph2_completed": "#2e7d32",
         }
-        _choice_labels = {value: label for value, label in SYSTEM_STATUS_CHOICES if value}
+        _choice_labels = {
+            value: label for value, label in SYSTEM_STATUS_CHOICES if value
+        }
 
         for wh in warehouses:
             biz_systems = []
-            for wbs in wh.business_systems.select_related("business_unit", "system").all():
+            for wbs in wh.business_systems.select_related(
+                "business_unit", "system"
+            ).all():
                 val = wbs.system_status or ""
-                biz_systems.append({
-                    "business": wbs.business_unit.name,
-                    "system": wbs.system_name_override or (wbs.system.name if wbs.system else ""),
-                    "status_name": _choice_labels.get(val, ""),
-                    "status_color": _system_status_colors.get(val, "#6c757d"),
-                })
+                biz_systems.append(
+                    {
+                        "business": wbs.business_unit.name,
+                        "system": wbs.system_name_override
+                        or (wbs.system.name if wbs.system else ""),
+                        "status_name": _choice_labels.get(val, ""),
+                        "status_color": _system_status_colors.get(val, "#6c757d"),
+                    }
+                )
             try:
                 emp = wh.employee_summary
                 # Chart percentage: (Pending or edit count / Allocated count) * 100 — chart shows if Allocated is defined
@@ -144,15 +158,19 @@ def get_warehouse_overview_list():
                     "employee_chart_pct": None,
                 }
             phase_rows = []
-            for ps in wh.phase_statuses.select_related("business_unit", "activity", "status").all():
-                phase_rows.append({
-                    "business": ps.business_unit.name,
-                    "activity": ps.activity.name,
-                    "status_name": ps.status.name if ps.status else "",
-                    "status_color": ps.status.color_hex if ps.status else "#6c757d",
-                    "start_date": ps.start_date,
-                    "end_date": ps.end_date,
-                })
+            for ps in wh.phase_statuses.select_related(
+                "business_unit", "activity", "status"
+            ).all():
+                phase_rows.append(
+                    {
+                        "business": ps.business_unit.name,
+                        "activity": ps.activity.name,
+                        "status_name": ps.status.name if ps.status else "",
+                        "status_color": ps.status.color_hex if ps.status else "#6c757d",
+                        "start_date": ps.start_date,
+                        "end_date": ps.end_date,
+                    }
+                )
             # Warehouse badge color: if empty or gray, use color based on name (Active → green, Partial → orange)
             status_color = "#6c757d"
             if wh.status:
@@ -167,16 +185,18 @@ def get_warehouse_overview_list():
                         status_color = "#f57c00"
                     else:
                         status_color = "#2e7d32"
-            result.append({
-                "warehouse": wh,
-                "status_name": wh.status.name if wh.status else "",
-                "status_color": status_color,
-                "business_systems": biz_systems,
-                "employee_summary": emp_summary,
-                "phase_statuses": phase_rows,
-                "phase1_pct": wh.phase1_pct,
-                "phase2_pct": wh.phase2_pct,
-            })
+            result.append(
+                {
+                    "warehouse": wh,
+                    "status_name": wh.status.name if wh.status else "",
+                    "status_color": status_color,
+                    "business_systems": biz_systems,
+                    "employee_summary": emp_summary,
+                    "phase_statuses": phase_rows,
+                    "phase1_pct": wh.phase1_pct,
+                    "phase2_pct": wh.phase2_pct,
+                }
+            )
         return result
     except Exception:
         return []
@@ -186,6 +206,7 @@ def get_wh_data_rows_list():
     """Returns a list of table rows below Warehouses Overview cards (WH | Emp No | Full Name | Business | Business 2)."""
     try:
         from .models import WHDataRow
+
         rows = WHDataRow.objects.select_related("business", "business_2").all()
         return [
             {
@@ -201,11 +222,35 @@ def get_wh_data_rows_list():
         return []
 
 
+def get_weekly_project_tracker_list():
+    """Returns list of Weekly Project Tracker rows for Progress Overview tab."""
+    try:
+        from .models import WeeklyProjectTrackerRow
+
+        rows = WeeklyProjectTrackerRow.objects.all()
+        return [
+            {
+                "week": r.week,
+                "task": r.task,
+                "status": r.status,
+                "status_display": r.get_status_display(),
+                "progress_pct": r.progress_pct,
+                "impact": r.impact or "",
+            }
+            for r in rows
+        ]
+    except Exception:
+        return []
+
+
 def get_recommendations_list():
     """Returns a list of active recommendations for Recommendation Overview tab."""
     try:
         from .models import Recommendation
-        recs = Recommendation.objects.filter(is_active=True).order_by("display_order", "id")
+
+        recs = Recommendation.objects.filter(is_active=True).order_by(
+            "display_order", "id"
+        )
         result = [
             {
                 "id": r.id,
@@ -218,8 +263,170 @@ def get_recommendations_list():
             }
             for r in recs
         ]
-        print(f"[Recommendations] Found {len(result)} active recommendations")  # For debugging
+        print(
+            f"[Recommendations] Found {len(result)} active recommendations"
+        )  # For debugging
         return result
     except Exception as e:
         print(f"[Recommendations] Error: {e}")  # For debugging
         return []
+
+
+def get_project_tracker_list():
+    """
+    يعرض كل الأشهر اللي فيها داتا من الأدمن فقط (حتى لو سنة فاتت).
+    الترتيب: من الأحدث (فوق) للأقدم (تحت).
+    """
+    from datetime import date
+    from calendar import month_abbr
+
+    try:
+        from .models import ProjectTrackerItem
+
+        today = date.today()
+        this_year, this_month = today.year, today.month
+
+        def item_to_dict(obj):
+            return {
+                "id": obj.id,
+                "description": obj.description,
+                "person_name": obj.person_name,
+                "company": getattr(obj, "company", "") or "",
+                "start_date": obj.start_date,
+                "start_date_display": obj.start_date.strftime("%b %d"),
+                "end_date": obj.end_date,
+                "end_date_display": obj.end_date.strftime("%b %d") if obj.end_date else "",
+                "brainstorming_status": obj.brainstorming_status or "",
+                "execution_status": obj.execution_status or "",
+                "launch_status": obj.launch_status or "",
+                "brainstorming_display": obj.get_brainstorming_status_display() or "",
+                "execution_display": obj.get_execution_status_display() or "",
+                "launch_display": obj.get_launch_status_display() or "",
+            }
+
+        def phase_progress(items, phase_key):
+            total = len(items)
+            if total == 0:
+                return {
+                    "done": 0,
+                    "working_on_it": 0,
+                    "stuck": 0,
+                    "empty": 0,
+                    "total": 0,
+                    "done_pct": 0,
+                    "working_on_it_pct": 0,
+                    "stuck_pct": 0,
+                    "empty_pct": 100,
+                }
+            done = sum(1 for i in items if i.get(phase_key) == "done")
+            working = sum(1 for i in items if i.get(phase_key) == "working_on_it")
+            stuck = sum(1 for i in items if i.get(phase_key) == "stuck")
+            empty = total - done - working - stuck
+            done_pct = round(100 * done / total) if total else 0
+            working_pct = round(100 * working / total) if total else 0
+            stuck_pct = round(100 * stuck / total) if total else 0
+            empty_pct = 100 - done_pct - working_pct - stuck_pct
+            if empty_pct < 0:
+                empty_pct = 0
+            return {
+                "done": done,
+                "working_on_it": working,
+                "stuck": stuck,
+                "empty": empty,
+                "total": total,
+                "done_pct": done_pct,
+                "working_on_it_pct": working_pct,
+                "stuck_pct": stuck_pct,
+                "empty_pct": empty_pct,
+            }
+
+        # كل الأشهر المميزة اللي فيها عناصر (من الأدمن)، من الأحدث للأقدم
+        distinct_months = list(
+            ProjectTrackerItem.objects.dates("start_date", "month", order="DESC")
+        )
+        month_sections = []
+        for month_date in distinct_months:
+            y, m = month_date.year, month_date.month
+            qs = (
+                ProjectTrackerItem.objects.filter(start_date__year=y, start_date__month=m)
+                .order_by("-start_date", "display_order", "id")
+            )
+            items = [item_to_dict(o) for o in qs]
+            progress = {
+                "brainstorming": phase_progress(items, "brainstorming_status"),
+                "execution": phase_progress(items, "execution_status"),
+                "launch": phase_progress(items, "launch_status"),
+            }
+            if y == this_year and m == this_month:
+                label = "This month"
+                css_class = "this-month"
+            elif (y == this_year and m == this_month - 1) or (
+                y == this_year - 1 and this_month == 1 and m == 12
+            ):
+                label = "Last month"
+                css_class = "last-month"
+            else:
+                label = f"{month_abbr[m]} {y}"
+                css_class = "month-other"
+            month_sections.append({
+                "label": label,
+                "items": items,
+                "progress": progress,
+                "css_class": css_class,
+            })
+
+        this_month = month_sections[0]["items"] if month_sections else []
+        last_month = month_sections[1]["items"] if len(month_sections) > 1 else []
+        _empty = phase_progress([], "")
+        this_month_progress = (
+            month_sections[0]["progress"]
+            if month_sections
+            else {"brainstorming": _empty, "execution": _empty, "launch": _empty}
+        )
+        last_month_progress = (
+            month_sections[1]["progress"]
+            if len(month_sections) > 1
+            else this_month_progress
+        )
+
+        return {
+            "month_sections": month_sections,
+            "this_month": this_month,
+            "last_month": last_month,
+            "this_month_progress": this_month_progress,
+            "last_month_progress": last_month_progress,
+        }
+    except Exception as e:
+        import traceback
+
+        traceback.print_exc()
+
+        def _empty_progress():
+            return {
+                "done": 0,
+                "working_on_it": 0,
+                "stuck": 0,
+                "empty": 0,
+                "total": 0,
+                "done_pct": 0,
+                "working_on_it_pct": 0,
+                "stuck_pct": 0,
+                "empty_pct": 100,
+            }
+
+        _empty = _empty_progress()
+        return {
+            "month_sections": [],
+            "this_month": [],
+            "last_month": [],
+            "this_month_progress": {
+                "brainstorming": _empty,
+                "execution": _empty,
+                "launch": _empty,
+            },
+            "last_month_progress": {
+                "brainstorming": _empty,
+                "execution": _empty,
+                "launch": _empty,
+            },
+        }

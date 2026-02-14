@@ -173,5 +173,202 @@
       </p>
     </div>
     {% endif %}
+
+    {# Weekly Project Tracker Table - only shown when there is data #}
+    {% if weekly_tracker_rows %}
+    <div class="weekly-tracker-table-section mt-4">
+      <div class="data-table-card">
+        <div class="data-table-header">
+          <div class="data-table-title-row data-table-title-row--badge-top-right">
+            <h5 class="data-table-title">
+              <span class="title-icon">
+                <i class="fa fa-calendar"></i>
+              </span>
+              Weekly Project Tracker
+            </h5>
+            <div class="data-table-stats data-table-stats--top-right">
+              <span class="stat-badge">
+                <i class="fa fa-list"></i>
+                {{ weekly_tracker_rows|length }} Tasks
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="data-table-body table-responsive-wrapper">
+          <table class="wh-styled-table weekly-tracker-table" id="weeklyTrackerTable">
+            <thead>
+              <tr>
+                <th><i class="fa fa-calendar me-2"></i>Week</th>
+                <th><i class="fa fa-tasks me-2"></i>Task</th>
+                <th><i class="fa fa-flag me-2"></i>Status</th>
+                <th>Progress %</th>
+                <th><i class="fa fa-bolt me-2"></i>Impact</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in weekly_tracker_rows %}
+              <tr>
+                <td class="week-cell" data-label="Week">{{ row.week }}</td>
+                <td class="task-cell" data-label="Task">{{ row.task }}</td>
+                <td data-label="Status">
+                  <span class="status-badge status-{{ row.status }}">
+                    {{ row.status_display }}
+                  </span>
+                </td>
+                <td data-label="Progress %">
+                  <div class="progress-cell">
+                    <div class="progress" style="height: 8px; min-width: 60px;">
+                      <div class="progress-bar bg-success" role="progressbar" style="width: {{ row.progress_pct }}%;" aria-valuenow="{{ row.progress_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <span class="ms-2">{{ row.progress_pct }}%</span>
+                  </div>
+                </td>
+                <td class="impact-cell" data-label="Impact">{% if row.impact %}{{ row.impact }}{% else %}—{% endif %}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    {% endif %}
   </div>
 </div>
+
+<style>
+  {# Same colors as Employee Data Table (dashboard theme) #}
+  .weekly-tracker-table-section {
+    --wt-table-header-bg: {{ dashboard_theme.table_header_bg|default:"#1a5f2a" }};
+    --wt-table-header-bg-end: {{ dashboard_theme.table_header_bg_end|default:"#15803d" }};
+    --wt-table-header-text: {{ dashboard_theme.table_header_text|default:"#ffffff" }};
+    --wt-table-row-hover: {{ dashboard_theme.table_row_hover|default:"#f1f5f9" }};
+    --wt-table-title-icon-bg: {{ dashboard_theme.table_title_icon_bg|default:"#0d9488" }};
+    --wt-table-title-icon-bg-end: {{ dashboard_theme.table_title_icon_bg_end|default:"#14b8a6" }};
+    --wt-table-stat-badge-bg: {{ dashboard_theme.table_stat_badge_bg|default:"#d1fae5" }};
+    --wt-table-stat-badge-text: {{ dashboard_theme.table_stat_badge_text|default:"#15803d" }};
+    --wt-text-primary: {{ dashboard_theme.text_primary|default:"#1e293b" }};
+    --wt-table-border: {{ dashboard_theme.table_border|default:"#e2e8f0" }};
+  }
+  .weekly-tracker-table-section .data-table-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--wt-table-border);
+  }
+  .weekly-tracker-table-section .data-table-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--wt-table-border);
+    position: relative;
+  }
+  .weekly-tracker-table-section .data-table-title-row--badge-top-right {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .weekly-tracker-table-section .data-table-stats--top-right {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.5rem;
+  }
+  .weekly-tracker-table-section .data-table-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--wt-text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .weekly-tracker-table-section .title-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--wt-table-title-icon-bg) 0%, var(--wt-table-title-icon-bg-end) 100%);
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1rem;
+  }
+  .weekly-tracker-table-section .stat-badge {
+    background: linear-gradient(135deg, var(--wt-table-stat-badge-bg) 0%, var(--wt-table-stat-badge-bg) 100%);
+    color: var(--wt-table-stat-badge-text);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .weekly-tracker-table-section .data-table-body {
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .weekly-tracker-table-section .wh-styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .weekly-tracker-table-section .wh-styled-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .weekly-tracker-table-section .wh-styled-table thead th {
+    background: linear-gradient(135deg, var(--wt-table-header-bg) 0%, var(--wt-table-header-bg-end) 100%);
+    color: var(--wt-table-header-text);
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+    border: none;
+  }
+  .weekly-tracker-table-section .wh-styled-table tbody tr {
+    transition: all 0.15s ease;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .weekly-tracker-table-section .wh-styled-table tbody tr:hover {
+    background: linear-gradient(135deg, var(--wt-table-row-hover) 0%, #f1f5f9 100%);
+  }
+  .weekly-tracker-table-section .wh-styled-table tbody td {
+    padding: 0.875rem 1.25rem;
+    color: #475569;
+    vertical-align: middle;
+  }
+  .weekly-tracker-table-section .week-cell {
+    font-weight: 600;
+    color: var(--wt-text-primary);
+  }
+  .weekly-tracker-table-section .status-badge {
+    display: inline-block;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+  }
+  .weekly-tracker-table-section .status-badge.status-completed {
+    background: #d1fae5;
+    color: #15803d;
+  }
+  .weekly-tracker-table-section .status-badge.status-in_progress {
+    background: #fef3c7;
+    color: #b45309;
+  }
+  .weekly-tracker-table-section .status-badge.status-not_started {
+    background: #f1f5f9;
+    color: #64748b;
+  }
+  .weekly-tracker-table-section .progress-cell {
+    display: flex;
+    align-items: center;
+  }
+  .weekly-tracker-table-section .table-empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: #94a3b8;
+  }
+</style>

@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -157,3 +158,6 @@ CACHES = {
 #         'TIMEOUT': 60 * 60,  # الكاش يعيش لمدة ساعة
 #     }
 # }
+
+# كلمة مرور تاب Meeting Points & Actions (يمكن تغييرها من متغير البيئة)
+MEETING_POINTS_TAB_PASSWORD = os.environ.get("MEETING_POINTS_TAB_PASSWORD", "tamer2025")

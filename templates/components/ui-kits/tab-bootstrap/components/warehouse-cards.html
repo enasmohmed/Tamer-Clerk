@@ -443,8 +443,28 @@
     }
     .phases-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
       gap: 1.25rem;
+    }
+    /* 1 phase: full width (12) */
+    .phases-grid.phases-grid--count-1 {
+      grid-template-columns: 1fr;
+    }
+    /* 2 phases: each 6 */
+    .phases-grid.phases-grid--count-2 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    /* 3 phases: first row two side by side (6+6), third takes full row (12) */
+    .phases-grid.phases-grid--count-3 {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .phases-grid.phases-grid--count-3 .phases-card:nth-child(3) {
+      grid-column: 1 / -1;
+    }
+    /* 4+ phases: 2 columns default */
+    .phases-grid.phases-grid--count-4,
+    .phases-grid.phases-grid--count-5,
+    .phases-grid.phases-grid--count-more {
+      grid-template-columns: repeat(2, 1fr);
     }
     .phases-card {
       background: #ffffff;
@@ -536,8 +556,15 @@
       font-size: 0.875rem;
     }
     @media (max-width: 767.98px) {
-      .phases-grid {
+      .phases-grid.phases-grid--count-2,
+      .phases-grid.phases-grid--count-3,
+      .phases-grid.phases-grid--count-4,
+      .phases-grid.phases-grid--count-5,
+      .phases-grid.phases-grid--count-more {
         grid-template-columns: 1fr;
+      }
+      .phases-grid.phases-grid--count-3 .phases-card:nth-child(3) {
+        grid-column: auto;
       }
       .phases-card {
         padding: 1rem;
@@ -803,7 +830,7 @@
 
 </style>
 <div class="warehouse-cards-section">
-  <h5 class="mb-3 fw-bold" style="color: #2c2f33">Warehouses Overview</h5>
+  <h5 class="mb-3 fw-bold" style="color: #2c2f33">Project Overview</h5>
   <div class="row g-3 warehouse-cards-row">
     {% if warehouse_overview %}
     {% for item in warehouse_overview %}
@@ -982,7 +1009,8 @@
       Phases Overview
     </h5>
     
-    <div class="phases-grid">
+    {% with phases_count=phases_sections|length %}
+    <div class="phases-grid phases-grid--count-{% if phases_count >= 5 %}more{% else %}{{ phases_count }}{% endif %}">
       {% for section in phases_sections %}
       <div class="phases-card">
         <!-- Header -->
@@ -1019,6 +1047,7 @@
       </div>
       {% endfor %}
     </div>
+    {% endwith %}
   </div>
   {% endif %}
 
@@ -1049,7 +1078,7 @@
         <div class="data-table-filters">
           <div class="filter-group">
             <i class="fa fa-search filter-icon"></i>
-            <input type="text" class="filter-input" id="tableSearchInput" placeholder="Search by name or emp no...">
+            <input type="search" class="filter-input" id="tableSearchInput" placeholder="Search by name or emp no..." autocomplete="nope" name="emp_table_search" readonly onfocus="this.removeAttribute('readonly')">
           </div>
           <select class="filter-select" id="filterWH">
             <option value="">All Warehouses</option>
@@ -1065,7 +1094,7 @@
       </div>
 
       <!-- Table Body with Scroll -->
-      <div class="data-table-body">
+      <div class="data-table-body table-responsive-wrapper">
         {% if rows %}
         <table class="wh-styled-table" id="whDataTable">
           <thead>
@@ -1080,11 +1109,11 @@
           <tbody>
             {% for row in rows %}
             <tr data-wh="{{ row.wh }}" data-business="{{ row.business }}" data-business2="{{ row.business_2 }}">
-              <td class="wh-cell">{{ row.wh }}</td>
-              <td class="emp-no-cell">{{ row.emp_no }}</td>
-              <td class="name-cell">{{ row.full_name }}</td>
-              <td><span class="business-badge">{{ row.business }}</span></td>
-              <td>
+              <td class="wh-cell" data-label="WH">{{ row.wh }}</td>
+              <td class="emp-no-cell" data-label="Emp No">{{ row.emp_no }}</td>
+              <td class="name-cell" data-label="Full Name">{{ row.full_name }}</td>
+              <td data-label="Business"><span class="business-badge">{{ row.business }}</span></td>
+              <td data-label="Business 2">
                 {% if row.business_2 and row.business_2 != "—" %}
                 <span class="business-badge secondary">{{ row.business_2 }}</span>
                 {% else %}

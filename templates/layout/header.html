@@ -1,25 +1,40 @@
 {% load static %}
 {% load sass_tags %}
 <!-- Page Header Start-->
-<div class="page-header"
-     style="box-shadow: none !important;
-            width: 100% !important;
-            margin-left: 0">
-    <div class="header-wrapper d-flex flex-wrap justify-content-center align-items-center text-center"
-         style="padding: 10px 0">
-        <!-- 🟦 اللوجو والعنوان في منتصف الصفحة -->
-        <div class="d-flex align-items-center justify-content-center gap-1 flex-wrap">
-            <!-- 🟥 لوجو الشركة -->
+<div class="page-header tamer-page-header">
+    <div class="header-wrapper d-flex flex-wrap justify-content-center align-items-center text-center tamer-header-wrapper">
+        <!-- اللوجو والعنوان في منتصف الصفحة -->
+        <div class="d-flex align-items-center justify-content-center gap-1 flex-wrap tamer-header-inner">
             <img src="{% static 'assets/images/tamer_logistics_logo.png' %}"
                  alt="tamer Logo"
-                 style="max-height: 55px;
-                        margin-right: 0px">
-            <!-- 🟦 النص -->
-            <div class="text-start" style="margin-top: 14px;margin-right: 5px;">
-                <h3 class="mb-0 fw-bold" style="color:#000 !important;font-size: 30px;">TAMER 3PL</h3>
-                <h6 class="text-muted ">{{ uploaded_month }}</h6>
+                 class="tamer-header-logo"
+                 width="55"
+                 height="55">
+            <div class="text-start tamer-header-text">
+                <h3 class="mb-0 fw-bold tamer-header-title">TAMER 3PL</h3>
+                <h6 class="text-muted tamer-header-subtitle">{{ uploaded_month }}</h6>
             </div>
         </div>
     </div>
 </div>
+<style>
+  .tamer-page-header { box-shadow: none !important; width: 100% !important; margin-left: 0; }
+  .tamer-header-wrapper { padding: 10px 0; }
+  .tamer-header-logo { max-height: 55px; margin-right: 0; }
+  .tamer-header-text { margin-top: 14px; margin-right: 5px; }
+  .tamer-header-title { color: #000 !important; font-size: 30px; }
+  @media (max-width: 991.98px) {
+    .tamer-header-logo { max-height: 45px; }
+    .tamer-header-title { font-size: 1.5rem; }
+    .tamer-header-subtitle { font-size: 0.8rem; }
+  }
+  @media (max-width: 575.98px) {
+    .page-header .header-wrapper { padding: 8px 6px !important; }
+    .tamer-header-inner { gap: 0.25rem !important; }
+    .tamer-header-logo { max-height: 38px; }
+    .tamer-header-text { margin-top: 8px; margin-right: 4px; }
+    .tamer-header-title { font-size: 1.25rem; }
+    .tamer-header-subtitle { font-size: 0.75rem; }
+  }
+</style>
 <!-- Page Header Ends -->

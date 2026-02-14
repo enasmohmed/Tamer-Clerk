@@ -36,10 +36,10 @@ def import_wh_data_rows_from_excel(file, sheet_name="part_2"):
     try:
         df = pd.read_excel(file, sheet_name=sheet_name, engine="openpyxl", header=0)
     except Exception as e:
-        return 0, [f"تعذر قراءة الملف: {e}"]
+        return 0, [f"Could not read file: {e}"]
 
     if df.empty:
-        return 0, ["الملف أو الشيت فارغ."]
+        return 0, ["File or sheet is empty."]
 
     # أعمدة الشيت part_2: WH | Emp No | Full Name | Busines (أو Business) | Business 2
     col_wh = _find_column(df, "WH", "wh")
@@ -49,13 +49,13 @@ def import_wh_data_rows_from_excel(file, sheet_name="part_2"):
     col_biz2 = _find_column(df, "Business 2", "Business2", "business_2")
 
     if not col_wh:
-        errors.append("لم يُعثر على عمود WH في شيت part_2.")
+        errors.append("Column 'WH' not found in sheet part_2.")
     if not col_emp:
-        errors.append("لم يُعثر على عمود Emp No في شيت part_2.")
+        errors.append("Column 'Emp No' not found in sheet part_2.")
     if not col_name:
-        errors.append("لم يُعثر على عمود Full Name في شيت part_2.")
+        errors.append("Column 'Full Name' not found in sheet part_2.")
     if not col_biz:
-        errors.append("لم يُعثر على عمود Busines أو Business في شيت part_2.")
+        errors.append("Column 'Busines' or 'Business' not found in sheet part_2.")
 
     if errors:
         return 0, errors
@@ -81,7 +81,7 @@ def import_wh_data_rows_from_excel(file, sheet_name="part_2"):
             continue
 
         if not biz_name:
-            errors.append(f"صف {idx + 2}: Business مطلوب.")
+            errors.append(f"Row {idx + 2}: Business is required.")
             continue
 
         try:
@@ -95,7 +95,7 @@ def import_wh_data_rows_from_excel(file, sheet_name="part_2"):
                 if not business_2_unit:
                     business_2_unit = BusinessUnit.objects.create(name=biz2_name, display_order=0)
         except Exception as e:
-            errors.append(f"صف {idx + 2}: {e}")
+            errors.append(f"Row {idx + 2}: {e}")
             continue
 
         try:
@@ -110,6 +110,6 @@ def import_wh_data_rows_from_excel(file, sheet_name="part_2"):
             )
             created_count += 1
         except Exception as e:
-            errors.append(f"صف {idx + 2}: {e}")
+            errors.append(f"Row {idx + 2}: {e}")
 
     return created_count, errors

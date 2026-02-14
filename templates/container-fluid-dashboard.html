@@ -150,6 +150,7 @@
     display: flex;
     align-items: center;
     flex-wrap: wrap;
+    gap: 0.5rem;
   }
   .header-top.card-header-inline .card-header-icon,
   .header-top.card-header-inline .flip-icon {
@@ -157,42 +158,12 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    margin-right: 6px;
+    margin-right: 0;
   }
   .header-top.card-header-inline .title-card,
-  .header-top.card-header-inline .card-title-inline {
-    margin: 0;
-    flex-shrink: 0;
-    color: #000 !important;
-    font-size: 1.25rem !important;
-    font-weight: 600;
-    line-height: 1.4;
-    visibility: visible;
-    opacity: 1;
-    margin-right: 76%;
-  }
-  .header-top.card-header-inline .card-title-inline-outbound {
-    margin: 0;
-    flex-shrink: 0;
-    color: #000 !important;
-    font-size: 1.25rem !important;
-    font-weight: 600;
-    line-height: 1.4;
-    visibility: visible;
-    opacity: 1;
-    margin-right: 74%;
-  }
-  .header-top.card-header-inline .card-title-inline-return {
-    margin: 0;
-    flex-shrink: 0;
-    color: #000 !important;
-    font-size: 1.25rem !important;
-    font-weight: 600;
-    line-height: 1.4;
-    visibility: visible;
-    opacity: 1;
-    margin-right: 78%;
-  }
+  .header-top.card-header-inline .card-title-inline,
+  .header-top.card-header-inline .card-title-inline-outbound,
+  .header-top.card-header-inline .card-title-inline-return,
   .header-top.card-header-inline .card-title-inline-inventory {
     margin: 0;
     flex-shrink: 0;
@@ -202,7 +173,12 @@
     line-height: 1.4;
     visibility: visible;
     opacity: 1;
-    margin-right: 74%;
+  }
+  .header-top.card-header-inline .line-button {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    margin: 0.5rem 0 0 0;
   }
   /* عناوين الأقسام الفرعية (نفس حجم Inbound / Inventory) */
   .dashboard-section-title {
@@ -362,12 +338,12 @@
   }
 
   .line-button {
-    position: absolute;
-    width: 100%;
-    bottom: -13px;
     border: 1px solid #118dec;
-    margin-top: 10px;
     opacity: unset;
+  }
+  .header-top .line-button {
+    position: static;
+    bottom: auto;
   }
 
   #box1 {
@@ -779,6 +755,188 @@
       width: 100%;
       height: 0;
       margin: 0.5rem 0;
+    }
+  }
+
+  /* ═══ Responsive: الموقع بالكامل ═══ */
+  @media (max-width: 1199.98px) {
+    .container-fluid.default-dashboard {
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+    .default-dashboard .card-body {
+      padding: 1rem !important;
+    }
+    .default-dashboard .inbound-kpi-card,
+    .default-dashboard .dashboard-kpi-card {
+      padding: 0.875rem;
+    }
+    #box1, #box2, #box3 {
+      width: 100%;
+      font-size: 1.25rem;
+    }
+    .details-container {
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .detail {
+      min-width: 45%;
+    }
+    .expiry {
+      flex-wrap: wrap;
+    }
+    .number-box {
+      width: 100%;
+      max-width: 8rem;
+    }
+    .flex-container {
+      margin-left: 0;
+      flex-wrap: wrap;
+    }
+    #chart-part-1, #chart-part-2 {
+      width: 100% !important;
+    }
+    .divider {
+      width: 100%;
+      height: 1px;
+      margin: 1rem 0;
+      position: static;
+    }
+    .inbound, .outbound-h4, .returns, .inventory-h4, .location-h4 {
+      position: static;
+      float: none;
+      left: auto;
+    }
+    .employee .row {
+      flex-wrap: wrap;
+    }
+    .custom-label {
+      position: static;
+      width: 100%;
+    }
+  }
+
+  @media (max-width: 991.98px) {
+    .container-fluid.default-dashboard {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+    .header-top.card-header-inline .card-title-inline,
+    .header-top.card-header-inline .card-title-inline-outbound,
+    .header-top.card-header-inline .card-title-inline-return,
+    .header-top.card-header-inline .card-title-inline-inventory {
+      font-size: 1.1rem !important;
+    }
+    .header-top.card-header-inline .card-header-icon img {
+      width: 32px;
+      height: 32px;
+    }
+    .default-dashboard .inbound-kpi-card .inbound-kpi-value {
+      font-size: 1.5rem;
+    }
+    .default-dashboard .dashboard-kpi-card .dashboard-kpi-value {
+      font-size: 1.25rem;
+    }
+    .inbound-section #inbound-pending-donut,
+    .pending-donut-wrapper {
+      min-height: 240px !important;
+    }
+    #chart-outbound-sla, #chart-returns-sla, #chart-inventory-capacity,
+    .pods-chart-container, .dashboard-chart-container {
+      min-height: 220px !important;
+      height: 220px !important;
+    }
+    .detail {
+      min-width: 100%;
+    }
+  }
+
+  @media (max-width: 767.98px) {
+    .container-fluid.default-dashboard {
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+    }
+    .default-dashboard .card .card-header {
+      padding: 0.75rem 0.5rem !important;
+    }
+    .default-dashboard .card-body {
+      padding: 0.75rem !important;
+    }
+    .default-dashboard .inbound-kpi-card,
+    .default-dashboard .dashboard-kpi-card {
+      padding: 0.75rem;
+    }
+    .default-dashboard .inbound-kpi-card .inbound-kpi-value {
+      font-size: 1.35rem;
+    }
+    .default-dashboard .inbound-kpi-card .inbound-kpi-label,
+    .default-dashboard .dashboard-kpi-card .dashboard-kpi-label {
+      font-size: 0.875rem;
+    }
+    .dashboard-section-title {
+      font-size: 1rem !important;
+    }
+    .dashboard-data-table {
+      font-size: 0.8rem;
+    }
+    .dashboard-data-table th,
+    .dashboard-data-table td {
+      padding: 0.4rem 0.35rem;
+    }
+    .table-responsive {
+      margin-left: -0.5rem;
+      margin-right: -0.5rem;
+      -webkit-overflow-scrolling: touch;
+    }
+    .pending-shipments-list .pending-item {
+      font-size: 0.9rem;
+    }
+    .inbound-section #inbound-pending-donut,
+    .pending-donut-wrapper {
+      min-height: 200px !important;
+    }
+    #chart-outbound-sla, #chart-returns-sla, #chart-inventory-capacity {
+      min-height: 200px !important;
+      height: 200px !important;
+    }
+    .custom-box {
+      padding: 0.75rem;
+    }
+    .box-title {
+      font-size: 1rem;
+    }
+    .box-number {
+      font-size: 1.1rem;
+    }
+  }
+
+  @media (max-width: 575.98px) {
+    .container-fluid.default-dashboard {
+      padding-left: 0.35rem;
+      padding-right: 0.35rem;
+    }
+    .header-top.card-header-inline .card-title-inline,
+    .header-top.card-header-inline .card-title-inline-outbound,
+    .header-top.card-header-inline .card-title-inline-return,
+    .header-top.card-header-inline .card-title-inline-inventory {
+      font-size: 1rem !important;
+    }
+    .header-top.card-header-inline .card-header-icon img {
+      width: 28px;
+      height: 28px;
+    }
+    .default-dashboard .inbound-kpi-card .inbound-kpi-value {
+      font-size: 1.25rem;
+    }
+    .default-dashboard .dashboard-kpi-card .dashboard-kpi-value {
+      font-size: 1.1rem;
+    }
+    .dashboard-data-table {
+      font-size: 0.75rem;
+    }
+    .dashboard-data-table th,
+    .dashboard-data-table td {
+      padding: 0.35rem 0.25rem;
     }
   }
 </style>

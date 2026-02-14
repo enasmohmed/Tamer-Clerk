@@ -493,3 +493,123 @@ class Recommendation(models.Model):
 
     def __str__(self):
         return self.title[:80]
+
+
+# ─── Project Tracker (تاب Project Tracker: شهر، شخص، تاريخ، ثلاث مراحل) ───
+PROJECT_TRACKER_STATUS_CHOICES = [
+    ("", "Not started"),
+    ("done", "Done"),
+    ("working_on_it", "Working on it"),
+    ("stuck", "Stuck"),
+]
+
+
+class ProjectTrackerItem(models.Model):
+    """
+    عنصر في تاب Project Tracker: وصف المشروع، الشخص، التاريخ، وحالة كل مرحلة
+    (Brainstorming, Execution, Launch). كل الداتا تدخل من الأدمن والفلترة بالشهر والتاريخ والحالة.
+    """
+    description = models.CharField(
+        max_length=300,
+        help_text="Project task description (e.g. Finalize kickoff materials)"
+    )
+    person_name = models.CharField(
+        max_length=120,
+        help_text="Name of the person responsible"
+    )
+    company = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Company name"
+    )
+    start_date = models.DateField(
+        help_text="Project start date (used for month grouping and ordering)"
+    )
+    brainstorming_status = models.CharField(
+        max_length=20,
+        choices=PROJECT_TRACKER_STATUS_CHOICES,
+        blank=True,
+        default="",
+        help_text="Brainstorming phase: Done / Working on it / Stuck"
+    )
+    execution_status = models.CharField(
+        max_length=20,
+        choices=PROJECT_TRACKER_STATUS_CHOICES,
+        blank=True,
+        default="",
+        help_text="Execution phase: Done / Working on it / Stuck"
+    )
+    launch_status = models.CharField(
+        max_length=20,
+        choices=PROJECT_TRACKER_STATUS_CHOICES,
+        blank=True,
+        default="",
+        help_text="Launch phase: Done / Working on it / Stuck"
+    )
+    end_date = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Project end date (optional)"
+    )
+    display_order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Order within the same day (smaller = first)"
+    )
+
+    class Meta:
+        verbose_name = "Project Tracker Item"
+        verbose_name_plural = "Project Tracker Items"
+        ordering = ["-start_date", "display_order", "id"]
+
+    def __str__(self):
+        return f"{self.description[:50]} ({self.start_date})"
+
+
+# ─── Weekly Project Tracker (تاب Progress Overview: جدول تحت Key Recommendations) ───
+WEEKLY_TRACKER_STATUS_CHOICES = [
+    ("completed", "Completed"),
+    ("in_progress", "In Progress"),
+    ("not_started", "Not Started"),
+]
+
+
+class WeeklyProjectTrackerRow(models.Model):
+    """
+    صف في جدول Weekly Project Tracker داخل تاب Progress Overview (تحت Key Recommendations).
+    يستورد من Excel: Weekly_Project_Tracker.xlsx، شيت "Weekly Tracker"
+    الأعمدة: Week | Task | Status | Progress % | Impact
+    """
+    week = models.CharField(
+        max_length=100,
+        help_text="Week label e.g. Week 1 - Feb"
+    )
+    task = models.TextField(
+        help_text="Task or description"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=WEEKLY_TRACKER_STATUS_CHOICES,
+        default="not_started",
+        help_text="Completed / In Progress / Not Started"
+    )
+    progress_pct = models.PositiveSmallIntegerField(
+        default=0,
+        blank=True,
+        help_text="Progress percentage (0-100)"
+    )
+    impact = models.TextField(
+        blank=True,
+        help_text="Impact description"
+    )
+    display_order = models.PositiveSmallIntegerField(
+        default=0,
+        help_text="Row order in table (smaller = first)"
+    )
+
+    class Meta:
+        verbose_name = "Weekly Project Tracker Row"
+        verbose_name_plural = "Weekly Project Tracker Rows"
+        ordering = ["display_order", "id"]
+
+    def __str__(self):
+        return f"{self.week} — {self.task[:50] if self.task else '—'}"
