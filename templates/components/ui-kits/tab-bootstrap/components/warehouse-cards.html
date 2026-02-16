@@ -705,6 +705,15 @@
       max-height: 450px;
       overflow-y: auto;
     }
+    /* Clerk Interview Tracking: min height to show several rows; responsive */
+    .clerk-interview-tracking-section .data-table-body {
+      min-height: 1000px;
+    }
+    @media (max-width: 768px) {
+      .clerk-interview-tracking-section .data-table-body {
+        min-height: 300px;
+      }
+    }
     .data-table-body::-webkit-scrollbar {
       width: 8px;
     }
@@ -1051,75 +1060,91 @@
   </div>
   {% endif %}
 
-  {# Table below cards: WH | Emp No | Full Name | Business | Business 2 — Always shown in Warehouse tab #}
-  {% with rows=wh_data_rows %}
+  {# Clerk Interview Tracking table — Project Overview #}
+  {% with rows=clerk_interview_rows %}
 
-
-  <div class="data-table-section">
+  <div class="data-table-section clerk-interview-tracking-section">
     <div class="data-table-card">
-      <!-- Header -->
       <div class="data-table-header">
         <div class="data-table-title-row">
           <h5 class="data-table-title">
             <span class="title-icon">
               <i class="fa fa-table"></i>
             </span>
-            Employee Data Table
+            Clerk Interview Tracking
           </h5>
           <div class="data-table-stats">
             <span class="stat-badge">
               <i class="fa fa-users"></i>
-              {{ rows|length }} Employees
+              {{ rows|length }} Records
             </span>
           </div>
         </div>
-        
-        <!-- Filters -->
+
+        <!-- Filters: DEPT_NAME_EN, Business, Optimization Plan -->
         <div class="data-table-filters">
           <div class="filter-group">
             <i class="fa fa-search filter-icon"></i>
-            <input type="search" class="filter-input" id="tableSearchInput" placeholder="Search by name or emp no..." autocomplete="nope" name="emp_table_search" readonly onfocus="this.removeAttribute('readonly')">
+            <input type="search" class="filter-input" id="clerkTableSearchInput" placeholder="Search..." autocomplete="nope" name="clerk_table_search" readonly onfocus="this.removeAttribute('readonly')">
           </div>
-          <select class="filter-select" id="filterWH">
-            <option value="">All Warehouses</option>
+          <select class="filter-select" id="filterClerkDept" title="Filter by DEPT_NAME_EN">
+            <option value="">All (DEPT_NAME_EN)</option>
           </select>
-          <select class="filter-select" id="filterBusiness">
-            <option value="">All Business</option>
+          <select class="filter-select" id="filterClerkBusiness" title="Filter by Business">
+            <option value="">All (Business)</option>
           </select>
-          <button class="clear-filters-btn" id="clearFiltersBtn">
+          <select class="filter-select" id="filterClerkOptimization" title="Filter by Optimization Plan">
+            <option value="">All (Optimization Plan)</option>
+          </select>
+          <button class="clear-filters-btn" id="clearClerkFiltersBtn">
             <i class="fa fa-times"></i>
             Clear
           </button>
         </div>
       </div>
 
-      <!-- Table Body with Scroll -->
       <div class="data-table-body table-responsive-wrapper">
         {% if rows %}
-        <table class="wh-styled-table" id="whDataTable">
+        <table class="wh-styled-table" id="clerkInterviewTable">
           <thead>
             <tr>
-              <th><i class="bi bi-building me-2"></i>WH</th>
-              <th><i class="fa fa-id-badge me-2"></i>Emp No</th>
-              <th><i class="fa fa-user me-2"></i>Full Name</th>
-              <th><i class="fa fa-briefcase me-2"></i>Business</th>
-              <th><i class="fa fa-briefcase me-2"></i>Business 2</th>
+              <th>NO</th>
+              <th>DEPT_NAME_EN</th>
+              <th>Date</th>
+              <th>Clerk Name</th>
+              <th>Mobile</th>
+              <th>Company</th>
+              <th>Business</th>
+              <th>Account</th>
+              <th>System Used</th>
+              <th>Report Used</th>
+              <th>Details</th>
+              <th>WH Visit Reasons</th>
+              <th>Physical Dependency</th>
+              <th>Automation Potential</th>
+              <th>CT Suitability</th>
+              <th>Optimization Plan</th>
             </tr>
           </thead>
           <tbody>
             {% for row in rows %}
-            <tr data-wh="{{ row.wh }}" data-business="{{ row.business }}" data-business2="{{ row.business_2 }}">
-              <td class="wh-cell" data-label="WH">{{ row.wh }}</td>
-              <td class="emp-no-cell" data-label="Emp No">{{ row.emp_no }}</td>
-              <td class="name-cell" data-label="Full Name">{{ row.full_name }}</td>
-              <td data-label="Business"><span class="business-badge">{{ row.business }}</span></td>
-              <td data-label="Business 2">
-                {% if row.business_2 and row.business_2 != "—" %}
-                <span class="business-badge secondary">{{ row.business_2 }}</span>
-                {% else %}
-                <span class="text-muted">—</span>
-                {% endif %}
-              </td>
+            <tr data-dept="{{ row.dept_name_en }}" data-business="{{ row.business }}" data-optimization="{{ row.optimization_plan }}">
+              <td data-label="NO">{{ row.no }}</td>
+              <td data-label="DEPT_NAME_EN">{{ row.dept_name_en }}</td>
+              <td data-label="Date">{{ row.date }}</td>
+              <td data-label="Clerk Name">{{ row.clerk_name }}</td>
+              <td data-label="Mobile">{{ row.mobile }}</td>
+              <td data-label="Company">{{ row.company }}</td>
+              <td data-label="Business">{{ row.business }}</td>
+              <td data-label="Account">{{ row.account }}</td>
+              <td data-label="System Used">{{ row.system_used }}</td>
+              <td data-label="Report Used">{{ row.report_used }}</td>
+              <td data-label="Details">{{ row.details }}</td>
+              <td data-label="WH Visit Reasons">{{ row.wh_visit_reasons }}</td>
+              <td data-label="Physical Dependency">{{ row.physical_dependency }}</td>
+              <td data-label="Automation Potential">{{ row.automation_potential }}</td>
+              <td data-label="CT Suitability">{{ row.ct_suitability }}</td>
+              <td data-label="Optimization Plan">{{ row.optimization_plan }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -1128,101 +1153,84 @@
         <div class="table-empty-state">
           <i class="fa fa-inbox"></i>
           <p>No data available yet.</p>
-          <p class="small mt-2">From Admin: WH Data Rows → Import from Excel</p>
+          <p class="small mt-2">From Admin: Clerk Interview Tracking → Add records or Import from Excel</p>
         </div>
         {% endif %}
       </div>
     </div>
   </div>
 
-  <!-- Filter Script -->
   <script>
   document.addEventListener('DOMContentLoaded', function() {
-    const table = document.getElementById('whDataTable');
+    const table = document.getElementById('clerkInterviewTable');
     if (!table) return;
-    
-    const searchInput = document.getElementById('tableSearchInput');
-    const filterWH = document.getElementById('filterWH');
-    const filterBusiness = document.getElementById('filterBusiness');
-    const clearBtn = document.getElementById('clearFiltersBtn');
+
+    const searchInput = document.getElementById('clerkTableSearchInput');
+    const filterDept = document.getElementById('filterClerkDept');
+    const filterBusiness = document.getElementById('filterClerkBusiness');
+    const filterOptimization = document.getElementById('filterClerkOptimization');
+    const clearBtn = document.getElementById('clearClerkFiltersBtn');
     const tbody = table.querySelector('tbody');
     const rows = tbody.querySelectorAll('tr');
-    
-    // Populate filter dropdowns
-    const whSet = new Set();
+
+    const deptSet = new Set();
     const businessSet = new Set();
-    
+    const optimizationSet = new Set();
+
     rows.forEach(row => {
-      const wh = row.dataset.wh;
-      const business = row.dataset.business;
-      const business2 = row.dataset.business2;
-      
-      if (wh) whSet.add(wh);
-      if (business) businessSet.add(business);
-      if (business2 && business2 !== '—') businessSet.add(business2);
+      const d = row.dataset.dept;
+      const b = row.dataset.business;
+      const o = row.dataset.optimization;
+      if (d) deptSet.add(d);
+      if (b) businessSet.add(b);
+      if (o) optimizationSet.add(o);
     });
-    
-    whSet.forEach(wh => {
-      const option = document.createElement('option');
-      option.value = wh;
-      option.textContent = wh;
-      filterWH.appendChild(option);
-    });
-    
-    businessSet.forEach(business => {
-      const option = document.createElement('option');
-      option.value = business;
-      option.textContent = business;
-      filterBusiness.appendChild(option);
-    });
-    
-    // Filter function
+
+    deptSet.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; filterDept.appendChild(o); });
+    businessSet.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; filterBusiness.appendChild(o); });
+    optimizationSet.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; filterOptimization.appendChild(o); });
+
     function filterTable() {
       const searchTerm = searchInput.value.toLowerCase();
-      const whValue = filterWH.value;
-      const businessValue = filterBusiness.value;
-      
+      const deptVal = filterDept.value;
+      const businessVal = filterBusiness.value;
+      const optimizationVal = filterOptimization.value;
       let visibleCount = 0;
-      
+
       rows.forEach(row => {
-        const wh = row.dataset.wh || '';
-        const business = row.dataset.business || '';
-        const business2 = row.dataset.business2 || '';
         const text = row.textContent.toLowerCase();
-        
         const matchesSearch = !searchTerm || text.includes(searchTerm);
-        const matchesWH = !whValue || wh === whValue;
-        const matchesBusiness = !businessValue || business === businessValue || business2 === businessValue;
-        
-        if (matchesSearch && matchesWH && matchesBusiness) {
+        const matchesDept = !deptVal || row.dataset.dept === deptVal;
+        const matchesBusiness = !businessVal || row.dataset.business === businessVal;
+        const matchesOptimization = !optimizationVal || row.dataset.optimization === optimizationVal;
+
+        if (matchesSearch && matchesDept && matchesBusiness && matchesOptimization) {
           row.style.display = '';
           visibleCount++;
         } else {
           row.style.display = 'none';
         }
       });
-      
-      // Show no results message
+
       const existingNoResults = tbody.querySelector('.no-results-row');
       if (existingNoResults) existingNoResults.remove();
-      
       if (visibleCount === 0) {
         const noResultsRow = document.createElement('tr');
         noResultsRow.className = 'no-results-row';
-        noResultsRow.innerHTML = '<td colspan="5"><i class="fas fa-search me-2"></i>No results found</td>';
+        noResultsRow.innerHTML = '<td colspan="16"><i class="fas fa-search me-2"></i>No results found</td>';
         tbody.appendChild(noResultsRow);
       }
     }
-    
-    // Event listeners
+
     searchInput.addEventListener('input', filterTable);
-    filterWH.addEventListener('change', filterTable);
+    filterDept.addEventListener('change', filterTable);
     filterBusiness.addEventListener('change', filterTable);
-    
+    filterOptimization.addEventListener('change', filterTable);
     clearBtn.addEventListener('click', function() {
       searchInput.value = '';
-      filterWH.value = '';
+      filterDept.value = '';
       filterBusiness.value = '';
+      filterOptimization.value = '';
       filterTable();
     });
   });

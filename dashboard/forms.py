@@ -20,8 +20,8 @@ class ExcelUploadForm(forms.Form):
 
 
 
-class WHDataRowExcelUploadForm(forms.Form):
-    """Excel upload form for WH Data Rows (WH | Emp No | Full Name | Business | Business 2)."""
+class ClerkInterviewTrackingExcelUploadForm(forms.Form):
+    """Excel upload for Clerk Interview Tracking (15 columns)."""
     excel_file = forms.FileField(
         label="Excel file",
         required=True,
@@ -31,16 +31,16 @@ class WHDataRowExcelUploadForm(forms.Form):
     )
     sheet_name = forms.CharField(
         label="Sheet name",
-        initial="part_2",
+        initial="Sheet1",
         required=False,
         max_length=100,
-        help_text="Sheet name in the file (default: part_2).",
+        help_text="Sheet name in the file (default: Sheet1).",
     )
     clear_before_import = forms.BooleanField(
         label="Clear existing data before import",
         required=False,
         initial=False,
-        help_text="Enable to delete all current rows before importing from the file.",
+        help_text="Enable to delete all current rows before importing.",
     )
 
 
@@ -65,6 +65,28 @@ class WeeklyProjectTrackerExcelUploadForm(forms.Form):
         required=False,
         initial=False,
         help_text="Enable to delete all current rows before importing from the file.",
+    )
+
+
+class PotentialChallengesExcelUploadForm(forms.Form):
+    """Excel upload for Potential Challenges (e.g. Potential_Challenges.xlsx, sheet Potential_Challenges)."""
+    excel_file = forms.FileField(
+        label="Excel file",
+        required=True,
+        widget=forms.ClearableFileInput(attrs={"accept": ".xlsx,.xlsm,.xls"}),
+        help_text="e.g. Potential_Challenges.xlsx",
+    )
+    sheet_name = forms.CharField(
+        label="Sheet name",
+        initial="Potential_Challenges",
+        required=False,
+        max_length=100,
+        help_text="Sheet name in the file (default: Potential_Challenges).",
+    )
+    clear_before_import = forms.BooleanField(
+        label="Clear existing data before import",
+        required=False,
+        initial=False,
     )
 
 

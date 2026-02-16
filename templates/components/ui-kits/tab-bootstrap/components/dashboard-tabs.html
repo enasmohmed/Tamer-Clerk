@@ -418,9 +418,9 @@
           <!-- 🔹 محتوى التابات: Warehouse / Recommendation / Meeting Points -->
           <div id="tab-content" class="card p-4 shadow-sm bg-white mt-3">
             {% if active_tab == "warehouse" %}
-              {% include 'components/ui-kits/tab-bootstrap/components/warehouse-cards.html' with warehouse_overview=warehouse_overview wh_data_rows=wh_data_rows %}
+              {% include 'components/ui-kits/tab-bootstrap/components/warehouse-cards.html' with warehouse_overview=warehouse_overview clerk_interview_rows=clerk_interview_rows %}
             {% elif active_tab == "recommendation" %}
-              {% include 'components/ui-kits/tab-bootstrap/components/recommendation-cards.html' with recommendations=recommendations weekly_tracker_rows=weekly_tracker_rows %}
+              {% include 'components/ui-kits/tab-bootstrap/components/recommendation-cards.html' with recommendations=recommendations weekly_tracker_rows=weekly_tracker_rows potential_challenges_rows=potential_challenges_rows %}
             {% elif active_tab == "project tracker" %}
               {% include 'components/ui-kits/tab-bootstrap/components/project-tracker-cards.html' with project_tracker_items=project_tracker_items %}
             {% else %}

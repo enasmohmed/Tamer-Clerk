@@ -202,19 +202,30 @@ def get_warehouse_overview_list():
         return []
 
 
-def get_wh_data_rows_list():
-    """Returns a list of table rows below Warehouses Overview cards (WH | Emp No | Full Name | Business | Business 2)."""
+def get_clerk_interview_list():
+    """Returns a list of Clerk Interview Tracking rows for Project Overview table."""
     try:
-        from .models import WHDataRow
+        from .models import ClerkInterviewTracking
 
-        rows = WHDataRow.objects.select_related("business", "business_2").all()
+        rows = ClerkInterviewTracking.objects.all()
         return [
             {
-                "wh": r.wh,
-                "emp_no": r.emp_no,
-                "full_name": r.full_name,
-                "business": r.business.name if r.business else "—",
-                "business_2": r.business_2.name if r.business_2 else "—",
+                "no": r.no or "—",
+                "dept_name_en": r.dept_name_en or "—",
+                "date": r.date.strftime("%Y-%m-%d") if r.date else "—",
+                "clerk_name": r.clerk_name or "—",
+                "mobile": r.mobile or "—",
+                "company": r.company or "—",
+                "business": r.business or "—",
+                "account": r.account or "—",
+                "system_used": r.system_used or "—",
+                "report_used": r.report_used or "—",
+                "details": r.details or "—",
+                "wh_visit_reasons": r.wh_visit_reasons or "—",
+                "physical_dependency": r.physical_dependency or "—",
+                "automation_potential": r.automation_potential or "—",
+                "ct_suitability": r.ct_suitability or "—",
+                "optimization_plan": r.optimization_plan or "—",
             }
             for r in rows
         ]
@@ -243,32 +254,66 @@ def get_weekly_project_tracker_list():
         return []
 
 
+def get_potential_challenges_list():
+    """Returns list of Potential Challenges rows (Date, Challenges, Status, Progress %, Solutions)."""
+    try:
+        from .models import PotentialChallenge
+
+        rows = PotentialChallenge.objects.all()
+        return [
+            {
+                "date": r.date or "—",
+                "challenges": r.challenges or "—",
+                "status": r.status,
+                "status_display": r.get_status_display(),
+                "progress_pct": r.progress_pct,
+                "solutions": r.solutions or "—",
+            }
+            for r in rows
+        ]
+    except Exception:
+        return []
+
+
 def get_recommendations_list():
-    """Returns a list of active recommendations for Recommendation Overview tab."""
+    """
+    Returns a list of "cards" for Recommendation Overview tab.
+    Each card has business, user_name, and items (list of recommendation dicts).
+    Cards are grouped by (business, user_name); two cards per row in the UI.
+    """
     try:
         from .models import Recommendation
+        from itertools import groupby
 
         recs = Recommendation.objects.filter(is_active=True).order_by(
-            "display_order", "id"
+            "business", "user_name", "display_order", "id"
         )
-        result = [
-            {
-                "id": r.id,
-                "title": r.title,
-                "description": r.description,
-                "icon_type": r.icon_type,
-                "custom_icon": r.custom_icon.url if r.custom_icon else None,
-                "icon_bg_color": r.icon_bg_color or "#f5f5f0",
-                "display_order": r.display_order,
-            }
-            for r in recs
-        ]
-        print(
-            f"[Recommendations] Found {len(result)} active recommendations"
-        )  # For debugging
-        return result
+        # Build list of cards: each card = (business, user_name, items)
+        cards = []
+        for (business, user_name), group in groupby(
+            recs, key=lambda r: (r.business or "", r.user_name or "")
+        ):
+            items = [
+                {
+                    "id": r.id,
+                    "title": r.title,
+                    "description": r.description,
+                    "icon_type": r.icon_type,
+                    "custom_icon": r.custom_icon.url if r.custom_icon else None,
+                    "icon_bg_color": r.icon_bg_color or "#f5f5f0",
+                    "display_order": r.display_order,
+                }
+                for r in group
+            ]
+            if items:
+                cards.append({
+                    "business": business or "—",
+                    "user_name": user_name or "",
+                    "items": items,
+                })
+        return cards
     except Exception as e:
-        print(f"[Recommendations] Error: {e}")  # For debugging
+        print(f"[Recommendations] Error: {e}")
         return []
 
 

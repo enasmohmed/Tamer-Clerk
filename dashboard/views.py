@@ -1552,11 +1552,13 @@ class UploadExcelViewRoche(View):
             if selected_tab == "recommendation":
                 recommendations = context_helpers.get_recommendations_list()
                 weekly_tracker_rows = context_helpers.get_weekly_project_tracker_list()
+                potential_challenges_rows = context_helpers.get_potential_challenges_list()
                 recommendation_html = render_to_string(
                     "components/ui-kits/tab-bootstrap/components/recommendation-cards.html",
                     {
                         "recommendations": recommendations,
                         "weekly_tracker_rows": weekly_tracker_rows,
+                        "potential_challenges_rows": potential_challenges_rows,
                         "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
                     },
                     request=request,
@@ -1608,11 +1610,12 @@ class UploadExcelViewRoche(View):
                 "all_tab_data": {"detail_html": ""},
                 "raw_tab_data": None,
                 "warehouse_overview": context_helpers.get_warehouse_overview_list(),
-                "wh_data_rows": context_helpers.get_wh_data_rows_list(),
+                "clerk_interview_rows": context_helpers.get_clerk_interview_list(),
                 "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
                 "phases_sections": context_helpers.get_phases_sections_list(),
                 "recommendations": context_helpers.get_recommendations_list(),
                 "weekly_tracker_rows": context_helpers.get_weekly_project_tracker_list(),
+                "potential_challenges_rows": context_helpers.get_potential_challenges_list(),
                 "project_tracker_items": context_helpers.get_project_tracker_list(),
             }
             return render(request, self.template_name, render_context)
@@ -1982,13 +1985,13 @@ class UploadExcelViewRoche(View):
             selected_tab = "warehouse"
             data_is_uploaded = True
             warehouse_overview = context_helpers.get_warehouse_overview_list()
-            wh_data_rows = context_helpers.get_wh_data_rows_list()
+            clerk_interview_rows = context_helpers.get_clerk_interview_list()
             dashboard_theme = context_helpers.get_dashboard_theme_dict()
             phases_sections = context_helpers.get_phases_sections_list()
         else:
             data_is_uploaded = True
             warehouse_overview = []
-            wh_data_rows = []
+            clerk_interview_rows = []
             dashboard_theme = context_helpers.get_dashboard_theme_dict()
             phases_sections = []
 
@@ -2009,10 +2012,11 @@ class UploadExcelViewRoche(View):
             "all_tab_data": all_tab_data,
             "raw_tab_data": None,
             "warehouse_overview": warehouse_overview,
-            "wh_data_rows": wh_data_rows,
+            "clerk_interview_rows": clerk_interview_rows,
             "dashboard_theme": dashboard_theme,
             "recommendations": context_helpers.get_recommendations_list(),
             "weekly_tracker_rows": context_helpers.get_weekly_project_tracker_list(),
+            "potential_challenges_rows": context_helpers.get_potential_challenges_list(),
             "project_tracker_items": context_helpers.get_project_tracker_list(),
         }
         if (selected_tab or "").lower() == "dashboard":
@@ -2809,7 +2813,7 @@ class UploadExcelViewRoche(View):
             tabs_for_display = clean_tabs
 
             warehouse_overview = context_helpers.get_warehouse_overview_list()
-            wh_data_rows = context_helpers.get_wh_data_rows_list()
+            clerk_interview_rows = context_helpers.get_clerk_interview_list()
             dashboard_theme = context_helpers.get_dashboard_theme_dict()
             phases_sections = context_helpers.get_phases_sections_list()
             html = render_to_string(
@@ -2820,7 +2824,7 @@ class UploadExcelViewRoche(View):
                     "meeting_data": meeting_data,
                     "status_filter": status_filter,
                     "warehouse_overview": warehouse_overview,
-                    "wh_data_rows": wh_data_rows,
+                    "clerk_interview_rows": clerk_interview_rows,
                     "dashboard_theme": dashboard_theme,
                     "phases_sections": phases_sections,
                 },
@@ -7377,14 +7381,14 @@ class UploadExcelViewRoche(View):
         """
         try:
             warehouse_overview = context_helpers.get_warehouse_overview_list()
-            wh_data_rows = context_helpers.get_wh_data_rows_list()
+            clerk_interview_rows = context_helpers.get_clerk_interview_list()
             dashboard_theme = context_helpers.get_dashboard_theme_dict()
             phases_sections = context_helpers.get_phases_sections_list()
             html = render_to_string(
                 "components/ui-kits/tab-bootstrap/components/warehouse-cards.html",
                 {
                     "warehouse_overview": warehouse_overview,
-                    "wh_data_rows": wh_data_rows,
+                    "clerk_interview_rows": clerk_interview_rows,
                     "dashboard_theme": dashboard_theme,
                     "phases_sections": phases_sections,
                 },

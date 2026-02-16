@@ -383,35 +383,34 @@ class WarehouseMetric(models.Model):
         return self.name or (self.warehouse.name if self.warehouse else "—")
 
 
-# ─── Table below Warehouses Overview cards: WH | Emp No | Full Name | Business | Business 2 ───
-class WHDataRow(models.Model):
-    """Row in table below warehouse cards: WH (name), Emp No (numbers), Full Name, Business, Business 2."""
-    wh = models.CharField(max_length=120, help_text="WH (name)")
-    emp_no = models.CharField(max_length=50, help_text="Emp No (numbers)")
-    full_name = models.CharField(max_length=200, help_text="Full Name")
-    business = models.ForeignKey(
-        BusinessUnit,
-        on_delete=models.CASCADE,
-        related_name="wh_data_rows_business",
-        help_text="Business (business unit)",
-    )
-    business_2 = models.ForeignKey(
-        BusinessUnit,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="wh_data_rows_business_2",
-        help_text="Business 2 (second business unit, optional)",
-    )
+# ─── Clerk Interview Tracking (Project Overview table) ───
+class ClerkInterviewTracking(models.Model):
+    """Clerk Interview Tracking: NO, DEPT_NAME_EN, Date, Clerk Name, Mobile, Company, Business, Account, System Used, Report Used, Details, WH Visit Reasons, Physical Dependency, Automation Potential, CT Suitability."""
+    no = models.CharField(max_length=50, blank=True, help_text="NO")
+    dept_name_en = models.CharField(max_length=200, blank=True, help_text="DEPT_NAME_EN")
+    date = models.DateField(null=True, blank=True, help_text="Date")
+    clerk_name = models.CharField(max_length=200, blank=True, help_text="Clerk Name")
+    mobile = models.CharField(max_length=50, blank=True, help_text="Mobile")
+    company = models.CharField(max_length=200, blank=True, help_text="Company")
+    business = models.CharField(max_length=200, blank=True, help_text="Business")
+    account = models.CharField(max_length=200, blank=True, help_text="Account")
+    system_used = models.CharField(max_length=200, blank=True, help_text="System Used")
+    report_used = models.CharField(max_length=200, blank=True, help_text="Report Used")
+    details = models.TextField(blank=True, help_text="Details")
+    wh_visit_reasons = models.CharField(max_length=300, blank=True, help_text="WH Visit Reasons")
+    physical_dependency = models.CharField(max_length=200, blank=True, help_text="Physical Dependency")
+    automation_potential = models.CharField(max_length=200, blank=True, help_text="Automation Potential")
+    ct_suitability = models.CharField(max_length=200, blank=True, help_text="CT Suitability")
+    optimization_plan = models.CharField(max_length=300, blank=True, help_text="Optimization Plan (optional, from Excel)")
     display_order = models.PositiveSmallIntegerField(default=0, help_text="Row order in table")
 
     class Meta:
-        verbose_name = "WH Data Row"
-        verbose_name_plural = "WH Data Rows"
+        verbose_name = "Clerk Interview Tracking"
+        verbose_name_plural = "Clerk Interview Tracking"
         ordering = ["display_order", "id"]
 
     def __str__(self):
-        return f"{self.wh} — {self.full_name} ({self.emp_no})"
+        return f"{self.clerk_name or self.no or '—'} ({self.dept_name_en or '—'})"
 
 
 class UploadedFile(models.Model):
@@ -460,8 +459,10 @@ ICON_CHOICES = [
 
 
 class Recommendation(models.Model):
-    """Key recommendation displayed in Recommendation Overview tab."""
-    title = models.CharField(max_length=200, help_text="Recommendation title (e.g. Enhance Packing List Sheet)")
+    """Key recommendation displayed in Recommendation Overview tab. Grouped by business + user_name into cards."""
+    user_name = models.CharField(max_length=120, blank=True, help_text="User who created this (e.g. Allaa, Hisham)")
+    business = models.CharField(max_length=120, blank=True, help_text="Business type (e.g. 3PL FMCG, 3PL Healthcare)")
+    title = models.CharField(max_length=200, blank=True, help_text="Recommendation title (optional)")
     description = models.TextField(help_text="Detailed recommendation description")
     icon_type = models.CharField(
         max_length=20,
@@ -489,7 +490,7 @@ class Recommendation(models.Model):
     class Meta:
         verbose_name = "Recommendation"
         verbose_name_plural = "Recommendations"
-        ordering = ["display_order", "id"]
+        ordering = ["business", "user_name", "display_order", "id"]
 
     def __str__(self):
         return self.title[:80]
@@ -613,3 +614,27 @@ class WeeklyProjectTrackerRow(models.Model):
 
     def __str__(self):
         return f"{self.week} — {self.task[:50] if self.task else '—'}"
+
+
+# ─── Potential Challenges (جدول Potential Challenges: Date | Challenges | Status | Progress % | Solutions) ───
+class PotentialChallenge(models.Model):
+    """Potential Challenges table: Date, Challenges, Status, Progress %, Solutions. Import from Excel."""
+    date = models.CharField(max_length=100, blank=True, help_text="Date")
+    challenges = models.TextField(blank=True, help_text="Challenges")
+    status = models.CharField(
+        max_length=20,
+        choices=WEEKLY_TRACKER_STATUS_CHOICES,
+        default="not_started",
+        help_text="Completed / In Progress / Not Started",
+    )
+    progress_pct = models.PositiveSmallIntegerField(default=0, blank=True, help_text="Progress percentage (0-100)")
+    solutions = models.TextField(blank=True, help_text="Solutions")
+    display_order = models.PositiveSmallIntegerField(default=0, help_text="Row order in table")
+
+    class Meta:
+        verbose_name = "Potential Challenge"
+        verbose_name_plural = "Potential Challenges"
+        ordering = ["display_order", "id"]
+
+    def __str__(self):
+        return f"{self.date} — {self.challenges[:50] if self.challenges else '—'}"

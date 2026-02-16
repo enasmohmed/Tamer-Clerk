@@ -1,0 +1,20 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p class="help">
+  Upload an Excel file with columns: <strong>NO</strong>, <strong>DEPT_NAME_EN</strong>, <strong>Date</strong>, <strong>Clerk Name</strong>, <strong>Mobile</strong>, <strong>Company</strong>, <strong>Business</strong>, <strong>Account</strong>, <strong>System Used</strong>, <strong>Report Used</strong>, <strong>Details</strong>, <strong>WH Visit Reasons</strong>, <strong>Physical Dependency</strong>, <strong>Automation Potential</strong>, <strong>CT Suitability</strong>.
+  Column names are matched flexibly (e.g. "WH Visit Resons" accepted). Enable "Clear existing data before import" to wipe the table before importing.
+</p>
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <table>
+    {{ form.as_table }}
+  </table>
+  <p style="margin-top: 1rem;">
+    <input type="submit" value="Import" class="default">
+    <a href="{% url 'admin:dashboard_clerkinterviewtracking_changelist' %}" class="button cancel-link">Cancel</a>
+  </p>
+</form>
+{% endblock %}

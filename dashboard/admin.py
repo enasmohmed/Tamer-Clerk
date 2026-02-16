@@ -15,7 +15,7 @@ from .models import (
     WarehousePhaseStatus,
     PhaseSection,
     PhasePoint,
-    WHDataRow,
+    ClerkInterviewTracking,
     Region,
     WarehouseMetric,
     DashboardTheme,
@@ -23,6 +23,7 @@ from .models import (
     Recommendation,
     ProjectTrackerItem,
     WeeklyProjectTrackerRow,
+    PotentialChallenge,
 )
 
 
@@ -100,14 +101,18 @@ class PhaseSectionAdmin(admin.ModelAdmin):
     inlines = [PhasePointInline]
 
 
-# ─── Table below Warehouses Overview (WH | Emp No | Full Name | Business | Business 2) ───
-@admin.register(WHDataRow)
-class WHDataRowAdmin(admin.ModelAdmin):
-    list_display = ("wh", "emp_no", "full_name", "business", "business_2", "display_order")
+# ─── Clerk Interview Tracking (Project Overview table) ───
+@admin.register(ClerkInterviewTracking)
+class ClerkInterviewTrackingAdmin(admin.ModelAdmin):
+    list_display = (
+        "no", "dept_name_en", "date", "clerk_name", "mobile", "company", "business",
+        "account", "system_used", "report_used", "wh_visit_reasons", "physical_dependency",
+         "automation_potential", "ct_suitability", "optimization_plan", "display_order",
+    )
     list_editable = ("display_order",)
-    list_filter = ("business", "business_2")
-    search_fields = ("wh", "emp_no", "full_name")
-    change_list_template = "admin/dashboard/whdatarow/change_list.html"
+    list_filter = ("dept_name_en", "business", "optimization_plan")
+    search_fields = ("no", "dept_name_en", "clerk_name", "mobile", "company", "business", "details")
+    change_list_template = "admin/dashboard/clerkinterviewtracking/change_list.html"
 
     def get_urls(self):
         urls = super().get_urls()
@@ -115,25 +120,25 @@ class WHDataRowAdmin(admin.ModelAdmin):
             path(
                 "import-excel/",
                 self.admin_site.admin_view(self.import_excel_view),
-                name="dashboard_whdatarow_import_excel",
+                name="dashboard_clerkinterviewtracking_import_excel",
             ),
         ]
         return custom + urls
 
     def import_excel_view(self, request):
-        from .forms import WHDataRowExcelUploadForm
-        from .wh_data_import import import_wh_data_rows_from_excel
+        from .forms import ClerkInterviewTrackingExcelUploadForm
+        from .clerk_interview_import import import_clerk_interview_from_excel
 
         if request.method == "POST":
-            form = WHDataRowExcelUploadForm(request.POST, request.FILES)
+            form = ClerkInterviewTrackingExcelUploadForm(request.POST, request.FILES)
             if form.is_valid():
                 excel_file = request.FILES["excel_file"]
-                sheet_name = (form.cleaned_data.get("sheet_name") or "").strip() or "part_2"
+                sheet_name = (form.cleaned_data.get("sheet_name") or "").strip() or "Sheet1"
                 clear_before = form.cleaned_data.get("clear_before_import")
                 if clear_before:
                     deleted, _ = self.model.objects.all().delete()
                     messages.info(request, f"Deleted {deleted} old rows.")
-                created_count, err_list = import_wh_data_rows_from_excel(excel_file, sheet_name=sheet_name)
+                created_count, err_list = import_clerk_interview_from_excel(excel_file, sheet_name=sheet_name)
                 if created_count > 0:
                     messages.success(
                         request,
@@ -145,16 +150,16 @@ class WHDataRowAdmin(admin.ModelAdmin):
                     if len(err_list) > 10:
                         messages.warning(request, f"... and {len(err_list) - 10} more messages.")
                 if created_count > 0 or not err_list:
-                    return redirect("admin:dashboard_whdatarow_changelist")
+                    return redirect("admin:dashboard_clerkinterviewtracking_changelist")
         else:
-            form = WHDataRowExcelUploadForm()
+            form = ClerkInterviewTrackingExcelUploadForm()
         context = {
             **self.admin_site.each_context(request),
             "form": form,
-            "title": "Import WH Data Rows from Excel",
+            "title": "Import Clerk Interview Tracking from Excel",
             "opts": self.model._meta,
         }
-        return render(request, "admin/dashboard/whdatarow/import_excel.html", context)
+        return render(request, "admin/dashboard/clerkinterviewtracking/import_excel.html", context)
 
 
 # ─── Additional Models (Region / Warehouse tables in dashboard, Theme, Meeting Points) ───
@@ -232,18 +237,18 @@ class MeetingPointAdmin(admin.ModelAdmin):
 # ─── Recommendations ───
 @admin.register(Recommendation)
 class RecommendationAdmin(admin.ModelAdmin):
-    list_display = ("title", "icon_type", "display_order", "is_active")
+    list_display = ("title", "business", "user_name", "icon_type", "display_order", "is_active")
     list_editable = ("icon_type", "display_order", "is_active")
-    list_filter = ("is_active", "icon_type")
-    search_fields = ("title", "description")
-    ordering = ("display_order", "id")
+    list_filter = ("is_active", "icon_type", "business")
+    search_fields = ("title", "description", "business", "user_name")
+    ordering = ("business", "user_name", "display_order", "id")
     fieldsets = (
         (None, {
-            "fields": ("title", "description")
+            "fields": ("business", "user_name", "title", "description"),
+            "description": "Business + User name group this recommendation into a card (e.g. 3PL FMCG, Allaa)."
         }),
         ("Icon Settings", {
             "fields": ("icon_type", "custom_icon", "icon_bg_color"),
-            "description": "Choose icon type or upload a custom image"
         }),
         ("Settings", {
             "fields": ("display_order", "is_active")
@@ -318,6 +323,71 @@ class WeeklyProjectTrackerRowAdmin(admin.ModelAdmin):
             "opts": self.model._meta,
         }
         return render(request, "admin/dashboard/weeklyprojecttrackerrow/import_excel.html", context)
+
+
+# ─── Potential Challenges ───
+@admin.register(PotentialChallenge)
+class PotentialChallengeAdmin(admin.ModelAdmin):
+    list_display = ("date", "challenges_short", "status", "progress_pct", "solutions_short", "display_order")
+    list_editable = ("display_order",)
+    list_filter = ("status",)
+    search_fields = ("date", "challenges", "solutions")
+    change_list_template = "admin/dashboard/potentialchallenge/change_list.html"
+
+    def challenges_short(self, obj):
+        return (obj.challenges[:50] + "…") if obj.challenges and len(obj.challenges) > 50 else (obj.challenges or "—")
+
+    def solutions_short(self, obj):
+        return (obj.solutions[:40] + "…") if obj.solutions and len(obj.solutions) > 40 else (obj.solutions or "—")
+
+    challenges_short.short_description = "Challenges"
+    solutions_short.short_description = "Solutions"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "import-excel/",
+                self.admin_site.admin_view(self.import_excel_view),
+                name="dashboard_potentialchallenge_import_excel",
+            ),
+        ]
+        return custom + urls
+
+    def import_excel_view(self, request):
+        from .forms import PotentialChallengesExcelUploadForm
+        from .potential_challenges_import import import_potential_challenges_from_excel
+
+        if request.method == "POST":
+            form = PotentialChallengesExcelUploadForm(request.POST, request.FILES)
+            if form.is_valid():
+                excel_file = request.FILES["excel_file"]
+                sheet_name = (form.cleaned_data.get("sheet_name") or "").strip() or "Potential_Challenges"
+                clear_before = form.cleaned_data.get("clear_before_import")
+                if clear_before:
+                    deleted, _ = self.model.objects.all().delete()
+                    messages.info(request, f"Deleted {deleted} old rows.")
+                created_count, err_list = import_potential_challenges_from_excel(
+                    excel_file, sheet_name=sheet_name
+                )
+                if created_count > 0:
+                    messages.success(request, f"Successfully imported {created_count} rows.")
+                if err_list:
+                    for err in err_list[:10]:
+                        messages.warning(request, err)
+                    if len(err_list) > 10:
+                        messages.warning(request, f"... and {len(err_list) - 10} more messages.")
+                if created_count > 0 or not err_list:
+                    return redirect("admin:dashboard_potentialchallenge_changelist")
+        else:
+            form = PotentialChallengesExcelUploadForm()
+        context = {
+            **self.admin_site.each_context(request),
+            "form": form,
+            "title": "Import Potential Challenges from Excel",
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/dashboard/potentialchallenge/import_excel.html", context)
 
 
 # ─── Project Tracker ───
