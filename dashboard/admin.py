@@ -96,22 +96,26 @@ class PhasePointInline(admin.TabularInline):
 
 @admin.register(PhaseSection)
 class PhaseSectionAdmin(admin.ModelAdmin):
-    list_display = ("title", "display_order", "is_active")
+    list_display = ("title", "days_number", "days_label", "display_order", "is_active")
     list_editable = ("display_order", "is_active")
+    list_filter = ("is_active",)
     inlines = [PhasePointInline]
+    fieldsets = (
+        (None, {"fields": ("title", "display_order", "is_active")}),
+        ("Ribbon (30, 60, 90 DAYS)", {"fields": ("days_number", "days_label")}),
+    )
 
 
 # ─── Clerk Interview Tracking (Project Overview table) ───
 @admin.register(ClerkInterviewTracking)
 class ClerkInterviewTrackingAdmin(admin.ModelAdmin):
     list_display = (
-        "no", "dept_name_en", "date", "clerk_name", "mobile", "company", "business",
-        "account", "system_used", "report_used", "wh_visit_reasons", "physical_dependency",
-         "automation_potential", "ct_suitability", "optimization_plan", "display_order",
+        "wh", "clerk_name", "nationality", "report_used", "optimization_status",
+        "strength", "system_used", "business", "remark", "display_order",
     )
     list_editable = ("display_order",)
-    list_filter = ("dept_name_en", "business", "optimization_plan")
-    search_fields = ("no", "dept_name_en", "clerk_name", "mobile", "company", "business", "details")
+    list_filter = ("wh", "business", "optimization_status")
+    search_fields = ("wh", "clerk_name", "nationality", "business", "remark")
     change_list_template = "admin/dashboard/clerkinterviewtracking/change_list.html"
 
     def get_urls(self):

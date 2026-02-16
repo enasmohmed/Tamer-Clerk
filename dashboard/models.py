@@ -291,8 +291,24 @@ class WarehousePhaseStatus(models.Model):
 
 # ─── Phase Section (Title + Points) for section below cards ───
 class PhaseSection(models.Model):
-    """Section in Phases below warehouse cards (like Accordion item)."""
-    title = models.CharField(max_length=200, help_text="Phase title or question (e.g. Phase 1 details).")
+    """Section in Phases below warehouse cards (e.g. 30 DAYS, 60 DAYS, 90 DAYS)."""
+    title = models.CharField(
+        max_length=200,
+        blank=True,
+        null = True,
+        help_text="Optional phase title (e.g. Phase 1 details). Used as fallback if Days number is empty.",
+    )
+    days_number = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Number on the ribbon (e.g. 30, 60, 90). Enter from Admin.",
+    )
+    days_label = models.CharField(
+        max_length=50,
+        default="DAYS",
+        blank=True,
+        help_text="Label next to the number (e.g. DAYS).",
+    )
     display_order = models.PositiveSmallIntegerField(
         default=0, help_text="Section display order: smaller appears first."
     )
@@ -304,7 +320,9 @@ class PhaseSection(models.Model):
         ordering = ["display_order", "id"]
 
     def __str__(self):
-        return self.title
+        if self.days_number is not None:
+            return f"{self.days_number} {self.days_label or 'DAYS'}"
+        return self.title or "Phase Section"
 
 
 class PhasePoint(models.Model):
@@ -385,23 +403,16 @@ class WarehouseMetric(models.Model):
 
 # ─── Clerk Interview Tracking (Project Overview table) ───
 class ClerkInterviewTracking(models.Model):
-    """Clerk Interview Tracking: NO, DEPT_NAME_EN, Date, Clerk Name, Mobile, Company, Business, Account, System Used, Report Used, Details, WH Visit Reasons, Physical Dependency, Automation Potential, CT Suitability."""
-    no = models.CharField(max_length=50, blank=True, help_text="NO")
-    dept_name_en = models.CharField(max_length=200, blank=True, help_text="DEPT_NAME_EN")
-    date = models.DateField(null=True, blank=True, help_text="Date")
+    """Clerk Interview Tracking: WH, Clerk Name, NATIONALITY, Report Used, Optimization Status, Strength, System Used, Business, Remark. Excel: CP_project.xlsx, Sheet1."""
+    wh = models.CharField(max_length=120, blank=True, help_text="WH")
     clerk_name = models.CharField(max_length=200, blank=True, help_text="Clerk Name")
-    mobile = models.CharField(max_length=50, blank=True, help_text="Mobile")
-    company = models.CharField(max_length=200, blank=True, help_text="Company")
-    business = models.CharField(max_length=200, blank=True, help_text="Business")
-    account = models.CharField(max_length=200, blank=True, help_text="Account")
-    system_used = models.CharField(max_length=200, blank=True, help_text="System Used")
+    nationality = models.CharField(max_length=120, blank=True, help_text="NATIONALITY")
     report_used = models.CharField(max_length=200, blank=True, help_text="Report Used")
-    details = models.TextField(blank=True, help_text="Details")
-    wh_visit_reasons = models.CharField(max_length=300, blank=True, help_text="WH Visit Reasons")
-    physical_dependency = models.CharField(max_length=200, blank=True, help_text="Physical Dependency")
-    automation_potential = models.CharField(max_length=200, blank=True, help_text="Automation Potential")
-    ct_suitability = models.CharField(max_length=200, blank=True, help_text="CT Suitability")
-    optimization_plan = models.CharField(max_length=300, blank=True, help_text="Optimization Plan (optional, from Excel)")
+    optimization_status = models.CharField(max_length=200, blank=True, help_text="Optimization Status")
+    strength = models.CharField(max_length=200, blank=True, help_text="Strength")
+    system_used = models.CharField(max_length=200, blank=True, help_text="System Used")
+    business = models.CharField(max_length=200, blank=True, help_text="Business")
+    remark = models.TextField(blank=True, help_text="Remark")
     display_order = models.PositiveSmallIntegerField(default=0, help_text="Row order in table")
 
     class Meta:
@@ -410,7 +421,7 @@ class ClerkInterviewTracking(models.Model):
         ordering = ["display_order", "id"]
 
     def __str__(self):
-        return f"{self.clerk_name or self.no or '—'} ({self.dept_name_en or '—'})"
+        return f"{self.clerk_name or '—'} ({self.wh or '—'})"
 
 
 class UploadedFile(models.Model):

@@ -1,7 +1,4 @@
 {% load static %}
-{# Warehouse Cards (like tabs image — Jeddah, Riyadh, Dammam, Abha) #}
-
-{# CSS Variables from Dashboard Theme - All colors customizable from Admin #}
 <style>
   :root {
     /* Tabs Colors */
@@ -11,7 +8,7 @@
     --tab-inactive-text: {{ dashboard_theme.tab_inactive_text|default:"#1a5f2a" }};
     --tab-border-color: {{ dashboard_theme.tab_border_color|default:"#1a5f2a" }};
     --tab-hover-bg: {{ dashboard_theme.tab_hover_bg|default:"#e8f5e9" }};
-    
+
     /* Data Table Colors */
     --table-header-bg: {{ dashboard_theme.table_header_bg|default:"#1e293b" }};
     --table-header-bg-end: {{ dashboard_theme.table_header_bg_end|default:"#334155" }};
@@ -27,7 +24,7 @@
     --table-title-icon-bg-end: {{ dashboard_theme.table_title_icon_bg_end|default:"#6366f1" }};
     --table-stat-badge-bg: {{ dashboard_theme.table_stat_badge_bg|default:"#dcfce7" }};
     --table-stat-badge-text: {{ dashboard_theme.table_stat_badge_text|default:"#16a34a" }};
-    
+
     /* Phases Section Colors */
     --phase-icon-bg: {{ dashboard_theme.phase_icon_bg|default:"#6366f1" }};
     --phase-icon-bg-end: {{ dashboard_theme.phase_icon_bg_end|default:"#8b5cf6" }};
@@ -38,7 +35,7 @@
     --phase-count-badge-text: {{ dashboard_theme.phase_count_badge_text|default:"#16a34a" }};
     --phase-bullet-color: {{ dashboard_theme.phase_bullet_color|default:"#f59e0b" }};
     --phase-point-bg: {{ dashboard_theme.phase_point_bg|default:"#f8fafc" }};
-    
+
     /* Warehouse Cards Colors */
     --card-bg: {{ dashboard_theme.card_bg|default:"#ffffff" }};
     --card-border: {{ dashboard_theme.card_border|default:"#eef1f4" }};
@@ -50,7 +47,7 @@
     --donut-chart-color: {{ dashboard_theme.donut_chart_color|default:"#2e7d32" }};
     --donut-chart-pending: {{ dashboard_theme.donut_chart_pending|default:"#f57c00" }};
     --progress-bar-color: {{ dashboard_theme.progress_bar_color|default:"#2e7d32" }};
-    
+
     /* General Colors */
     --primary-color: {{ dashboard_theme.primary_color|default:"#1a5f2a" }};
     --secondary-color: {{ dashboard_theme.secondary_color|default:"#6366f1" }};
@@ -82,7 +79,7 @@
     flex-direction: column;
   }
   .wh-table-scroll {
-    max-height: 220px;   /* Adjust height as needed */
+    max-height: 220px; /* Adjust height as needed */
     overflow-y: auto;
     padding-right: 4px;
   }
@@ -110,15 +107,12 @@
     white-space: nowrap;
   }
 
-
-
-
   .warehouse-card-panel {
     background: #ffffff;
     border: 1px solid #eef1f4;
     border-radius: 16px;
     box-shadow: 0 4px 18px rgba(16, 24, 40, 0.05);
-    transition: all .25s ease;
+    transition: all 0.25s ease;
   }
 
   .warehouse-card-panel:hover {
@@ -129,8 +123,6 @@
   .wh-phase-section {
     border-top: 1px solid #f0f2f5;
   }
-
-
 
   .warehouse-card-panel .wh-body {
     padding: 1rem 1.25rem;
@@ -152,14 +144,20 @@
   .warehouse-card-panel .wh-header {
     padding: 1.2rem 1.5rem;
     border-bottom: 1px solid #f0f2f5;
-    background: linear-gradient(90deg,#fafbfc,#ffffff);
+    background: linear-gradient(90deg, #fafbfc, #ffffff);
   }
   .warehouse-card-panel .wh-header .wh-name {
-     font-size: 1.1rem;
+    font-size: 1.1rem;
     font-weight: 700;
-    letter-spacing: .3px;
-    color: #2c2f33;
-    margin: 0;
+  }
+  .warehouse-card-panel .wh-header .wh-name-icon {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .warehouse-card-panel .wh-header .wh-name-icon svg {
+    color: var(--card-table-header-bg, #2e7d32);
+    opacity: 0.95;
   }
   .warehouse-card-panel .wh-status-badge {
     color: #fff;
@@ -189,7 +187,7 @@
 
   .warehouse-card-panel .wh-table tbody tr:hover {
     background-color: #f9fbff;
-    transition: .2s;
+    transition: 0.2s;
   }
   .section-title {
     font-size: 13px;
@@ -197,7 +195,6 @@
     color: #667085;
     margin-bottom: 8px;
   }
-
 
   .warehouse-card-panel .wh-table td {
     padding: 0.5rem 0.75rem;
@@ -282,7 +279,7 @@
     border-radius: 12px;
     padding: 10px;
     text-align: center;
-    transition: .2s;
+    transition: 0.2s;
   }
 
   .stat-box:hover {
@@ -366,7 +363,7 @@
     padding: 0.5rem 0.75rem;
   }
 
-  .warehouse-cards-section  .wh-data-table tbody tr:nth-child(even) {
+  .warehouse-cards-section .wh-data-table tbody tr:nth-child(even) {
     background-color: #f9fbfd;
   }
 
@@ -400,9 +397,9 @@
 
   .wh-progress-fill {
     height: 100%;
-    background: linear-gradient(90deg,#22c55e,#4ade80);
+    background: linear-gradient(90deg, #22c55e, #4ade80);
     border-radius: 20px;
-    transition: width .4s ease;
+    transition: width 0.4s ease;
   }
 
   .phase-timeline {
@@ -426,429 +423,438 @@
     border-radius: 50%;
   }
 
-   .phases-section-wrapper {
-      margin-top: 2.5rem;
-    }
-    .phases-section-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: #1e293b;
-      margin-bottom: 1.25rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .phases-section-title i {
-      color: #6366f1;
-    }
-    .phases-grid {
-      display: grid;
-      gap: 1.25rem;
-    }
-    /* 1 phase: full width (12) */
-    .phases-grid.phases-grid--count-1 {
-      grid-template-columns: 1fr;
-    }
-    /* 2 phases: each 6 */
-    .phases-grid.phases-grid--count-2 {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    /* 3 phases: first row two side by side (6+6), third takes full row (12) */
-    .phases-grid.phases-grid--count-3 {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .phases-grid.phases-grid--count-3 .phases-card:nth-child(3) {
-      grid-column: 1 / -1;
-    }
-    /* 4+ phases: 2 columns default */
-    .phases-grid.phases-grid--count-4,
-    .phases-grid.phases-grid--count-5,
-    .phases-grid.phases-grid--count-more {
-      grid-template-columns: repeat(2, 1fr);
-    }
-    .phases-card {
-      background: #ffffff;
-      border-radius: 16px;
-      padding: 1.25rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-      border: 1px solid #f1f5f9;
-      height: 100%;
-      transition: all 0.3s ease;
-    }
-    .phases-card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
-      border-color: #e2e8f0;
-    }
-    .phases-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 1rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 1px solid var(--phase-card-border);
-    }
-    .phases-card-title {
-      font-size: 1rem;
-      font-weight: 600;
-      margin: 0;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .phases-card-title .phase-icon {
-      width: 32px;
-      height: 32px;
-      background: linear-gradient(135deg, var(--phase-icon-bg) 0%, var(--phase-icon-bg-end) 100%);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--phase-icon-text);
-      font-size: 0.875rem;
-    }
-    .phase-count-badge {
-      font-size: 0.75rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 20px;
-      font-weight: 600;
-      background: linear-gradient(135deg, var(--phase-count-badge-bg) 0%, var(--phase-count-badge-bg) 100%);
-      color: var(--phase-count-badge-text);
-    }
-    .phases-body {
-      display: flex;
+  /* ─── Plan section — كارد + ريبون (بدون body) ─── */
+  .plan-section {
+    padding: 30px 0px;
+    margin-top: 3rem;
+  }
+  .plan-section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-bottom: 1.25rem;
+    display: block;
+  }
+  .plan-wrapper {
+    display: flex;
+    gap: 3rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .plan-section .card {
+    position: relative;
+    width: 24rem;
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+  }
+  .plan-section .ribbon {
+    position: absolute;
+    top: 35px;
+    left: -15px;
+    color: #fff;
+    font-weight: bold;
+    padding: 0 20px 0 18px;
+    font-size: 21px;
+    height: 50px;
+    line-height: 50px;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+  }
+  /* Ribbon triangle (fold) — no clip-path so ::after is visible */
+  .plan-section .ribbon::after {
+    content: "";
+    position: absolute;
+    bottom: -10px;
+    left: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid currentColor;
+  }
+  .plan-section .ribbon--light {
+    background: #6fcf97;
+  }
+  .plan-section .ribbon--light::after {
+    border-top-color: #5bb87d;
+  }
+  .plan-section .ribbon--dark {
+    background: #2e8b57;
+  }
+  .plan-section .ribbon--dark::after {
+    border-top-color: #267a48;
+  }
+  .plan-section .card ul {
+    list-style-type: disc;
+    list-style-position: outside;
+    padding-left: 20px;
+    margin: 100px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #555;
+  }
+  .plan-section .card li {
+    margin-bottom: 8px;
+  }
+  .plan-section .card li::marker {
+    color: #2e8b57;
+  }
+  .plan-section .card .plan-empty {
+    margin-top: 20px;
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+  }
+  @media (max-width: 992px) {
+    .plan-wrapper {
       flex-direction: column;
-      gap: 0.625rem;
+      align-items: center;
     }
-    .phase-point-item {
-      display: flex;
-      align-items: flex-start;
-      gap: 0.75rem;
-      padding: 0.75rem;
-      background: linear-gradient(135deg, var(--phase-point-bg) 0%, var(--bg-light) 100%);
-      border-radius: 10px;
-      transition: all 0.2s ease;
+  }
+  @media (max-width: 576px) {
+    .plan-section .card {
+      width: 100%;
+      max-width: 340px;
+      box-sizing: border-box;
     }
-    .phase-point-item:hover {
-      background: linear-gradient(135deg, var(--bg-light) 0%, var(--border-color) 100%);
-    }
-    .phase-point-bullet {
-      width: 8px;
-      height: 8px;
-      min-width: 8px;
-      background: linear-gradient(135deg, var(--phase-bullet-color) 0%, var(--warning-color) 100%);
-      border-radius: 50%;
-      margin-top: 6px;
-      box-shadow: 0 2px 4px rgba(245, 158, 11, 0.3);
-    }
-    .phase-point-text {
-      font-size: 0.875rem;
-      color: var(--text-secondary);
-      line-height: 1.5;
-    }
-    .phase-empty-state {
-      text-align: center;
-      color: var(--text-muted);
-      padding: 1.5rem;
-      background: var(--bg-light);
-      border-radius: 10px;
-      font-size: 0.875rem;
-    }
-    @media (max-width: 767.98px) {
-      .phases-grid.phases-grid--count-2,
-      .phases-grid.phases-grid--count-3,
-      .phases-grid.phases-grid--count-4,
-      .phases-grid.phases-grid--count-5,
-      .phases-grid.phases-grid--count-more {
-        grid-template-columns: 1fr;
-      }
-      .phases-grid.phases-grid--count-3 .phases-card:nth-child(3) {
-        grid-column: auto;
-      }
-      .phases-card {
-        padding: 1rem;
-      }
-    }
+  }
 
-   .data-table-section {
-      margin-top: 2.5rem;
+  .data-table-section {
+    margin-top: 2.5rem;
+  }
+  .data-table-card {
+    background: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid #f1f5f9;
+    overflow: hidden;
+  }
+  .data-table-header {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .data-table-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .data-table-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .data-table-title .title-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(
+      135deg,
+      var(--table-title-icon-bg) 0%,
+      var(--table-title-icon-bg-end) 100%
+    );
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1rem;
+  }
+  .data-table-title .title-icon.clerk-tracking-icon {
+    background: transparent;
+    width: auto;
+    height: 2rem;
+  }
+  .data-table-title .title-icon.clerk-tracking-icon svg {
+    display: block;
+    height: 2rem;
+    width: auto;
+  }
+  .data-table-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .stat-badge {
+    background: linear-gradient(
+      135deg,
+      var(--table-stat-badge-bg) 0%,
+      var(--table-stat-badge-bg) 100%
+    );
+    color: var(--table-stat-badge-text);
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .stat-badge i {
+    font-size: 0.75rem;
+  }
+  .data-table-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+  }
+  .filter-group {
+    position: relative;
+  }
+  .filter-input {
+    padding: 0.625rem 1rem 0.625rem 2.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    background: #fff;
+    min-width: 220px;
+    transition: all 0.2s ease;
+  }
+  .filter-input:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+  .filter-icon {
+    position: absolute;
+    left: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 0.875rem;
+  }
+  .filter-select {
+    padding: 0.625rem 2rem 0.625rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    background: #fff;
+    cursor: pointer;
+    min-width: 140px;
+    transition: all 0.2s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+  }
+  .filter-select:focus {
+    outline: none;
+    border-color: var(--secondary-color);
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  }
+  .clear-filters-btn {
+    padding: 0.625rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 0.875rem;
+    background: #fff;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .clear-filters-btn:hover {
+    background: #f1f5f9;
+    color: #ef4444;
+    border-color: #fecaca;
+  }
+  .data-table-body {
+    max-height: 450px;
+    overflow-y: auto;
+  }
+  /* Clerk Interview Tracking: badges (WH, Optimization Status, System Used, Business) */
+  .clerk-badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    border-radius: 6px;
+    font-size: 0.85em;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .clerk-badge-wh { background: #dbeafe; color: #1d4ed8; }
+  .clerk-badge-opt { background: #dcfce7; color: #15803d; }
+  .clerk-badge-sys { background: #fef3c7; color: #b45309; }
+  .clerk-badge-biz { background: #e0e7ff; color: #3730a3; }
+  /* Clerk Interview Tracking: min height to show several rows; responsive */
+  .clerk-interview-tracking-section .data-table-body {
+    min-height: 1000px;
+  }
+  @media (max-width: 768px) {
+    .clerk-interview-tracking-section .data-table-body {
+      min-height: 300px;
     }
-    .data-table-card {
-      background: #ffffff;
-      border-radius: 16px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
-      border: 1px solid #f1f5f9;
-      overflow: hidden;
-    }
+  }
+  .data-table-body::-webkit-scrollbar {
+    width: 8px;
+  }
+  .data-table-body::-webkit-scrollbar-track {
+    background: #f1f5f9;
+  }
+  .data-table-body::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
+    border-radius: 10px;
+  }
+  .data-table-body::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+  }
+  .wh-styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+  .wh-styled-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .wh-styled-table thead th {
+    background: linear-gradient(
+      135deg,
+      var(--table-header-bg) 0%,
+      var(--table-header-bg-end) 100%
+    );
+    color: var(--table-header-text);
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+    text-align: left;
+    white-space: nowrap;
+    border: none;
+  }
+  .wh-styled-table thead th:first-child {
+    border-radius: 0;
+  }
+  .wh-styled-table thead th:last-child {
+    border-radius: 0;
+  }
+  .wh-styled-table tbody tr {
+    transition: all 0.15s ease;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .wh-styled-table tbody tr:hover {
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  }
+  .wh-styled-table tbody tr:last-child {
+    border-bottom: none;
+  }
+  .wh-styled-table tbody td {
+    padding: 0.875rem 1.25rem;
+    color: #475569;
+    vertical-align: middle;
+  }
+  .wh-styled-table .wh-cell {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .wh-styled-table .emp-no-cell {
+    font-family: "Monaco", "Consolas", monospace;
+    color: var(--table-emp-no-color);
+    font-weight: 500;
+  }
+  .wh-styled-table .name-cell {
+    color: var(--text-primary);
+  }
+  .wh-styled-table .business-badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    background: linear-gradient(
+      135deg,
+      var(--table-business-badge-bg) 0%,
+      var(--table-business-badge-bg) 100%
+    );
+    color: var(--table-business-badge-text);
+  }
+  .wh-styled-table .business-badge.secondary {
+    background: linear-gradient(
+      135deg,
+      var(--table-business2-badge-bg) 0%,
+      var(--table-business2-badge-bg) 100%
+    );
+    color: var(--table-business2-badge-text);
+  }
+  .table-empty-state {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: #94a3b8;
+  }
+  .table-empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    color: #cbd5e1;
+  }
+  .table-empty-state p {
+    margin: 0;
+    font-size: 0.9rem;
+  }
+  .no-results-row td {
+    text-align: center;
+    padding: 2rem !important;
+    color: #94a3b8;
+  }
+  @media (max-width: 767.98px) {
     .data-table-header {
-      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-      padding: 1.25rem 1.5rem;
-      border-bottom: 1px solid #e2e8f0;
+      padding: 1rem;
     }
     .data-table-title-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 1rem;
-    }
-    .data-table-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--text-primary);
-      margin: 0;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    .data-table-title .title-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, var(--table-title-icon-bg) 0%, var(--table-title-icon-bg-end) 100%);
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 1rem;
-    }
-    .data-table-stats {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-    .stat-badge {
-      background: linear-gradient(135deg, var(--table-stat-badge-bg) 0%, var(--table-stat-badge-bg) 100%);
-      color: var(--table-stat-badge-text);
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      font-size: 0.875rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .stat-badge i {
-      font-size: 0.75rem;
+      flex-direction: column;
+      align-items: flex-start;
     }
     .data-table-filters {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      align-items: center;
-    }
-    .filter-group {
-      position: relative;
+      width: 100%;
     }
     .filter-input {
-      padding: 0.625rem 1rem 0.625rem 2.5rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      font-size: 0.875rem;
-      background: #fff;
-      min-width: 220px;
-      transition: all 0.2s ease;
-    }
-    .filter-input:focus {
-      outline: none;
-      border-color: var(--secondary-color);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    }
-    .filter-icon {
-      position: absolute;
-      left: 0.875rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: #94a3b8;
-      font-size: 0.875rem;
+      min-width: 100%;
     }
     .filter-select {
-      padding: 0.625rem 2rem 0.625rem 1rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      font-size: 0.875rem;
-      background: #fff;
-      cursor: pointer;
-      min-width: 140px;
-      transition: all 0.2s ease;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 0.75rem center;
-    }
-    .filter-select:focus {
-      outline: none;
-      border-color: var(--secondary-color);
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-    }
-    .clear-filters-btn {
-      padding: 0.625rem 1rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 10px;
-      font-size: 0.875rem;
-      background: #fff;
-      color: #64748b;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .clear-filters-btn:hover {
-      background: #f1f5f9;
-      color: #ef4444;
-      border-color: #fecaca;
-    }
-    .data-table-body {
-      max-height: 450px;
-      overflow-y: auto;
-    }
-    /* Clerk Interview Tracking: min height to show several rows; responsive */
-    .clerk-interview-tracking-section .data-table-body {
-      min-height: 1000px;
-    }
-    @media (max-width: 768px) {
-      .clerk-interview-tracking-section .data-table-body {
-        min-height: 300px;
-      }
-    }
-    .data-table-body::-webkit-scrollbar {
-      width: 8px;
-    }
-    .data-table-body::-webkit-scrollbar-track {
-      background: #f1f5f9;
-    }
-    .data-table-body::-webkit-scrollbar-thumb {
-      background: linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%);
-      border-radius: 10px;
-    }
-    .data-table-body::-webkit-scrollbar-thumb:hover {
-      background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+      min-width: calc(50% - 0.375rem);
     }
     .wh-styled-table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.875rem;
-    }
-    .wh-styled-table thead {
-      position: sticky;
-      top: 0;
-      z-index: 10;
-    }
-    .wh-styled-table thead th {
-      background: linear-gradient(135deg, var(--table-header-bg) 0%, var(--table-header-bg-end) 100%);
-      color: var(--table-header-text);
-      padding: 1rem 1.25rem;
-      font-weight: 600;
-      text-align: left;
-      white-space: nowrap;
-      border: none;
-    }
-    .wh-styled-table thead th:first-child {
-      border-radius: 0;
-    }
-    .wh-styled-table thead th:last-child {
-      border-radius: 0;
-    }
-    .wh-styled-table tbody tr {
-      transition: all 0.15s ease;
-      border-bottom: 1px solid #f1f5f9;
-    }
-    .wh-styled-table tbody tr:hover {
-      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-    }
-    .wh-styled-table tbody tr:last-child {
-      border-bottom: none;
-    }
-    .wh-styled-table tbody td {
-      padding: 0.875rem 1.25rem;
-      color: #475569;
-      vertical-align: middle;
-    }
-    .wh-styled-table .wh-cell {
-      font-weight: 600;
-      color: var(--text-primary);
-    }
-    .wh-styled-table .emp-no-cell {
-      font-family: 'Monaco', 'Consolas', monospace;
-      color: var(--table-emp-no-color);
-      font-weight: 500;
-    }
-    .wh-styled-table .name-cell {
-      color: var(--text-primary);
-    }
-    .wh-styled-table .business-badge {
-      display: inline-block;
-      padding: 0.35rem 0.75rem;
-      border-radius: 6px;
       font-size: 0.8rem;
-      font-weight: 500;
-      background: linear-gradient(135deg, var(--table-business-badge-bg) 0%, var(--table-business-badge-bg) 100%);
-      color: var(--table-business-badge-text);
     }
-    .wh-styled-table .business-badge.secondary {
-      background: linear-gradient(135deg, var(--table-business2-badge-bg) 0%, var(--table-business2-badge-bg) 100%);
-      color: var(--table-business2-badge-text);
+    .wh-styled-table thead th,
+    .wh-styled-table tbody td {
+      padding: 0.75rem 0.875rem;
     }
-    .table-empty-state {
-      text-align: center;
-      padding: 3rem 1.5rem;
-      color: #94a3b8;
-    }
-    .table-empty-state i {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      color: #cbd5e1;
-    }
-    .table-empty-state p {
-      margin: 0;
-      font-size: 0.9rem;
-    }
-    .no-results-row td {
-      text-align: center;
-      padding: 2rem !important;
-      color: #94a3b8;
-    }
-    @media (max-width: 767.98px) {
-      .data-table-header {
-        padding: 1rem;
-      }
-      .data-table-title-row {
-        flex-direction: column;
-        align-items: flex-start;
-      }
-      .data-table-filters {
-        width: 100%;
-      }
-      .filter-input {
-        min-width: 100%;
-      }
-      .filter-select {
-        min-width: calc(50% - 0.375rem);
-      }
-      .wh-styled-table {
-        font-size: 0.8rem;
-      }
-      .wh-styled-table thead th,
-      .wh-styled-table tbody td {
-        padding: 0.75rem 0.875rem;
-      }
-    }
-
+  }
 </style>
 <div class="warehouse-cards-section">
   <h5 class="mb-3 fw-bold" style="color: #2c2f33">Project Overview</h5>
   <div class="row g-3 warehouse-cards-row">
-    {% if warehouse_overview %}
-    {% for item in warehouse_overview %}
+    {% if warehouse_overview %} {% for item in warehouse_overview %}
     <div class="col-12 col-md-6 d-flex">
       <div class="warehouse-card-panel w-100 h-100 d-flex flex-column">
-
         <!-- HEADER -->
-        <div class="wh-header wh-card-header d-flex justify-content-between align-items-center w-100">
-          <h6 class="wh-name mb-0 fw-semibold text-start">
+        <div
+          class="wh-header wh-card-header d-flex justify-content-between align-items-center w-100"
+        >
+          <h6
+            class="wh-name mb-0 fw-semibold text-start d-flex align-items-center gap-2"
+          >
+            <span class="wh-name-icon" aria-hidden="true">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 23 23"
+                fill="currentColor"
+                width="2rem"
+                height="2rem"
+                focusable="false"
+              >
+                <path
+                  d="M12 2L2 7v2h2v10h4v-6h4v6h4V9h2V7L12 2zm0 2.2l6 3.2v1.6H6V7.4l6-3.2zM8 11h2v4H8v-4zm6 0h2v4h-2v-4z"
+                />
+              </svg>
+            </span>
             {{ item.warehouse.name }}
           </h6>
           <span
@@ -861,17 +867,15 @@
 
         <div class="wh-body flex-grow-1 d-flex flex-column">
           <div class="row g-3 flex-grow-1">
-
             <!-- BUSINESS SYSTEMS -->
             <div class="col-12 col-md-8 wh-quadrant d-flex flex-column">
-
-              <div class="section-title mb-2">
-                Business Systems
-              </div>
+              <div class="section-title mb-2">Business Systems</div>
 
               {% if item.business_systems %}
               <div class="wh-table-scroll flex-grow-1">
-                <table class="wh-table wh-table-biz-system mb-0 table-equal-cols">
+                <table
+                  class="wh-table wh-table-biz-system mb-0 table-equal-cols"
+                >
                   <thead>
                     <tr>
                       <th>Business</th>
@@ -908,14 +912,12 @@
 
             <!-- EMPLOYEES -->
             <div class="col-12 col-md-4 wh-quadrant wh-quadrant-emp">
-
               <div class="wh-section-title">
                 <i class="bi bi-people-fill small text-secondary"></i>
                 Employees Summary
               </div>
 
               <div class="wh-emp-stats">
-
                 <div class="stat-box">
                   <small>Employees</small>
                   <strong>
@@ -936,7 +938,6 @@
                   <strong>{{ item.employee_summary.phase_label }}</strong>
                 </div>
                 {% endif %}
-
               </div>
 
               {% if item.employee_summary.employee_chart_pct is not None %}
@@ -958,14 +959,14 @@
 
             <!-- PHASE SECTION -->
             <div class="col-12 mt-3 pt-3 border-top">
-
               <div class="wh-phase-item d-flex align-items-center gap-3 mb-2">
                 <span class="fw-semibold">Phase 1</span>
 
                 <div class="wh-progress-bar flex-grow-1">
-                  <div class="wh-progress-fill"
-                       style="width: {{ item.phase1_pct|default:'0' }}%;">
-                  </div>
+                  <div
+                    class="wh-progress-fill"
+                    style="width: {{ item.phase1_pct|default:'0' }}%;"
+                  ></div>
                 </div>
 
                 <span class="wh-phase-pct">
@@ -977,18 +978,17 @@
                 <span class="fw-semibold">Phase 2</span>
 
                 <div class="wh-progress-bar flex-grow-1">
-                  <div class="wh-progress-fill"
-                       style="width: {{ item.phase2_pct|default:'0' }}%;">
-                  </div>
+                  <div
+                    class="wh-progress-fill"
+                    style="width: {{ item.phase2_pct|default:'0' }}%;"
+                  ></div>
                 </div>
 
                 <span class="wh-phase-pct">
                   {{ item.phase2_pct|default:"—" }}%
                 </span>
               </div>
-
             </div>
-
           </div>
         </div>
       </div>
@@ -996,71 +996,45 @@
 
     {% empty %}
     <div class="col-12">
-      <div class="text-center py-5 px-3 rounded-3" style="background: #f8f9fa; border: 1px dashed #dee2e6">
+      <div
+        class="text-center py-5 px-3 rounded-3"
+        style="background: #f8f9fa; border: 1px dashed #dee2e6"
+      >
         <p class="text-muted mb-2 fs-5">No warehouses available yet.</p>
         <p class="small text-muted mb-0">
-          From Admin: Warehouses → Add Warehouse, then add Business Systems, Employee Summary, and Phase Status.
+          From Admin: Warehouses → Add Warehouse, then add Business Systems,
+          Employee Summary, and Phase Status.
           <a href="#" class="text-primary">Card creation steps</a>.
         </p>
       </div>
     </div>
-    {% endfor %}
-    {% endif %}
+    {% endfor %} {% endif %}
   </div>
 
-  {# Phases section below cards (dynamic from PhaseSection + PhasePoint models) #}
-  {% if phases_sections %}
-
-
-  <div class="phases-section-wrapper">
-    <h5 class="phases-section-title">
-      <i class="fas fa-layer-group"></i>
-      Phases Overview
-    </h5>
-    
-    {% with phases_count=phases_sections|length %}
-    <div class="phases-grid phases-grid--count-{% if phases_count >= 5 %}more{% else %}{{ phases_count }}{% endif %}">
+ {% if phases_sections %}
+  <section class="plan-section">
+    <h5 class="plan-section-title">Phases Overview</h5>
+    <div class="plan-wrapper">
       {% for section in phases_sections %}
-      <div class="phases-card">
-        <!-- Header -->
-        <div class="phases-header">
-          <h6 class="phases-card-title">
-            <span class="phase-icon">
-              <i class="fa fa-tasks"></i>
-            </span>
-            {{ section.title }}
-          </h6>
-          {% if section.points %}
-          <span class="phase-count-badge">
-            {{ section.points|length }} Tasks
-          </span>
-          {% endif %}
-        </div>
-
-        <!-- Body -->
-        <div class="phases-body">
-          {% if section.points %}
-            {% for point in section.points %}
-            <div class="phase-point-item">
-              <span class="phase-point-bullet"></span>
-              <span class="phase-point-text">{{ point }}</span>
-            </div>
-            {% endfor %}
-          {% else %}
-            <div class="phase-empty-state">
-              <i class="fa fa-inbox mb-2" style="font-size: 1.5rem;"></i>
-              <p class="mb-0">No tasks defined yet</p>
-            </div>
-          {% endif %}
-        </div>
+      <div class="card">
+        {% if forloop.first %}
+        <div class="ribbon ribbon--light">{% if section.display_number %}{{ section.display_number }}{% endif %} {{ section.display_label }}</div>
+        {% else %}
+        <div class="ribbon ribbon--dark">{% if section.display_number %}{{ section.display_number }}{% endif %} {{ section.display_label }}</div>
+        {% endif %} {% if section.points %}
+        <ul>
+          {% for point in section.points %}
+          <li>{{ point }}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="plan-empty">No tasks defined yet</div>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
-    {% endwith %}
-  </div>
-  {% endif %}
-
-  {# Clerk Interview Tracking table — Project Overview #}
+  </section>
+  {% endif %} {# Clerk Interview Tracking table — Project Overview #} 
   {% with rows=clerk_interview_rows %}
 
   <div class="data-table-section clerk-interview-tracking-section">
@@ -1068,8 +1042,16 @@
       <div class="data-table-header">
         <div class="data-table-title-row">
           <h5 class="data-table-title">
-            <span class="title-icon">
-              <i class="fa fa-table"></i>
+            <span class="title-icon clerk-tracking-icon" aria-hidden="true">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 24" fill="#1a5f2a" role="img">
+                <title>Clerk Interview Tracking</title>
+                <circle cx="8" cy="5" r="3"/>
+                <rect x="5" y="9" width="6" height="8" rx="0.5"/>
+                <rect x="3" y="10" width="2" height="4"/>
+                <rect x="11" y="10" width="2" height="4"/>
+                <rect x="5.5" y="17" width="2.2" height="5"/>
+                <rect x="8.3" y="17" width="2.2" height="5"/>
+              </svg>
             </span>
             Clerk Interview Tracking
           </h5>
@@ -1081,20 +1063,41 @@
           </div>
         </div>
 
-        <!-- Filters: DEPT_NAME_EN, Business, Optimization Plan -->
+        <!-- Filters: WH, Business, Optimization Status -->
         <div class="data-table-filters">
           <div class="filter-group">
             <i class="fa fa-search filter-icon"></i>
-            <input type="search" class="filter-input" id="clerkTableSearchInput" placeholder="Search..." autocomplete="nope" name="clerk_table_search" readonly onfocus="this.removeAttribute('readonly')">
+            <input
+              type="search"
+              class="filter-input"
+              id="clerkTableSearchInput"
+              placeholder="Search..."
+              autocomplete="nope"
+              name="clerk_table_search"
+              readonly
+              onfocus="this.removeAttribute('readonly')"
+            />
           </div>
-          <select class="filter-select" id="filterClerkDept" title="Filter by DEPT_NAME_EN">
-            <option value="">All (DEPT_NAME_EN)</option>
+          <select
+            class="filter-select"
+            id="filterClerkWh"
+            title="Filter by WH"
+          >
+            <option value="">All (WH)</option>
           </select>
-          <select class="filter-select" id="filterClerkBusiness" title="Filter by Business">
+          <select
+            class="filter-select"
+            id="filterClerkBusiness"
+            title="Filter by Business"
+          >
             <option value="">All (Business)</option>
           </select>
-          <select class="filter-select" id="filterClerkOptimization" title="Filter by Optimization Plan">
-            <option value="">All (Optimization Plan)</option>
+          <select
+            class="filter-select"
+            id="filterClerkOptimization"
+            title="Filter by Optimization Status"
+          >
+            <option value="">All (Optimization Status)</option>
           </select>
           <button class="clear-filters-btn" id="clearClerkFiltersBtn">
             <i class="fa fa-times"></i>
@@ -1108,43 +1111,33 @@
         <table class="wh-styled-table" id="clerkInterviewTable">
           <thead>
             <tr>
-              <th>NO</th>
-              <th>DEPT_NAME_EN</th>
-              <th>Date</th>
+              <th>WH</th>
               <th>Clerk Name</th>
-              <th>Mobile</th>
-              <th>Company</th>
-              <th>Business</th>
-              <th>Account</th>
-              <th>System Used</th>
+              <th>NATIONALITY</th>
               <th>Report Used</th>
-              <th>Details</th>
-              <th>WH Visit Reasons</th>
-              <th>Physical Dependency</th>
-              <th>Automation Potential</th>
-              <th>CT Suitability</th>
-              <th>Optimization Plan</th>
+              <th>Optimization Status</th>
+              <th>Strength</th>
+              <th>System Used</th>
+              <th>Business</th>
+              <th>Remark</th>
             </tr>
           </thead>
           <tbody>
             {% for row in rows %}
-            <tr data-dept="{{ row.dept_name_en }}" data-business="{{ row.business }}" data-optimization="{{ row.optimization_plan }}">
-              <td data-label="NO">{{ row.no }}</td>
-              <td data-label="DEPT_NAME_EN">{{ row.dept_name_en }}</td>
-              <td data-label="Date">{{ row.date }}</td>
+            <tr
+              data-wh="{{ row.wh }}"
+              data-business="{{ row.business }}"
+              data-optimization="{{ row.optimization_status }}"
+            >
+              <td data-label="WH"><span class="clerk-badge clerk-badge-wh">{{ row.wh }}</span></td>
               <td data-label="Clerk Name">{{ row.clerk_name }}</td>
-              <td data-label="Mobile">{{ row.mobile }}</td>
-              <td data-label="Company">{{ row.company }}</td>
-              <td data-label="Business">{{ row.business }}</td>
-              <td data-label="Account">{{ row.account }}</td>
-              <td data-label="System Used">{{ row.system_used }}</td>
+              <td data-label="NATIONALITY">{{ row.nationality }}</td>
               <td data-label="Report Used">{{ row.report_used }}</td>
-              <td data-label="Details">{{ row.details }}</td>
-              <td data-label="WH Visit Reasons">{{ row.wh_visit_reasons }}</td>
-              <td data-label="Physical Dependency">{{ row.physical_dependency }}</td>
-              <td data-label="Automation Potential">{{ row.automation_potential }}</td>
-              <td data-label="CT Suitability">{{ row.ct_suitability }}</td>
-              <td data-label="Optimization Plan">{{ row.optimization_plan }}</td>
+              <td data-label="Optimization Status"><span class="clerk-badge clerk-badge-opt">{{ row.optimization_status }}</span></td>
+              <td data-label="Strength">{{ row.strength }}</td>
+              <td data-label="System Used"><span class="clerk-badge clerk-badge-sys">{{ row.system_used }}</span></td>
+              <td data-label="Business"><span class="clerk-badge clerk-badge-biz">{{ row.business }}</span></td>
+              <td data-label="Remark">{{ row.remark }}</td>
             </tr>
             {% endfor %}
           </tbody>
@@ -1153,7 +1146,9 @@
         <div class="table-empty-state">
           <i class="fa fa-inbox"></i>
           <p>No data available yet.</p>
-          <p class="small mt-2">From Admin: Clerk Interview Tracking → Add records or Import from Excel</p>
+          <p class="small mt-2">
+            From Admin: Clerk Interview Tracking → Add records or Import from Excel (CP_project.xlsx, Sheet1)
+          </p>
         </div>
         {% endif %}
       </div>
@@ -1161,79 +1156,104 @@
   </div>
 
   <script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const table = document.getElementById('clerkInterviewTable');
-    if (!table) return;
+    document.addEventListener("DOMContentLoaded", function () {
+      const table = document.getElementById("clerkInterviewTable");
+      if (!table) return;
 
-    const searchInput = document.getElementById('clerkTableSearchInput');
-    const filterDept = document.getElementById('filterClerkDept');
-    const filterBusiness = document.getElementById('filterClerkBusiness');
-    const filterOptimization = document.getElementById('filterClerkOptimization');
-    const clearBtn = document.getElementById('clearClerkFiltersBtn');
-    const tbody = table.querySelector('tbody');
-    const rows = tbody.querySelectorAll('tr');
+      const searchInput = document.getElementById("clerkTableSearchInput");
+      const filterWh = document.getElementById("filterClerkWh");
+      const filterBusiness = document.getElementById("filterClerkBusiness");
+      const filterOptimization = document.getElementById(
+        "filterClerkOptimization",
+      );
+      const clearBtn = document.getElementById("clearClerkFiltersBtn");
+      const tbody = table.querySelector("tbody");
+      const rows = tbody.querySelectorAll("tr");
 
-    const deptSet = new Set();
-    const businessSet = new Set();
-    const optimizationSet = new Set();
+      const whSet = new Set();
+      const businessSet = new Set();
+      const optimizationSet = new Set();
 
-    rows.forEach(row => {
-      const d = row.dataset.dept;
-      const b = row.dataset.business;
-      const o = row.dataset.optimization;
-      if (d) deptSet.add(d);
-      if (b) businessSet.add(b);
-      if (o) optimizationSet.add(o);
-    });
-
-    deptSet.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; filterDept.appendChild(o); });
-    businessSet.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; filterBusiness.appendChild(o); });
-    optimizationSet.forEach(v => { const o = document.createElement('option'); o.value = v; o.textContent = v; filterOptimization.appendChild(o); });
-
-    function filterTable() {
-      const searchTerm = searchInput.value.toLowerCase();
-      const deptVal = filterDept.value;
-      const businessVal = filterBusiness.value;
-      const optimizationVal = filterOptimization.value;
-      let visibleCount = 0;
-
-      rows.forEach(row => {
-        const text = row.textContent.toLowerCase();
-        const matchesSearch = !searchTerm || text.includes(searchTerm);
-        const matchesDept = !deptVal || row.dataset.dept === deptVal;
-        const matchesBusiness = !businessVal || row.dataset.business === businessVal;
-        const matchesOptimization = !optimizationVal || row.dataset.optimization === optimizationVal;
-
-        if (matchesSearch && matchesDept && matchesBusiness && matchesOptimization) {
-          row.style.display = '';
-          visibleCount++;
-        } else {
-          row.style.display = 'none';
-        }
+      rows.forEach((row) => {
+        const w = row.dataset.wh;
+        const b = row.dataset.business;
+        const o = row.dataset.optimization;
+        if (w) whSet.add(w);
+        if (b) businessSet.add(b);
+        if (o) optimizationSet.add(o);
       });
 
-      const existingNoResults = tbody.querySelector('.no-results-row');
-      if (existingNoResults) existingNoResults.remove();
-      if (visibleCount === 0) {
-        const noResultsRow = document.createElement('tr');
-        noResultsRow.className = 'no-results-row';
-        noResultsRow.innerHTML = '<td colspan="16"><i class="fas fa-search me-2"></i>No results found</td>';
-        tbody.appendChild(noResultsRow);
-      }
-    }
+      whSet.forEach((v) => {
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = v;
+        filterWh.appendChild(o);
+      });
+      businessSet.forEach((v) => {
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = v;
+        filterBusiness.appendChild(o);
+      });
+      optimizationSet.forEach((v) => {
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = v;
+        filterOptimization.appendChild(o);
+      });
 
-    searchInput.addEventListener('input', filterTable);
-    filterDept.addEventListener('change', filterTable);
-    filterBusiness.addEventListener('change', filterTable);
-    filterOptimization.addEventListener('change', filterTable);
-    clearBtn.addEventListener('click', function() {
-      searchInput.value = '';
-      filterDept.value = '';
-      filterBusiness.value = '';
-      filterOptimization.value = '';
-      filterTable();
+      function filterTable() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const whVal = filterWh.value;
+        const businessVal = filterBusiness.value;
+        const optimizationVal = filterOptimization.value;
+        let visibleCount = 0;
+
+        rows.forEach((row) => {
+          const text = row.textContent.toLowerCase();
+          const matchesSearch = !searchTerm || text.includes(searchTerm);
+          const matchesWh = !whVal || row.dataset.wh === whVal;
+          const matchesBusiness =
+            !businessVal || row.dataset.business === businessVal;
+          const matchesOptimization =
+            !optimizationVal || row.dataset.optimization === optimizationVal;
+
+          if (
+            matchesSearch &&
+            matchesWh &&
+            matchesBusiness &&
+            matchesOptimization
+          ) {
+            row.style.display = "";
+            visibleCount++;
+          } else {
+            row.style.display = "none";
+          }
+        });
+
+        const existingNoResults = tbody.querySelector(".no-results-row");
+        if (existingNoResults) existingNoResults.remove();
+        if (visibleCount === 0) {
+          const noResultsRow = document.createElement("tr");
+          noResultsRow.className = "no-results-row";
+          noResultsRow.innerHTML =
+            '<td colspan="9"><i class="fas fa-search me-2"></i>No results found</td>';
+          tbody.appendChild(noResultsRow);
+        }
+      }
+
+      searchInput.addEventListener("input", filterTable);
+      filterWh.addEventListener("change", filterTable);
+      filterBusiness.addEventListener("change", filterTable);
+      filterOptimization.addEventListener("change", filterTable);
+      clearBtn.addEventListener("click", function () {
+        searchInput.value = "";
+        filterWh.value = "";
+        filterBusiness.value = "";
+        filterOptimization.value = "";
+        filterTable();
+      });
     });
-  });
   </script>
   {% endwith %}
 </div>

@@ -4,8 +4,8 @@
 {% block content %}
 <h1>{{ title }}</h1>
 <p class="help">
-  Upload an Excel file with columns: <strong>NO</strong>, <strong>DEPT_NAME_EN</strong>, <strong>Date</strong>, <strong>Clerk Name</strong>, <strong>Mobile</strong>, <strong>Company</strong>, <strong>Business</strong>, <strong>Account</strong>, <strong>System Used</strong>, <strong>Report Used</strong>, <strong>Details</strong>, <strong>WH Visit Reasons</strong>, <strong>Physical Dependency</strong>, <strong>Automation Potential</strong>, <strong>CT Suitability</strong>.
-  Column names are matched flexibly (e.g. "WH Visit Resons" accepted). Enable "Clear existing data before import" to wipe the table before importing.
+  Upload an Excel file (e.g. <strong>CP_project.xlsx</strong>) with sheet <strong>Sheet1</strong>. Columns: <strong>WH</strong>, <strong>Clerk Name</strong>, <strong>NATIONALITY</strong>, <strong>Report Used</strong>, <strong>Optimization Status</strong>, <strong>Strength</strong>, <strong>System Used</strong>, <strong>Business</strong>, <strong>Remark</strong>.
+  Column names are matched flexibly (e.g. "Stringth" for Strength, "Busnise" for Business). Enable "Clear existing data before import" to wipe the table before importing.
 </p>
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}

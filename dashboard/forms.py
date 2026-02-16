@@ -21,13 +21,14 @@ class ExcelUploadForm(forms.Form):
 
 
 class ClerkInterviewTrackingExcelUploadForm(forms.Form):
-    """Excel upload for Clerk Interview Tracking (15 columns)."""
+    """Excel upload for Clerk Interview Tracking. Expected file: CP_project.xlsx, sheet: Sheet1. Columns: WH, Clerk Name, NATIONALITY, Report Used, Optimization Status, Strength, System Used, Business, Remark."""
     excel_file = forms.FileField(
-        label="Excel file",
+        label="Excel file (e.g. CP_project.xlsx)",
         required=True,
         widget=forms.ClearableFileInput(attrs={
             "accept": ".xlsx,.xlsm,.xls",
         }),
+        help_text="Expected: CP_project.xlsx with sheet Sheet1.",
     )
     sheet_name = forms.CharField(
         label="Sheet name",

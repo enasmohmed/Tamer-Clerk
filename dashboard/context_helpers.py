@@ -62,13 +62,8 @@ def get_warehouse_metrics_table_from_db():
 
 def get_phases_sections_list():
     """
-    Returns a list of Phase sections (title + points) to display in Accordion below warehouse cards.
-    Each element is:
-      {
-        "id": section.id,
-        "title": section.title,
-        "points": ["Point 1", "Point 2", ...],
-      }
+    Returns a list of Phase sections for Plan (30/60/90 DAYS) ribbons.
+    Uses days_number and days_label from the model when set; else falls back to parsing title.
     """
     try:
         from .models import PhaseSection
@@ -76,14 +71,28 @@ def get_phases_sections_list():
         sections = PhaseSection.objects.filter(is_active=True).prefetch_related(
             "points"
         )
-        return [
-            {
+        result = []
+        for s in sections:
+            if s.days_number is not None:
+                display_number = str(s.days_number)
+                display_label = (s.days_label or "DAYS").strip() or "DAYS"
+            else:
+                title = (s.title or "").strip()
+                parts = title.split(None, 1)
+                if parts and parts[0].isdigit():
+                    display_number = parts[0]
+                    display_label = parts[1].strip() if len(parts) > 1 else "DAYS"
+                else:
+                    display_number = ""
+                    display_label = title or "DAYS"
+            result.append({
                 "id": s.id,
                 "title": s.title,
+                "display_number": display_number,
+                "display_label": display_label,
                 "points": [p.text for p in s.points.all()],
-            }
-            for s in sections
-        ]
+            })
+        return result
     except Exception:
         return []
 
@@ -203,29 +212,22 @@ def get_warehouse_overview_list():
 
 
 def get_clerk_interview_list():
-    """Returns a list of Clerk Interview Tracking rows for Project Overview table."""
+    """Returns a list of Clerk Interview Tracking rows for Project Overview table. Columns: WH, Clerk Name, NATIONALITY, Report Used, Optimization Status, Strength, System Used, Business, Remark."""
     try:
         from .models import ClerkInterviewTracking
 
         rows = ClerkInterviewTracking.objects.all()
         return [
             {
-                "no": r.no or "—",
-                "dept_name_en": r.dept_name_en or "—",
-                "date": r.date.strftime("%Y-%m-%d") if r.date else "—",
+                "wh": r.wh or "—",
                 "clerk_name": r.clerk_name or "—",
-                "mobile": r.mobile or "—",
-                "company": r.company or "—",
-                "business": r.business or "—",
-                "account": r.account or "—",
-                "system_used": r.system_used or "—",
+                "nationality": r.nationality or "—",
                 "report_used": r.report_used or "—",
-                "details": r.details or "—",
-                "wh_visit_reasons": r.wh_visit_reasons or "—",
-                "physical_dependency": r.physical_dependency or "—",
-                "automation_potential": r.automation_potential or "—",
-                "ct_suitability": r.ct_suitability or "—",
-                "optimization_plan": r.optimization_plan or "—",
+                "optimization_status": r.optimization_status or "—",
+                "strength": r.strength or "—",
+                "system_used": r.system_used or "—",
+                "business": r.business or "—",
+                "remark": r.remark or "—",
             }
             for r in rows
         ]
