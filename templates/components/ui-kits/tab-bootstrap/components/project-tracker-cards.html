@@ -92,6 +92,14 @@
 </style>
 
 <div class="project-tracker-container">
+  <div class="project-tracker-filters mb-3">
+    <label for="projectTypeFilter" class="me-2" style="font-weight: 600;">Project Type:</label>
+    <select id="projectTypeFilter" class="form-select form-select-sm" style="width: auto; display: inline-block;">
+      <option value="" {% if not project_tracker_items.current_project_type %}selected{% endif %}>All</option>
+      <option value="idea" {% if project_tracker_items.current_project_type == 'idea' %}selected{% endif %}>Idea</option>
+      <option value="automation" {% if project_tracker_items.current_project_type == 'automation' %}selected{% endif %}>Automation</option>
+    </select>
+  </div>
   {% for section in project_tracker_items.month_sections %}
   <div class="project-tracker-section {{ section.css_class }}">
     <div class="project-tracker-card {{ section.css_class }}">
@@ -103,7 +111,8 @@
           <thead>
             <tr>
               <th>Description</th>
-              <th>Person</th>
+              <th>Project Type</th>
+              <th>Employee Name</th>
               <th>Company</th>
               <th>Start Date</th>
               <th>Brainstorming</th>
@@ -116,6 +125,7 @@
             {% for item in section.items %}
             <tr>
               <td>{{ item.description }}</td>
+              <td>{{ item.project_type_display|default:"—" }}</td>
               <td>{{ item.person_name }}</td>
               <td>{{ item.company|default:"—" }}</td>
               <td>{{ item.start_date_display }}</td>
@@ -137,11 +147,11 @@
               <td>{{ item.end_date_display|default:"—" }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="8" class="text-muted text-center">No items for this month.</td></tr>
+            <tr><td colspan="9" class="text-muted text-center">No items for this month.</td></tr>
             {% endfor %}
             {% if section.items %}
             <tr class="progress-row">
-              <td colspan="4" style="background:#f8fafc; border-bottom:none;"></td>
+              <td colspan="5" style="background:#f8fafc; border-bottom:none;"></td>
               <td class="progress-cell">
                 <div class="progress-bar-wrap">
                   <span style="width:{{ section.progress.brainstorming.done_pct }}%; background:#2e7d32;" title="Done"></span>
@@ -178,3 +188,21 @@
   <p class="text-muted text-center mb-0">No project tracker data. Add items from Admin.</p>
   {% endfor %}
 </div>
+<script>
+(function() {
+  var sel = document.getElementById("projectTypeFilter");
+  if (!sel) return;
+  sel.addEventListener("change", function() {
+    var value = this.value;
+    var params = new URLSearchParams(window.location.search);
+    params.set("tab", "project tracker");
+    if (value) params.set("project_type", value);
+    else params.delete("project_type");
+    var newUrl = window.location.pathname + "?" + params.toString();
+    history.replaceState({}, "", newUrl);
+    if (typeof window.loadTabData === "function") {
+      window.loadTabData();
+    }
+  });
+})();
+</script>

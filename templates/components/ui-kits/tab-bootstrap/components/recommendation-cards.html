@@ -27,7 +27,7 @@
       grid-template-columns: 1fr;
     }
   }
-  /* One card = Business + User group */
+  /* One card = Business + User group; scroll inside each card body */
   .recommendation-group-card {
     background: #fff;
     border-radius: 16px;
@@ -37,6 +37,9 @@
     transition:
       transform 0.2s ease,
       box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    max-height: 70vh;
   }
   .recommendation-group-card:hover {
     transform: translateY(-2px);
@@ -61,6 +64,7 @@
     align-items: center;
     justify-content: center;
     font-size: 1.25rem;
+    overflow: hidden;
   }
   .recommendation-group-card .card-header-bar .header-title {
     font-weight: 700;
@@ -70,6 +74,25 @@
   }
   .recommendation-group-card .card-body-list {
     padding: 1rem 1.25rem 1.25rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: calc(70vh - 60px);
+    flex: 1;
+    min-height: 0;
+  }
+  .recommendation-group-card .card-body-list::-webkit-scrollbar {
+    width: 6px;
+  }
+  .recommendation-group-card .card-body-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 4px;
+  }
+  .recommendation-group-card .card-body-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+  .recommendation-group-card .card-body-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
   }
   .recommendation-item-row {
     background: #f8fafc;
@@ -96,6 +119,19 @@
     display: flex;
     align-items: center;
     justify-content: center;
+  }
+  .recommendation-item-row .item-num--logo {
+    border-radius: 8px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    padding: 2px;
+  }
+  .recommendation-item-row .item-num .item-logo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
   }
   .recommendation-item-row .item-content h6 {
     font-weight: 700;
@@ -353,7 +389,7 @@
       <div class="data-table-title-row data-table-title-row--badge-top-right">
         <h5 class="data-table-title">
           <span class="title-icon">
-            <i class="fa fa-calendar"></i>
+            <i class="fa fa-tasks"></i>
           </span>
           Weekly Project Tracker
         </h5>
@@ -435,7 +471,11 @@
         <div class="card-body-list">
           {% for item in card.items %}
           <div class="recommendation-item-row">
+            {% if item.custom_icon %}
+            <span class="item-num item-num--logo"><img src="{{ item.custom_icon }}" alt="{{ item.title|default:'' }}" class="item-logo" /></span>
+            {% else %}
             <span class="item-num">{{ forloop.counter }}</span>
+            {% endif %}
             <div class="item-content">
               {% if item.title %}
               <h6>{{ item.title }}</h6>
@@ -464,6 +504,58 @@
   </div>
 </div>
 
+{% if progress_status_rows %}
+<div class="weekly-tracker-table-section mt-4">
+  <div class="data-table-card">
+    <div class="data-table-header">
+      <div class="data-table-title-row data-table-title-row--badge-top-right">
+        <h5 class="data-table-title">
+          <span class="title-icon">
+            <i class="fa fa-tasks"></i>
+          </span>
+          PROGRESS STATUS
+        </h5>
+        <div class="data-table-stats data-table-stats--top-right">
+          <span class="stat-badge">
+            <i class="fa fa-list"></i>
+            {{ progress_status_rows|length }} Items
+          </span>
+        </div>
+      </div>
+    </div>
+    <div class="data-table-body table-responsive-wrapper">
+      <table
+        class="wh-styled-table weekly-tracker-table"
+        id="progressStatusTable"
+      >
+        <thead>
+          <tr>
+            <th><i class="fa fa-user me-2"></i>Clerk</th>
+            <th><i class="fa fa-building me-2"></i>Account</th>
+            <th><i class="fa fa-comment me-2"></i>Remark</th>
+            <th><i class="fa fa-flag me-2"></i>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in progress_status_rows %}
+          <tr>
+            <td data-label="Clerk">{{ row.clerk }}</td>
+            <td data-label="Account">{{ row.account }}</td>
+            <td data-label="Remark">{% if row.remark %}{{ row.remark }}{% else %}—{% endif %}</td>
+            <td data-label="Status">
+              <span class="status-badge status-{{ row.status }}">
+                {{ row.status_display }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}
+
 {% if potential_challenges_rows %}
 <div class="weekly-tracker-table-section mt-4">
   <div class="data-table-card">
@@ -478,7 +570,7 @@
         <div class="data-table-stats data-table-stats--top-right">
           <span class="stat-badge">
             <i class="fa fa-list"></i>
-            {{ potential_challenges_rows|length }} Items
+            {{ potential_challenges_rows|length }} Challenge
           </span>
         </div>
       </div>

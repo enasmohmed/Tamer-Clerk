@@ -1,0 +1,17 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block content %}
+<h1>{{ title }}</h1>
+<p class="help">Upload an Excel file (e.g. <strong>Quick_wins.xlsx</strong>) with sheet <strong>Sheet1</strong> and columns: <strong>Clerk</strong>, <strong>Account</strong>, <strong>Remark</strong>, <strong>Status</strong> (Completed / In Progress / Not Started). Enable "Clear existing data before import" to wipe the table before importing.</p>
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <table>
+    {{ form.as_table }}
+  </table>
+  <p style="margin-top: 1rem;">
+    <input type="submit" value="Import" class="default">
+    <a href="{% url 'admin:dashboard_progressstatus_changelist' %}" class="button cancel-link">Cancel</a>
+  </p>
+</form>
+{% endblock %}

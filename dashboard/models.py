@@ -515,6 +515,11 @@ PROJECT_TRACKER_STATUS_CHOICES = [
     ("stuck", "Stuck"),
 ]
 
+PROJECT_TYPE_CHOICES = [
+    ("idea", "Idea"),
+    ("automation", "Automation"),
+]
+
 
 class ProjectTrackerItem(models.Model):
     """
@@ -527,7 +532,13 @@ class ProjectTrackerItem(models.Model):
     )
     person_name = models.CharField(
         max_length=120,
-        help_text="Name of the person responsible"
+        help_text="Employee name (person responsible)"
+    )
+    project_type = models.CharField(
+        max_length=20,
+        choices=PROJECT_TYPE_CHOICES,
+        default="idea",
+        help_text="Project Type: Idea or Automation",
     )
     company = models.CharField(
         max_length=200,
@@ -649,3 +660,26 @@ class PotentialChallenge(models.Model):
 
     def __str__(self):
         return f"{self.date} — {self.challenges[:50] if self.challenges else '—'}"
+
+
+# ─── Progress Status (جدول PROGRESS STATUS: Clerk | Account | Remark | Status) ───
+class ProgressStatus(models.Model):
+    """Progress Status table: Clerk, Account, Remark, Status. Excel: Quick_wins.xlsx, Sheet1."""
+    clerk = models.CharField(max_length=200, blank=True, help_text="Clerk")
+    account = models.CharField(max_length=200, blank=True, help_text="Account")
+    remark = models.TextField(blank=True, help_text="Remark")
+    status = models.CharField(
+        max_length=20,
+        choices=WEEKLY_TRACKER_STATUS_CHOICES,
+        default="not_started",
+        help_text="Completed / In Progress / Not Started",
+    )
+    display_order = models.PositiveSmallIntegerField(default=0, help_text="Row order in table")
+
+    class Meta:
+        verbose_name = "Progress Status"
+        verbose_name_plural = "Progress Status"
+        ordering = ["display_order", "id"]
+
+    def __str__(self):
+        return f"{self.clerk or '—'} — {self.account or '—'}"

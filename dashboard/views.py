@@ -1552,12 +1552,14 @@ class UploadExcelViewRoche(View):
             if selected_tab == "recommendation":
                 recommendations = context_helpers.get_recommendations_list()
                 weekly_tracker_rows = context_helpers.get_weekly_project_tracker_list()
+                progress_status_rows = context_helpers.get_progress_status_list()
                 potential_challenges_rows = context_helpers.get_potential_challenges_list()
                 recommendation_html = render_to_string(
                     "components/ui-kits/tab-bootstrap/components/recommendation-cards.html",
                     {
                         "recommendations": recommendations,
                         "weekly_tracker_rows": weekly_tracker_rows,
+                        "progress_status_rows": progress_status_rows,
                         "potential_challenges_rows": potential_challenges_rows,
                         "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
                     },
@@ -1565,7 +1567,10 @@ class UploadExcelViewRoche(View):
                 )
                 return JsonResponse({"detail_html": recommendation_html}, safe=False)
             if selected_tab == "project tracker":
-                project_tracker_items = context_helpers.get_project_tracker_list()
+                project_type_filter = request.GET.get("project_type", "").strip().lower()
+                if project_type_filter not in ("idea", "automation"):
+                    project_type_filter = None
+                project_tracker_items = context_helpers.get_project_tracker_list(project_type=project_type_filter)
                 project_tracker_html = render_to_string(
                     "components/ui-kits/tab-bootstrap/components/project-tracker-cards.html",
                     {"project_tracker_items": project_tracker_items},
@@ -1615,8 +1620,11 @@ class UploadExcelViewRoche(View):
                 "phases_sections": context_helpers.get_phases_sections_list(),
                 "recommendations": context_helpers.get_recommendations_list(),
                 "weekly_tracker_rows": context_helpers.get_weekly_project_tracker_list(),
+                "progress_status_rows": context_helpers.get_progress_status_list(),
                 "potential_challenges_rows": context_helpers.get_potential_challenges_list(),
-                "project_tracker_items": context_helpers.get_project_tracker_list(),
+                "project_tracker_items": context_helpers.get_project_tracker_list(
+                    project_type=request.GET.get("project_type") or None
+                ),
             }
             return render(request, self.template_name, render_context)
 
@@ -2016,8 +2024,11 @@ class UploadExcelViewRoche(View):
             "dashboard_theme": dashboard_theme,
             "recommendations": context_helpers.get_recommendations_list(),
             "weekly_tracker_rows": context_helpers.get_weekly_project_tracker_list(),
+            "progress_status_rows": context_helpers.get_progress_status_list(),
             "potential_challenges_rows": context_helpers.get_potential_challenges_list(),
-            "project_tracker_items": context_helpers.get_project_tracker_list(),
+            "project_tracker_items": context_helpers.get_project_tracker_list(
+                project_type=request.GET.get("project_type") or None
+            ),
         }
         if (selected_tab or "").lower() == "dashboard":
             try:
@@ -7477,7 +7488,10 @@ class UploadExcelViewRoche(View):
     def project_tracker_tab(self, request):
         """تاب Project Tracker: عرض بيانات من الأدمن (project_tracker_items)."""
         try:
-            project_tracker_items = context_helpers.get_project_tracker_list()
+            pt_filter = (request.GET.get("project_type") or "").strip().lower()
+            if pt_filter not in ("idea", "automation"):
+                pt_filter = None
+            project_tracker_items = context_helpers.get_project_tracker_list(project_type=pt_filter)
             html = render_to_string(
                 "components/ui-kits/tab-bootstrap/components/project-tracker-cards.html",
                 {"project_tracker_items": project_tracker_items},

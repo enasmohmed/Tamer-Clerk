@@ -4,6 +4,7 @@ from django.contrib import admin
 from django.shortcuts import redirect, render
 from django.urls import path
 from django.contrib import messages
+from django.utils.safestring import mark_safe
 from .models import (
     Status,
     BusinessUnit,
@@ -24,6 +25,7 @@ from .models import (
     ProjectTrackerItem,
     WeeklyProjectTrackerRow,
     PotentialChallenge,
+    ProgressStatus,
 )
 
 
@@ -329,6 +331,66 @@ class WeeklyProjectTrackerRowAdmin(admin.ModelAdmin):
         return render(request, "admin/dashboard/weeklyprojecttrackerrow/import_excel.html", context)
 
 
+# ─── Progress Status (PROGRESS STATUS table: Clerk, Account, Remark, Status) ───
+@admin.register(ProgressStatus)
+class ProgressStatusAdmin(admin.ModelAdmin):
+    list_display = ("clerk", "account", "remark_short", "status", "display_order")
+    list_editable = ("display_order",)
+    list_filter = ("status",)
+    search_fields = ("clerk", "account", "remark")
+    change_list_template = "admin/dashboard/progressstatus/change_list.html"
+
+    def remark_short(self, obj):
+        return (obj.remark[:50] + "…") if obj.remark and len(obj.remark) > 50 else (obj.remark or "—")
+    remark_short.short_description = "Remark"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "import-excel/",
+                self.admin_site.admin_view(self.import_excel_view),
+                name="dashboard_progressstatus_import_excel",
+            ),
+        ]
+        return custom + urls
+
+    def import_excel_view(self, request):
+        from .forms import ProgressStatusExcelUploadForm
+        from .progress_status_import import import_progress_status_from_excel
+
+        if request.method == "POST":
+            form = ProgressStatusExcelUploadForm(request.POST, request.FILES)
+            if form.is_valid():
+                excel_file = request.FILES["excel_file"]
+                sheet_name = (form.cleaned_data.get("sheet_name") or "").strip() or "Sheet1"
+                clear_before = form.cleaned_data.get("clear_before_import")
+                if clear_before:
+                    deleted, _ = self.model.objects.all().delete()
+                    messages.info(request, f"Deleted {deleted} old rows.")
+                created_count, err_list = import_progress_status_from_excel(
+                    excel_file, sheet_name=sheet_name
+                )
+                if created_count > 0:
+                    messages.success(request, f"Successfully imported {created_count} rows.")
+                if err_list:
+                    for err in err_list[:10]:
+                        messages.warning(request, err)
+                    if len(err_list) > 10:
+                        messages.warning(request, f"... and {len(err_list) - 10} more messages.")
+                if created_count > 0 or not err_list:
+                    return redirect("admin:dashboard_progressstatus_changelist")
+        else:
+            form = ProgressStatusExcelUploadForm()
+        context = {
+            **self.admin_site.each_context(request),
+            "form": form,
+            "title": "Import Progress Status from Excel",
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/dashboard/progressstatus/import_excel.html", context)
+
+
 # ─── Potential Challenges ───
 @admin.register(PotentialChallenge)
 class PotentialChallengeAdmin(admin.ModelAdmin):
@@ -400,6 +462,7 @@ class ProjectTrackerItemAdmin(admin.ModelAdmin):
     list_display = (
         "description",
         "person_name",
+        "project_type",
         "company",
         "start_date",
         "brainstorming_badge",
@@ -410,6 +473,7 @@ class ProjectTrackerItemAdmin(admin.ModelAdmin):
     )
     list_editable = ("display_order",)
     list_filter = (
+        "project_type",
         "brainstorming_status",
         "execution_status",
         "launch_status",

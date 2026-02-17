@@ -409,7 +409,7 @@
               <button class="nav-link" data-tab="recommendation">Progress Overview</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" data-tab="project tracker">Automation Tracker</button>
+              <button class="nav-link" data-tab="project tracker">Ideas & Automation overview</button>
             </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link" data-tab="meeting points">Meeting Points & Actions</button>
@@ -420,7 +420,7 @@
             {% if active_tab == "warehouse" %}
               {% include 'components/ui-kits/tab-bootstrap/components/warehouse-cards.html' with warehouse_overview=warehouse_overview clerk_interview_rows=clerk_interview_rows %}
             {% elif active_tab == "recommendation" %}
-              {% include 'components/ui-kits/tab-bootstrap/components/recommendation-cards.html' with recommendations=recommendations weekly_tracker_rows=weekly_tracker_rows potential_challenges_rows=potential_challenges_rows %}
+              {% include 'components/ui-kits/tab-bootstrap/components/recommendation-cards.html' with recommendations=recommendations weekly_tracker_rows=weekly_tracker_rows progress_status_rows=progress_status_rows potential_challenges_rows=potential_challenges_rows %}
             {% elif active_tab == "project tracker" %}
               {% include 'components/ui-kits/tab-bootstrap/components/project-tracker-cards.html' with project_tracker_items=project_tracker_items %}
             {% else %}
@@ -873,11 +873,16 @@
       // تعطيل الكاش لكل التابات: الداتا كلها من الأدمن ويجب أن تظهر التحديثات فوراً
       const cachedPayload = null;
 
+      var ajaxData = { tab: selectedTab, month: month, quarter: quarter };
+      if (selectedTab && selectedTab.toLowerCase() === "project tracker") {
+        var pt = new URLSearchParams(window.location.search).get("project_type") || "";
+        if (pt) ajaxData.project_type = pt;
+      }
       $.ajax({
         url: "{% url 'dashboard:upload_excel' %}",
         method: "GET",
         headers: { "X-Requested-With": "XMLHttpRequest" },
-        data: { tab: selectedTab, month: month, quarter: quarter },
+        data: ajaxData,
         cache: false,
         beforeSend: function () {
           if (quarter) {

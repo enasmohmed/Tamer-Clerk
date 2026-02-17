@@ -256,6 +256,26 @@ def get_weekly_project_tracker_list():
         return []
 
 
+def get_progress_status_list():
+    """Returns list of Progress Status rows (Clerk, Account, Remark, Status)."""
+    try:
+        from .models import ProgressStatus
+
+        rows = ProgressStatus.objects.all()
+        return [
+            {
+                "clerk": r.clerk or "—",
+                "account": r.account or "—",
+                "remark": r.remark or "—",
+                "status": r.status,
+                "status_display": r.get_status_display(),
+            }
+            for r in rows
+        ]
+    except Exception:
+        return []
+
+
 def get_potential_challenges_list():
     """Returns list of Potential Challenges rows (Date, Challenges, Status, Progress %, Solutions)."""
     try:
@@ -280,7 +300,7 @@ def get_potential_challenges_list():
 def get_recommendations_list():
     """
     Returns a list of "cards" for Recommendation Overview tab.
-    Each card has business, user_name, and items (list of recommendation dicts).
+    Each card has business, user_name, logo_url (from first item's Custom icon if set), and items.
     Cards are grouped by (business, user_name); two cards per row in the UI.
     """
     try:
@@ -290,7 +310,7 @@ def get_recommendations_list():
         recs = Recommendation.objects.filter(is_active=True).order_by(
             "business", "user_name", "display_order", "id"
         )
-        # Build list of cards: each card = (business, user_name, items)
+
         cards = []
         for (business, user_name), group in groupby(
             recs, key=lambda r: (r.business or "", r.user_name or "")
@@ -308,9 +328,12 @@ def get_recommendations_list():
                 for r in group
             ]
             if items:
+                # Card header logo: first item's Custom icon (company logo) if set
+                logo_url = next((i["custom_icon"] for i in items if i.get("custom_icon")), None)
                 cards.append({
                     "business": business or "—",
                     "user_name": user_name or "",
+                    "logo_url": logo_url,
                     "items": items,
                 })
         return cards
@@ -319,10 +342,11 @@ def get_recommendations_list():
         return []
 
 
-def get_project_tracker_list():
+def get_project_tracker_list(project_type=None):
     """
     يعرض كل الأشهر اللي فيها داتا من الأدمن فقط (حتى لو سنة فاتت).
     الترتيب: من الأحدث (فوق) للأقدم (تحت).
+    project_type: اختياري — "idea" أو "automation" لفلترة النتائج لكل الأشهر.
     """
     from datetime import date
     from calendar import month_abbr
@@ -338,6 +362,8 @@ def get_project_tracker_list():
                 "id": obj.id,
                 "description": obj.description,
                 "person_name": obj.person_name,
+                "project_type": getattr(obj, "project_type", "") or "",
+                "project_type_display": obj.get_project_type_display() if getattr(obj, "project_type", None) else "",
                 "company": getattr(obj, "company", "") or "",
                 "start_date": obj.start_date,
                 "start_date_display": obj.start_date.strftime("%b %d"),
@@ -350,6 +376,10 @@ def get_project_tracker_list():
                 "execution_display": obj.get_execution_status_display() or "",
                 "launch_display": obj.get_launch_status_display() or "",
             }
+
+        base_qs = ProjectTrackerItem.objects.all()
+        if project_type and project_type in ("idea", "automation"):
+            base_qs = base_qs.filter(project_type=project_type)
 
         def phase_progress(items, phase_key):
             total = len(items)
@@ -388,14 +418,12 @@ def get_project_tracker_list():
             }
 
         # كل الأشهر المميزة اللي فيها عناصر (من الأدمن)، من الأحدث للأقدم
-        distinct_months = list(
-            ProjectTrackerItem.objects.dates("start_date", "month", order="DESC")
-        )
+        distinct_months = list(base_qs.dates("start_date", "month", order="DESC"))
         month_sections = []
         for month_date in distinct_months:
             y, m = month_date.year, month_date.month
             qs = (
-                ProjectTrackerItem.objects.filter(start_date__year=y, start_date__month=m)
+                base_qs.filter(start_date__year=y, start_date__month=m)
                 .order_by("-start_date", "display_order", "id")
             )
             items = [item_to_dict(o) for o in qs]
@@ -442,6 +470,7 @@ def get_project_tracker_list():
             "last_month": last_month,
             "this_month_progress": this_month_progress,
             "last_month_progress": last_month_progress,
+            "current_project_type": project_type or "",
         }
     except Exception as e:
         import traceback
@@ -476,4 +505,5 @@ def get_project_tracker_list():
                 "execution": _empty,
                 "launch": _empty,
             },
+            "current_project_type": "",
         }

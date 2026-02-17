@@ -91,6 +91,28 @@ class PotentialChallengesExcelUploadForm(forms.Form):
     )
 
 
+class ProgressStatusExcelUploadForm(forms.Form):
+    """Excel upload for Progress Status. File: Quick_wins.xlsx, sheet: Sheet1. Columns: Clerk, Account, Remark, Status."""
+    excel_file = forms.FileField(
+        label="Excel file (e.g. Quick_wins.xlsx)",
+        required=True,
+        widget=forms.ClearableFileInput(attrs={"accept": ".xlsx,.xlsm,.xls"}),
+        help_text="Expected: Quick_wins.xlsx with sheet Sheet1.",
+    )
+    sheet_name = forms.CharField(
+        label="Sheet name",
+        initial="Sheet1",
+        required=False,
+        max_length=100,
+        help_text="Sheet name in the file (default: Sheet1).",
+    )
+    clear_before_import = forms.BooleanField(
+        label="Clear existing data before import",
+        required=False,
+        initial=False,
+    )
+
+
 class MeetingPointForm(forms.ModelForm):
     class Meta:
         model = MeetingPoint
