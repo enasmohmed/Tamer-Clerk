@@ -13,7 +13,14 @@ def _normalize_col(s):
 
 def _find_column(df, *candidates):
     def normalize_for_match(s):
-        return _normalize_col(s).lower().replace(" ", "").replace("%", "").replace("(", "").replace(")", "")
+        return (
+            _normalize_col(s)
+            .lower()
+            .replace(" ", "")
+            .replace("%", "")
+            .replace("(", "")
+            .replace(")", "")
+        )
 
     for cand in candidates:
         cand_norm = normalize_for_match(cand)
@@ -65,7 +72,9 @@ def import_potential_challenges_from_excel(file, sheet_name="Potential_Challenge
                 xl = pd.ExcelFile(file, engine="openpyxl")
                 first_sheet = xl.sheet_names[0] if xl.sheet_names else None
                 if first_sheet:
-                    df = pd.read_excel(file, sheet_name=first_sheet, engine="openpyxl", header=0)
+                    df = pd.read_excel(
+                        file, sheet_name=first_sheet, engine="openpyxl", header=0
+                    )
                 else:
                     return 0, [f"Could not read file: {e}"]
             except Exception as e2:
@@ -85,7 +94,10 @@ def import_potential_challenges_from_excel(file, sheet_name="Potential_Challenge
     col_solutions = _find_column(df, "Solutions", "solutions")
 
     if not col_challenges:
-        errors.append("Column 'Challenges' not found. Available: " + ", ".join(str(c) for c in df.columns[:12]))
+        errors.append(
+            "Column 'Challenges' not found. Available: "
+            + ", ".join(str(c) for c in df.columns[:12])
+        )
 
     if errors:
         return 0, errors
@@ -100,10 +112,14 @@ def import_potential_challenges_from_excel(file, sheet_name="Potential_Challenge
 
     for idx, row in df.iterrows():
         date_val = _normalize_col(row.get(col_date, "")) if col_date else ""
-        challenges_val = _normalize_col(row.get(col_challenges, "")) if col_challenges else ""
+        challenges_val = (
+            _normalize_col(row.get(col_challenges, "")) if col_challenges else ""
+        )
         status_raw = _normalize_col(row.get(col_status, "")) if col_status else ""
         progress_raw = row.get(col_progress, 0) if col_progress else 0
-        solutions_val = _normalize_col(row.get(col_solutions, "")) if col_solutions else ""
+        solutions_val = (
+            _normalize_col(row.get(col_solutions, "")) if col_solutions else ""
+        )
 
         if not date_val and not challenges_val:
             continue
@@ -111,7 +127,9 @@ def import_potential_challenges_from_excel(file, sheet_name="Potential_Challenge
         status_val = _normalize_status(status_raw) if status_raw else "not_started"
 
         try:
-            if progress_raw is None or (isinstance(progress_raw, float) and pd.isna(progress_raw)):
+            if progress_raw is None or (
+                isinstance(progress_raw, float) and pd.isna(progress_raw)
+            ):
                 progress_val = 0
             else:
                 raw = progress_raw

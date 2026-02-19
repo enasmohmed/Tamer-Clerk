@@ -1149,9 +1149,7 @@
               <th>WH</th>
               <th class="clerk-name-col">Clerk Name</th>
               <th>NATIONALITY</th>
-              <th>Report Used</th>
               <th>Optimization Status</th>
-              <th>Strength</th>
               <th>System Used</th>
               <th>Business</th>
             </tr>
@@ -1170,14 +1168,12 @@
                 {{ row.clerk_name }}
               </td>
               <td data-label="NATIONALITY">{{ row.nationality }}</td>
-              <td data-label="Report Used">{{ row.report_used }}</td>
               <td data-label="Optimization Status">
                 <span
                   class="clerk-badge clerk-badge-opt {% if row.optimization_status == 'Reallocation' %}clerk-badge-reallocation{% endif %}"
                   >{{ row.optimization_status }}</span
                 >
               </td>
-              <td data-label="Strength">{{ row.strength }}</td>
               <td data-label="System Used">
                 <span class="clerk-badge clerk-badge-sys"
                   >{{ row.system_used }}</span

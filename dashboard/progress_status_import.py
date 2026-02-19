@@ -60,7 +60,9 @@ def import_progress_status_from_excel(file, sheet_name="Sheet1"):
                 xl = pd.ExcelFile(file, engine="openpyxl")
                 first_sheet = xl.sheet_names[0] if xl.sheet_names else None
                 if first_sheet:
-                    df = pd.read_excel(file, sheet_name=first_sheet, engine="openpyxl", header=0)
+                    df = pd.read_excel(
+                        file, sheet_name=first_sheet, engine="openpyxl", header=0
+                    )
                 else:
                     return 0, [f"Could not read file: {e}"]
             except Exception as e2:

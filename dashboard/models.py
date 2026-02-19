@@ -403,13 +403,11 @@ class WarehouseMetric(models.Model):
 
 # ─── Clerk Interview Tracking (Project Overview table) ───
 class ClerkInterviewTracking(models.Model):
-    """Clerk Interview Tracking: WH, Clerk Name, NATIONALITY, Report Used, Optimization Status, Strength, System Used, Business, Remark. Excel: CP_project.xlsx, Sheet1."""
+    """Clerk Interview Tracking: WH, Clerk Name, NATIONALITY, Optimization Status, System Used, Business, Remark. Excel: CP_project.xlsx, Sheet1."""
     wh = models.CharField(max_length=120, blank=True, help_text="WH")
     clerk_name = models.CharField(max_length=200, blank=True, help_text="Clerk Name")
     nationality = models.CharField(max_length=120, blank=True, help_text="NATIONALITY")
-    report_used = models.CharField(max_length=200, blank=True, help_text="Report Used")
     optimization_status = models.CharField(max_length=200, blank=True, help_text="Optimization Status")
-    strength = models.CharField(max_length=200, blank=True, help_text="Strength")
     system_used = models.CharField(max_length=200, blank=True, help_text="System Used")
     business = models.CharField(max_length=200, blank=True, help_text="Business")
     remark = models.TextField(blank=True, help_text="Remark")

@@ -14,8 +14,16 @@ def _normalize_col(s):
 
 def _find_column(df, *candidates):
     """يرجع اسم العمود الأول الموجود في الداتا فريم من قائمة الأسماء (بدون مراعاة حالة الأحرف والمسافات و%)"""
+
     def normalize_for_match(s):
-        return _normalize_col(s).lower().replace(" ", "").replace("%", "").replace("(", "").replace(")", "")
+        return (
+            _normalize_col(s)
+            .lower()
+            .replace(" ", "")
+            .replace("%", "")
+            .replace("(", "")
+            .replace(")", "")
+        )
 
     # Exact match first
     for cand in candidates:
@@ -92,13 +100,17 @@ def import_weekly_tracker_from_excel(file, sheet_name="Weekly Tracker"):
     if not col_task:
         errors.append("Column 'Task' not found.")
     if not col_progress:
-        errors.append("Column 'Progress %' (or similar) not found. Available columns: " + ", ".join(str(c) for c in df.columns[:10]))
+        errors.append(
+            "Column 'Progress %' (or similar) not found. Available columns: "
+            + ", ".join(str(c) for c in df.columns[:10])
+        )
 
     if errors:
         return 0, errors
 
     df = df.dropna(how="all")
     from django.db.models import Max
+
     max_order = 0
     try:
         agg = WeeklyProjectTrackerRow.objects.aggregate(m=Max("display_order"))
@@ -119,7 +131,9 @@ def import_weekly_tracker_from_excel(file, sheet_name="Weekly Tracker"):
         status_val = _normalize_status(status_raw) if status_raw else "not_started"
 
         try:
-            if progress_raw is None or (isinstance(progress_raw, float) and pd.isna(progress_raw)):
+            if progress_raw is None or (
+                isinstance(progress_raw, float) and pd.isna(progress_raw)
+            ):
                 progress_val = 0
             else:
                 raw = progress_raw

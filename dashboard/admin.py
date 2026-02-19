@@ -113,8 +113,8 @@ class PhaseSectionAdmin(admin.ModelAdmin):
 @admin.register(ClerkInterviewTracking)
 class ClerkInterviewTrackingAdmin(admin.ModelAdmin):
     list_display = (
-        "wh", "clerk_name", "nationality", "report_used", "optimization_status",
-        "strength", "system_used", "business", "remark", "display_order",
+        "wh", "clerk_name", "nationality", "optimization_status",
+        "system_used", "business", "remark", "display_order",
     )
     list_editable = ("display_order",)
     list_filter = ("wh", "business", "optimization_status")
