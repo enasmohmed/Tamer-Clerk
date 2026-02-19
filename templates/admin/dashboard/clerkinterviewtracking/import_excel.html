@@ -1,20 +1,27 @@
-{% extends "admin/base_site.html" %}
-{% load i18n %}
-
-{% block content %}
+{% extends "admin/base_site.html" %} {% load i18n %} {% block content %}
 <h1>{{ title }}</h1>
 <p class="help">
-  Upload an Excel file (e.g. <strong>CP_project.xlsx</strong>) with sheet <strong>Sheet1</strong>. Columns: <strong>WH</strong>, <strong>Clerk Name</strong>, <strong>NATIONALITY</strong>, <strong>Report Used</strong>, <strong>Optimization Status</strong>, <strong>Strength</strong>, <strong>System Used</strong>, <strong>Business</strong>, <strong>Remark</strong>.
-  Column names are matched flexibly (e.g. "Stringth" for Strength, "Busnise" for Business). Enable "Clear existing data before import" to wipe the table before importing.
+  Upload an Excel file (e.g. <strong>CP_project.xlsx</strong>) with sheet
+  <strong>Sheet1</strong>. Columns: <strong>WH</strong>,
+  <strong>Clerk Name</strong>, <strong>NATIONALITY</strong>,
+  <strong>Report Used</strong>, <strong>Optimization Status</strong>,
+  <strong>Strength</strong>, <strong>System Used</strong>,
+  <strong>Business</strong>, <strong>Remark</strong>. Column names are matched
+  flexibly (e.g. "Stringth" for Strength, "Busnise" for Business). Enable "Clear
+  existing data before import" to wipe the table before importing.
 </p>
 <form method="post" enctype="multipart/form-data">
   {% csrf_token %}
   <table>
     {{ form.as_table }}
   </table>
-  <p style="margin-top: 1rem;">
-    <input type="submit" value="Import" class="default">
-    <a href="{% url 'admin:dashboard_clerkinterviewtracking_changelist' %}" class="button cancel-link">Cancel</a>
+  <p style="margin-top: 1rem">
+    <input type="submit" value="Import" class="default" />
+    <a
+      href="{% url 'admin:dashboard_clerkinterviewtracking_changelist' %}"
+      class="button cancel-link"
+      >Cancel</a
+    >
   </p>
 </form>
 {% endblock %}

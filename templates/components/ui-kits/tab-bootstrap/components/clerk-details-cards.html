@@ -1,0 +1,291 @@
+{% load static %}
+<style>
+    :root{
+      --primary:#0f172a;
+      --accent:#16a34a;
+      --soft:#f1f5f9;
+      --border:#e2e8f0;
+    }
+
+    /* Layout */
+    .clerk-wrapper{
+      background: var(--soft);
+      border-radius:14px;
+      overflow:hidden;
+    }
+
+    /* Sidebar */
+    .clerk-sidebar{
+      background:#fff;
+      border-right:1px solid var(--border);
+      height:100%;
+      padding:1rem;
+    }
+
+    .clerk-search{
+      border:1px solid var(--border);
+      border-radius:8px;
+      padding:.55rem .75rem;
+      font-size:.9rem;
+      margin-bottom:1rem;
+    }
+
+    .clerk-item{
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:.75rem;
+      margin-bottom:.6rem;
+      cursor:pointer;
+      transition:all .25s ease;
+      background:#fff;
+    }
+
+    .clerk-item:hover{
+      transform:translateY(-3px);
+      box-shadow:0 6px 14px rgba(0,0,0,.08);
+    }
+
+    .clerk-item.active{
+      border-left:4px solid var(--accent);
+      background:#f0fdf4;
+    }
+
+    .clerk-item-name{
+      font-weight:600;
+      font-size:.95rem;
+    }
+
+    .clerk-item-meta{
+      font-size:.75rem;
+      color:#64748b;
+    }
+
+    /* Hero – خلفية خضراء بدل الأزرق، اسم أبيض واضح */
+    .profile-hero{
+      background:linear-gradient(135deg, #1a5f2a 0%, #15803d 50%, #166534 100%);
+      color:#fff;
+      padding:1.5rem;
+      border-radius:12px;
+      display:flex;
+      align-items:center;
+      gap:1rem;
+    }
+
+    .profile-hero .hero-name{
+      color:#fff !important;
+      font-weight:700;
+      font-size:1.35rem;
+      text-shadow:0 1px 2px rgba(0,0,0,.2);
+    }
+
+    .avatar{
+      width:65px;
+      height:65px;
+      border-radius:50%;
+      background:rgba(255,255,255,.25);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-weight:bold;
+      font-size:1.4rem;
+      color:#fff;
+    }
+
+    .hero-badges-wrap{ display:flex; flex-wrap:wrap; gap:.5rem .75rem; align-items:center; margin-top:.35rem; }
+    .hero-badge-item{ font-size:.8rem; color:rgba(255,255,255,.9); }
+    .hero-badge-item .badge-label{ color:rgba(255,255,255,.75); margin-right:.25rem; }
+    .badge-pill{
+      background:rgba(255,255,255,.25);
+      color:#fff;
+      padding:.3rem .65rem;
+      border-radius:50px;
+      font-size:.8rem;
+      font-weight:600;
+    }
+
+    /* Stat Cards */
+    .stat-card{
+      background:#fff;
+      border-radius:10px;
+      padding:1rem;
+      border:1px solid var(--border);
+      transition:.25s;
+    }
+
+    .stat-card:hover{
+      transform:translateY(-4px);
+      box-shadow:0 6px 18px rgba(0,0,0,.08);
+    }
+
+    .stat-label{
+      font-size:.75rem;
+      color:#64748b;
+    }
+
+    .stat-value{
+      font-weight:600;
+      font-size:1rem;
+    }
+
+    /* Tabs */
+    .custom-tabs{
+      display:flex;
+      gap:1rem;
+      border-bottom:2px solid var(--border);
+      margin-top:1.5rem;
+    }
+
+    .custom-tab{
+      padding:.6rem 1rem;
+      cursor:pointer;
+      font-weight:600;
+      font-size:.9rem;
+      color:#64748b;
+      border-bottom:3px solid transparent;
+      transition:.2s;
+    }
+
+    .custom-tab.active{
+      color:var(--accent);
+      border-color:var(--accent);
+    }
+
+    .tab-content-box{
+      background:#fff;
+      border:1px solid var(--border);
+      border-radius:10px;
+      padding:1rem;
+      margin-top:1rem;
+      animation:fadeIn .3s ease;
+    }
+
+    @keyframes fadeIn{
+      from{opacity:0; transform:translateY(6px);}
+      to{opacity:1; transform:translateY(0);}
+    }
+</style>
+
+<div class="container-fluid clerk-wrapper p-4">
+
+  <div class="row">
+
+      <!-- Sidebar – أسماء فريدة فقط (بدون تكرار من الإكسل) -->
+      <div class="col-md-3 clerk-sidebar">
+        <input type="text" class="form-control clerk-search" placeholder="Search employee..." onkeyup="filterClerks(this.value)">
+        <p class="small text-muted mb-2 mt-0">Unique names only (duplicates from Excel are merged).</p>
+
+        {% regroup clerk_details by dept_name_en as by_name %}
+        {% for group in by_name %}
+        {% with first=group.list|first %}
+        <div class="clerk-item {% if forloop.first %}active{% endif %}" 
+            onclick="showClerk('{{ first.id }}', this)"
+            data-name="{{ group.grouper|lower }}">
+          <div class="clerk-item-name">{{ group.grouper }}</div>
+          <div class="clerk-item-meta">
+            {{ first.business|default:"—" }} • {{ first.interview_date|default:"—" }}
+          </div>
+        </div>
+        {% endwith %}
+        {% empty %}
+        <div class="text-muted small">No profiles. Upload Clerk_details.xlsx from Admin.</div>
+        {% endfor %}
+      </div>
+
+  <!-- Main – لوحة واحدة لكل اسم فريد (السجل الأول من كل مجموعة) -->
+    <div class="col-md-9">
+
+      {% regroup clerk_details by dept_name_en as by_name_main %}
+      {% for group in by_name_main %}
+      {% with c=group.list|first %}
+      <div id="panel-{{ c.id }}" class="clerk-panel" style="{% if not forloop.first %}display:none{% endif %}">
+
+        <!-- Hero – اسم أبيض واضح، خلفية خضراء، بادجات مع تسمية (Account / Company) -->
+        <div class="profile-hero mb-4">
+          <div class="avatar">
+            {{ c.dept_name_en|slice:":1" }}
+          </div>
+          <div>
+            <h4 class="hero-name mb-1">{{ c.dept_name_en }}</h4>
+            <div class="hero-badges-wrap">
+              <span class="hero-badge-item"><span class="badge-label">Account:</span><span class="badge-pill">{{ c.account|default:"—" }}</span></span>
+              <span class="hero-badge-item"><span class="badge-label">Company:</span><span class="badge-pill">{{ c.company|default:"—" }}</span></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="row g-3">
+          <div class="col-md-6">
+            <div class="stat-card">
+              <div class="stat-label">Department</div>
+              <div class="stat-value">{{ c.dept_name_en }}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="stat-card">
+              <div class="stat-label">Business</div>
+              <div class="stat-value">{{ c.business }}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="stat-card">
+              <div class="stat-label">Mobile</div>
+              <div class="stat-value">{{ c.mobile|default:"—" }}</div>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="stat-card">
+              <div class="stat-label">Interview Date</div>
+              <div class="stat-value">{{ c.interview_date }}</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="custom-tabs">
+          <div class="custom-tab active" onclick="switchTab(this,'work-{{ c.id }}')">Work Details</div>
+          <div class="custom-tab" onclick="switchTab(this,'reports-{{ c.id }}')">Reports Used</div>
+        </div>
+
+        <div id="work-{{ c.id }}" class="tab-content-box">
+          {{ c.work_details|default:"—"|linebreaksbr }}
+        </div>
+
+        <div id="reports-{{ c.id }}" class="tab-content-box" style="display:none;">
+          {{ c.reports_used|default:"—"|linebreaksbr }}
+        </div>
+
+      </div>
+      {% endwith %}
+      {% endfor %}
+
+    </div>
+  </div>
+</div>
+
+<script>
+    function showClerk(id,el){
+      document.querySelectorAll('.clerk-panel').forEach(p=>p.style.display='none');
+      document.getElementById('panel-'+id).style.display='block';
+
+      document.querySelectorAll('.clerk-item').forEach(i=>i.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    function switchTab(tab,contentId){
+      let parent=tab.closest('.clerk-panel');
+      parent.querySelectorAll('.custom-tab').forEach(t=>t.classList.remove('active'));
+      tab.classList.add('active');
+
+      parent.querySelectorAll('.tab-content-box').forEach(c=>c.style.display='none');
+      parent.querySelector('#'+contentId).style.display='block';
+    }
+
+    function filterClerks(value){
+      value=value.toLowerCase();
+      document.querySelectorAll('.clerk-item').forEach(item=>{
+        let name=item.dataset.name;
+        item.style.display=name.includes(value)?'block':'none';
+      });
+    }
+</script>

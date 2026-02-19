@@ -17,6 +17,7 @@ from .models import (
     PhaseSection,
     PhasePoint,
     ClerkInterviewTracking,
+    ClerkDetail,
     Region,
     WarehouseMetric,
     DashboardTheme,
@@ -166,6 +167,66 @@ class ClerkInterviewTrackingAdmin(admin.ModelAdmin):
             "opts": self.model._meta,
         }
         return render(request, "admin/dashboard/clerkinterviewtracking/import_excel.html", context)
+
+
+# ─── Clerk Details (Employee Interview Profiles) - Clerk_details.xlsx, sheet interview ───
+@admin.register(ClerkDetail)
+class ClerkDetailAdmin(admin.ModelAdmin):
+    list_display = (
+        "dept_name_en", "department", "company", "business", "account",
+        "mobile", "interview_date", "system_badge", "display_order",
+    )
+    list_editable = ("display_order",)
+    list_filter = ("department", "company", "business")
+    search_fields = ("dept_name_en", "department", "company", "business", "account", "work_details")
+    change_list_template = "admin/dashboard/clerkdetail/change_list.html"
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "import-excel/",
+                self.admin_site.admin_view(self.import_excel_view),
+                name="dashboard_clerkdetail_import_excel",
+            ),
+        ]
+        return custom + urls
+
+    def import_excel_view(self, request):
+        from .forms import ClerkDetailsExcelUploadForm
+        from .clerk_details_import import import_clerk_details_from_excel
+
+        if request.method == "POST":
+            form = ClerkDetailsExcelUploadForm(request.POST, request.FILES)
+            if form.is_valid():
+                excel_file = request.FILES["excel_file"]
+                sheet_name = (form.cleaned_data.get("sheet_name") or "").strip() or "interview"
+                clear_before = form.cleaned_data.get("clear_before_import")
+                if clear_before:
+                    deleted, _ = self.model.objects.all().delete()
+                    messages.info(request, f"Deleted {deleted} old rows.")
+                created_count, err_list = import_clerk_details_from_excel(excel_file, sheet_name=sheet_name)
+                if created_count > 0:
+                    messages.success(
+                        request,
+                        f"Successfully imported {created_count} rows.",
+                    )
+                if err_list:
+                    for err in err_list[:10]:
+                        messages.warning(request, err)
+                    if len(err_list) > 10:
+                        messages.warning(request, f"... and {len(err_list) - 10} more messages.")
+                if created_count > 0 or not err_list:
+                    return redirect("admin:dashboard_clerkdetail_changelist")
+        else:
+            form = ClerkDetailsExcelUploadForm()
+        context = {
+            **self.admin_site.each_context(request),
+            "form": form,
+            "title": "Import Clerk Details from Excel",
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/dashboard/clerkdetail/import_excel.html", context)
 
 
 # ─── Additional Models (Region / Warehouse tables in dashboard, Theme, Meeting Points) ───

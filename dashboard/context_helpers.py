@@ -235,6 +235,32 @@ def get_clerk_interview_list():
         return []
 
 
+def get_clerk_details_list():
+    """Returns list of Clerk Detail (interview profile) rows for Clerk details tab. Sidebar uses dept_name_en."""
+    try:
+        from .models import ClerkDetail
+
+        rows = ClerkDetail.objects.all()
+        return [
+            {
+                "id": r.id,
+                "dept_name_en": r.dept_name_en or "—",
+                "department": r.department or "—",
+                "company": r.company or "—",
+                "business": r.business or "—",
+                "account": r.account or "—",
+                "mobile": r.mobile or "—",
+                "interview_date": r.interview_date or "—",
+                "work_details": r.work_details or "",
+                "reports_used": r.reports_used or "",
+                "system_badge": r.system_badge or "",
+            }
+            for r in rows
+        ]
+    except Exception:
+        return []
+
+
 def get_weekly_project_tracker_list():
     """Returns list of Weekly Project Tracker rows for Progress Overview tab."""
     try:

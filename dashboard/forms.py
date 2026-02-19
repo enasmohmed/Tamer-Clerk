@@ -45,6 +45,31 @@ class ClerkInterviewTrackingExcelUploadForm(forms.Form):
     )
 
 
+class ClerkDetailsExcelUploadForm(forms.Form):
+    """Excel upload for Clerk Details (Interview Profiles). File: Clerk_details.xlsx, sheet: interview. Sidebar: DEPT_NAME_EN."""
+    excel_file = forms.FileField(
+        label="Excel file (Clerk_details.xlsx)",
+        required=True,
+        widget=forms.ClearableFileInput(attrs={
+            "accept": ".xlsx,.xlsm,.xls",
+        }),
+        help_text="Expected: Clerk_details.xlsx with sheet 'interview'.",
+    )
+    sheet_name = forms.CharField(
+        label="Sheet name",
+        initial="interview",
+        required=False,
+        max_length=100,
+        help_text="Sheet name in the file (default: interview).",
+    )
+    clear_before_import = forms.BooleanField(
+        label="Clear existing data before import",
+        required=False,
+        initial=False,
+        help_text="Enable to delete all Clerk Details before importing.",
+    )
+
+
 class WeeklyProjectTrackerExcelUploadForm(forms.Form):
     """Excel upload form for Weekly Project Tracker (Week | Task | Status | Progress % | Impact)."""
     excel_file = forms.FileField(

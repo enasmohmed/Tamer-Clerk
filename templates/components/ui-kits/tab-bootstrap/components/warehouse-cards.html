@@ -98,6 +98,10 @@
     background: #98a2b3;
   }
 
+  .wh-styled-table .clerk-name-col{
+    padding: 1rem 6.30rem !important;
+    white-space: nowrap;
+  }
   .phase-badge {
     padding: 4px 10px;
     font-size: 12px;
@@ -680,10 +684,31 @@
     font-weight: 500;
     white-space: nowrap;
   }
-  .clerk-badge-wh { background: #dbeafe; color: #1d4ed8; }
-  .clerk-badge-opt { background: #dcfce7; color: #15803d; }
-  .clerk-badge-sys { background: #fef3c7; color: #b45309; }
-  .clerk-badge-biz { background: #e0e7ff; color: #3730a3; }
+  .clerk-badge-wh {
+    background: #dbeafe;
+    color: #1d4ed8;
+  }
+  .clerk-badge-opt {
+    background: #dcfce7;
+    color: #15803d;
+  }
+  .clerk-badge-opt.clerk-badge-reallocation {
+    background: #fecaca;
+    color: #b91c1c;
+  }
+  .clerk-badge-sys {
+    background: #fef3c7;
+    color: #b45309;
+  }
+  .clerk-badge-biz {
+    background: #e0e7ff;
+    color: #3730a3;
+  }
+  /* Clerk Interview Tracking: column widths — Clerk Name wider, others fit text */
+  #clerkInterviewTable {
+    table-layout: auto;
+  }
+  
   /* Clerk Interview Tracking: min height to show several rows; responsive */
   .clerk-interview-tracking-section .data-table-body {
     min-height: 1000px;
@@ -926,7 +951,10 @@
                 </div>
 
                 <div class="stat-box">
-                  <small>FMCG</small>
+                  <small
+                    >{% if item.warehouse.name == "3PL Healthcare-Hisham" %}HC
+                    {% else %}FMCG{% endif %}</small
+                  >
                   <strong>
                     {{ item.employee_summary.pending_or_edit_count|default:"0" }}
                   </strong>
@@ -1011,16 +1039,22 @@
     {% endfor %} {% endif %}
   </div>
 
- {% if phases_sections %}
+  {% if phases_sections %}
   <section class="plan-section">
     <h5 class="plan-section-title">Phases Overview</h5>
     <div class="plan-wrapper">
       {% for section in phases_sections %}
       <div class="card">
         {% if forloop.first %}
-        <div class="ribbon ribbon--light">{% if section.display_number %}{{ section.display_number }}{% endif %} {{ section.display_label }}</div>
+        <div class="ribbon ribbon--light">
+          {% if section.display_number %}{{ section.display_number }}{% endif %}
+          {{ section.display_label }}
+        </div>
         {% else %}
-        <div class="ribbon ribbon--dark">{% if section.display_number %}{{ section.display_number }}{% endif %} {{ section.display_label }}</div>
+        <div class="ribbon ribbon--dark">
+          {% if section.display_number %}{{ section.display_number }}{% endif %}
+          {{ section.display_label }}
+        </div>
         {% endif %} {% if section.points %}
         <ul>
           {% for point in section.points %}
@@ -1034,7 +1068,7 @@
       {% endfor %}
     </div>
   </section>
-  {% endif %} {# Clerk Interview Tracking table — Project Overview #} 
+  {% endif %} 
   {% with rows=clerk_interview_rows %}
 
   <div class="data-table-section clerk-interview-tracking-section">
@@ -1043,14 +1077,19 @@
         <div class="data-table-title-row">
           <h5 class="data-table-title">
             <span class="title-icon clerk-tracking-icon" aria-hidden="true">
-              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 24" fill="#1a5f2a" role="img">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 16 24"
+                fill="#1a5f2a"
+                role="img"
+              >
                 <title>Clerk Interview Tracking</title>
-                <circle cx="8" cy="5" r="3"/>
-                <rect x="5" y="9" width="6" height="8" rx="0.5"/>
-                <rect x="3" y="10" width="2" height="4"/>
-                <rect x="11" y="10" width="2" height="4"/>
-                <rect x="5.5" y="17" width="2.2" height="5"/>
-                <rect x="8.3" y="17" width="2.2" height="5"/>
+                <circle cx="8" cy="5" r="3" />
+                <rect x="5" y="9" width="6" height="8" rx="0.5" />
+                <rect x="3" y="10" width="2" height="4" />
+                <rect x="11" y="10" width="2" height="4" />
+                <rect x="5.5" y="17" width="2.2" height="5" />
+                <rect x="8.3" y="17" width="2.2" height="5" />
               </svg>
             </span>
             Clerk Interview Tracking
@@ -1078,11 +1117,7 @@
               onfocus="this.removeAttribute('readonly')"
             />
           </div>
-          <select
-            class="filter-select"
-            id="filterClerkWh"
-            title="Filter by WH"
-          >
+          <select class="filter-select" id="filterClerkWh" title="Filter by WH">
             <option value="">All (WH)</option>
           </select>
           <select
@@ -1112,14 +1147,13 @@
           <thead>
             <tr>
               <th>WH</th>
-              <th>Clerk Name</th>
+              <th class="clerk-name-col">Clerk Name</th>
               <th>NATIONALITY</th>
               <th>Report Used</th>
               <th>Optimization Status</th>
               <th>Strength</th>
               <th>System Used</th>
               <th>Business</th>
-              <th>Remark</th>
             </tr>
           </thead>
           <tbody>
@@ -1129,15 +1163,31 @@
               data-business="{{ row.business }}"
               data-optimization="{{ row.optimization_status }}"
             >
-              <td data-label="WH"><span class="clerk-badge clerk-badge-wh">{{ row.wh }}</span></td>
-              <td data-label="Clerk Name">{{ row.clerk_name }}</td>
+              <td data-label="WH">
+                <span class="clerk-badge clerk-badge-wh">{{ row.wh }}</span>
+              </td>
+              <td data-label="Clerk Name" class="clerk-name-col">
+                {{ row.clerk_name }}
+              </td>
               <td data-label="NATIONALITY">{{ row.nationality }}</td>
               <td data-label="Report Used">{{ row.report_used }}</td>
-              <td data-label="Optimization Status"><span class="clerk-badge clerk-badge-opt">{{ row.optimization_status }}</span></td>
+              <td data-label="Optimization Status">
+                <span
+                  class="clerk-badge clerk-badge-opt {% if row.optimization_status == 'Reallocation' %}clerk-badge-reallocation{% endif %}"
+                  >{{ row.optimization_status }}</span
+                >
+              </td>
               <td data-label="Strength">{{ row.strength }}</td>
-              <td data-label="System Used"><span class="clerk-badge clerk-badge-sys">{{ row.system_used }}</span></td>
-              <td data-label="Business"><span class="clerk-badge clerk-badge-biz">{{ row.business }}</span></td>
-              <td data-label="Remark">{{ row.remark }}</td>
+              <td data-label="System Used">
+                <span class="clerk-badge clerk-badge-sys"
+                  >{{ row.system_used }}</span
+                >
+              </td>
+              <td data-label="Business">
+                <span class="clerk-badge clerk-badge-biz"
+                  >{{ row.business }}</span
+                >
+              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -1147,7 +1197,8 @@
           <i class="fa fa-inbox"></i>
           <p>No data available yet.</p>
           <p class="small mt-2">
-            From Admin: Clerk Interview Tracking → Add records or Import from Excel (CP_project.xlsx, Sheet1)
+            From Admin: Clerk Interview Tracking → Add records or Import from
+            Excel (CP_project.xlsx, Sheet1)
           </p>
         </div>
         {% endif %}

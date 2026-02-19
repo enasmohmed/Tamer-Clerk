@@ -412,7 +412,6 @@
             <th><i class="fa fa-tasks me-2"></i>Task</th>
             <th><i class="fa fa-flag me-2"></i>Status</th>
             <th>Progress %</th>
-            <th><i class="fa fa-bolt me-2"></i>Impact</th>
           </tr>
         </thead>
         <tbody>
@@ -439,9 +438,6 @@
                 </div>
                 <span class="ms-2">{{ row.progress_pct }}%</span>
               </div>
-            </td>
-            <td class="impact-cell" data-label="Impact">
-              {% if row.impact %}{{ row.impact }}{% else %}—{% endif %}
             </td>
           </tr>
           {% endfor %}
@@ -546,76 +542,6 @@
               <span class="status-badge status-{{ row.status }}">
                 {{ row.status_display }}
               </span>
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-{% endif %}
-
-{% if potential_challenges_rows %}
-<div class="weekly-tracker-table-section mt-4">
-  <div class="data-table-card">
-    <div class="data-table-header">
-      <div class="data-table-title-row data-table-title-row--badge-top-right">
-        <h5 class="data-table-title">
-          <span class="title-icon">
-            <i class="fa fa-calendar"></i>
-          </span>
-          Potential Challenges
-        </h5>
-        <div class="data-table-stats data-table-stats--top-right">
-          <span class="stat-badge">
-            <i class="fa fa-list"></i>
-            {{ potential_challenges_rows|length }} Challenge
-          </span>
-        </div>
-      </div>
-    </div>
-    <div class="data-table-body table-responsive-wrapper">
-      <table
-        class="wh-styled-table weekly-tracker-table"
-        id="potentialChallengesTable"
-      >
-        <thead>
-          <tr>
-            <th><i class="fa fa-calendar me-2"></i>Date</th>
-            <th><i class="fa fa-tasks me-2"></i>Challenges</th>
-            <th><i class="fa fa-flag me-2"></i>Status</th>
-            <th>Progress %</th>
-            <th><i class="fa fa-bolt me-2"></i>Solutions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for row in potential_challenges_rows %}
-          <tr>
-            <td class="week-cell" data-label="Date">{{ row.date }}</td>
-            <td class="task-cell" data-label="Challenges">{{ row.challenges }}</td>
-            <td data-label="Status">
-              <span class="status-badge status-{{ row.status }}">
-                {{ row.status_display }}
-              </span>
-            </td>
-            <td data-label="Progress %">
-              <div class="progress-cell">
-                <div class="progress" style="height: 8px; min-width: 60px">
-                  <div
-                    class="progress-bar bg-success"
-                    role="progressbar"
-                    style="width: {{ row.progress_pct }}%;"
-                    aria-valuenow="{{ row.progress_pct }}"
-                    aria-valuemin="0"
-                    aria-valuemax="100"
-                  ></div>
-                </div>
-                <span class="ms-2">{{ row.progress_pct }}%</span>
-              </div>
-            </td>
-            <td class="impact-cell" data-label="Solutions">
-              {% if row.solutions %}{{ row.solutions }}{% else %}—{% endif %}
             </td>
           </tr>
           {% endfor %}

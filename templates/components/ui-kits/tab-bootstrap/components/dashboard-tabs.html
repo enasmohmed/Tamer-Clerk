@@ -414,6 +414,9 @@
             <li class="nav-item" role="presentation">
               <button class="nav-link" data-tab="meeting points">Meeting Points & Actions</button>
             </li>
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-tab="clerk Details">Clerk Details</button>
+            </li>
           </ul>
           <!-- 🔹 محتوى التابات: Warehouse / Recommendation / Meeting Points -->
           <div id="tab-content" class="card p-4 shadow-sm bg-white mt-3">
@@ -423,6 +426,8 @@
               {% include 'components/ui-kits/tab-bootstrap/components/recommendation-cards.html' with recommendations=recommendations weekly_tracker_rows=weekly_tracker_rows progress_status_rows=progress_status_rows potential_challenges_rows=potential_challenges_rows %}
             {% elif active_tab == "project tracker" %}
               {% include 'components/ui-kits/tab-bootstrap/components/project-tracker-cards.html' with project_tracker_items=project_tracker_items %}
+            {% elif active_tab == "clerk details" %}
+              {% include 'components/ui-kits/tab-bootstrap/components/clerk-details-cards.html' with clerk_details=clerk_details %}
             {% else %}
             <p class="text-muted text-center mb-0">No data available for this tab.</p>
             {% endif %}
@@ -930,7 +935,7 @@
       if (selectedTab.toLowerCase() === "all") {
         $("#cards-section").show();
       }
-      if (selectedTab.toLowerCase() === "warehouse" || selectedTab.toLowerCase() === "project tracker") {
+      if (selectedTab.toLowerCase() === "warehouse" || selectedTab.toLowerCase() === "project tracker" || selectedTab.toLowerCase() === "clerk details") {
         $("#cards-section").hide();
       }
 

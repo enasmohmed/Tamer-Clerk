@@ -424,6 +424,38 @@ class ClerkInterviewTracking(models.Model):
         return f"{self.clerk_name or '—'} ({self.wh or '—'})"
 
 
+# ─── Clerk Details (Employee Interview Profiles) - from Clerk_details.xlsx, sheet "interview" ───
+class ClerkDetail(models.Model):
+    """Clerk/Employee interview profile. Sidebar reads from dept_name_en. File: Clerk_details.xlsx, sheet: interview."""
+    dept_name_en = models.CharField(
+        max_length=255,
+        help_text="Name shown in sidebar (column DEPT_NAME_EN in Excel)",
+        db_index=True,
+    )
+    department = models.CharField(max_length=255, blank=True)
+    company = models.CharField(max_length=255, blank=True)
+    business = models.CharField(max_length=255, blank=True)
+    account = models.CharField(max_length=255, blank=True)
+    mobile = models.CharField(max_length=64, blank=True)
+    interview_date = models.CharField(max_length=64, blank=True, help_text="e.g. 02.02.2026")
+    work_details = models.TextField(blank=True)
+    reports_used = models.TextField(blank=True)
+    system_badge = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Badge/tag e.g. LogFire",
+    )
+    display_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Clerk Detail (Interview Profile)"
+        verbose_name_plural = "Clerk Details (Interview Profiles)"
+        ordering = ["display_order", "dept_name_en", "id"]
+
+    def __str__(self):
+        return self.dept_name_en or "—"
+
+
 class UploadedFile(models.Model):
     file = models.FileField(upload_to='uploads/')
     uploaded_at = models.DateTimeField(auto_now_add=True)

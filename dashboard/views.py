@@ -1577,6 +1577,8 @@ class UploadExcelViewRoche(View):
                     request=request,
                 )
                 return JsonResponse({"detail_html": project_tracker_html}, safe=False)
+            if selected_tab == "clerk details":
+                return self.clerk_details_tab(request)
 
         # فلتر Meeting Points: طلب بـ status فقط (بدون tab) — نرجع JSON حتى بدون هيدر AJAX
         if request.GET.get("status") and not request.GET.get("tab"):
@@ -1625,6 +1627,7 @@ class UploadExcelViewRoche(View):
                 "project_tracker_items": context_helpers.get_project_tracker_list(
                     project_type=request.GET.get("project_type") or None
                 ),
+                "clerk_details": context_helpers.get_clerk_details_list(),
             }
             return render(request, self.template_name, render_context)
 
@@ -1748,6 +1751,7 @@ class UploadExcelViewRoche(View):
                 ),
                 "meeting points": lambda: self.meeting_points_tab(request),
                 "project tracker": lambda: self.project_tracker_tab(request),
+                "clerk details": lambda: self.clerk_details_tab(request),
                 "expiry": lambda: self.filter_expiry(
                     request,
                     effective_month,
@@ -2029,6 +2033,7 @@ class UploadExcelViewRoche(View):
             "project_tracker_items": context_helpers.get_project_tracker_list(
                 project_type=request.GET.get("project_type") or None
             ),
+            "clerk_details": context_helpers.get_clerk_details_list(),
         }
         if (selected_tab or "").lower() == "dashboard":
             try:
@@ -7502,6 +7507,24 @@ class UploadExcelViewRoche(View):
             import traceback
             traceback.print_exc()
             return {"error": str(e), "detail_html": f"<div class='alert alert-danger'>⚠️ {e}</div>"}
+
+    def clerk_details_tab(self, request):
+        """تاب Clerk details: عرض ملفات الموظفين من Clerk_details.xlsx (شيت interview)، الـ sidebar من DEPT_NAME_EN."""
+        try:
+            clerk_details = context_helpers.get_clerk_details_list()
+            html = render_to_string(
+                "components/ui-kits/tab-bootstrap/components/clerk-details-cards.html",
+                {"clerk_details": clerk_details},
+                request=request,
+            )
+            return JsonResponse({"detail_html": html}, safe=False)
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return JsonResponse(
+                {"error": str(e), "detail_html": f"<div class='alert alert-danger'>⚠️ {e}</div>"},
+                status=500,
+            )
 
 
 def meeting_points_unlock(request):
