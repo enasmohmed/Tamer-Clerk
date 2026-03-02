@@ -2,3 +2,9 @@ env
 .idea
 git
 .vscode
+venv
+__pycache__
+*.pyc
+.env
+media/
+staticfiles/
