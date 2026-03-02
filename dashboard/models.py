@@ -575,6 +575,11 @@ class ProjectTrackerItem(models.Model):
         blank=True,
         help_text="Company name"
     )
+    department = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Department"
+    )
     start_date = models.DateField(
         help_text="Project start date (used for month grouping and ordering)"
     )
@@ -607,6 +612,10 @@ class ProjectTrackerItem(models.Model):
     display_order = models.PositiveSmallIntegerField(
         default=0,
         help_text="Order within the same day (smaller = first)"
+    )
+    remarks = models.TextField(
+        blank=True,
+        help_text="Remarks"
     )
 
     class Meta:

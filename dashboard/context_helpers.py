@@ -389,6 +389,7 @@ def get_project_tracker_list(project_type=None):
                 "project_type": getattr(obj, "project_type", "") or "",
                 "project_type_display": obj.get_project_type_display() if getattr(obj, "project_type", None) else "",
                 "company": getattr(obj, "company", "") or "",
+                "department": getattr(obj, "department", "") or "",
                 "start_date": obj.start_date,
                 "start_date_display": obj.start_date.strftime("%b %d"),
                 "end_date": obj.end_date,
@@ -399,6 +400,7 @@ def get_project_tracker_list(project_type=None):
                 "brainstorming_display": obj.get_brainstorming_status_display() or "",
                 "execution_display": obj.get_execution_status_display() or "",
                 "launch_display": obj.get_launch_status_display() or "",
+                "remarks": getattr(obj, "remarks", "") or "",
             }
 
         base_qs = ProjectTrackerItem.objects.all()
@@ -467,11 +469,16 @@ def get_project_tracker_list(project_type=None):
             else:
                 label = f"{month_abbr[m]} {y}"
                 css_class = "month-other"
+            # نسبة التنفيذ للشهر بناءً على Launch (done = مكتمل)
+            launch_progress = progress["launch"]
+            launch_done_pct = launch_progress["done_pct"] if launch_progress["total"] else 0
             month_sections.append({
                 "label": label,
                 "items": items,
                 "progress": progress,
                 "css_class": css_class,
+                "launch_done_pct": launch_done_pct,
+                "launch_total": launch_progress["total"],
             })
 
         this_month = month_sections[0]["items"] if month_sections else []

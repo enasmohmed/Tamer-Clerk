@@ -525,12 +525,14 @@ class ProjectTrackerItemAdmin(admin.ModelAdmin):
         "person_name",
         "project_type",
         "company",
+        "department",
         "start_date",
         "brainstorming_badge",
         "execution_badge",
         "launch_badge",
         "end_date",
         "display_order",
+        "remarks",
     )
     list_editable = ("display_order",)
     list_filter = (
@@ -541,7 +543,7 @@ class ProjectTrackerItemAdmin(admin.ModelAdmin):
         "start_date",
     )
     date_hierarchy = "start_date"
-    search_fields = ("description", "person_name", "company")
+    search_fields = ("description", "person_name", "company", "department")
     ordering = ("-start_date", "display_order", "id")
     list_per_page = 25
 
@@ -553,7 +555,7 @@ class ProjectTrackerItemAdmin(admin.ModelAdmin):
     def execution_badge(self, obj):
         return obj.get_execution_status_display() or "—"
 
-    execution_badge.short_description = "Execution"
+    execution_badge.short_description = "Development"
 
     def launch_badge(self, obj):
         return obj.get_launch_status_display() or "—"
