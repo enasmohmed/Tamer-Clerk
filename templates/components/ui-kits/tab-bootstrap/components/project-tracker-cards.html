@@ -196,8 +196,9 @@
               <th>Start Date</th>
               <th>Brainstorming</th>
               <th>Development</th>
+              <th>Test</th>
               <th>Launch</th>
-              <th>Test Deadline</th>
+              <th>Deadline</th>
               <th>Employee Name</th>
               <th>Remarks</th>
             </tr>
@@ -221,6 +222,11 @@
                 </span>
               </td>
               <td>
+                <span class="status-badge {% if item.test_deadline_status %}status-{{ item.test_deadline_status }}{% else %}status-empty{% endif %}">
+                  {{ item.test_deadline_display|default:"—" }}
+                </span>
+              </td>
+              <td>
                 <span class="status-badge {% if item.launch_status %}status-{{ item.launch_status }}{% else %}status-empty{% endif %}">
                   {{ item.launch_display|default:"—" }}
                 </span>
@@ -230,7 +236,7 @@
               <td>{{ item.remarks|default:"—" }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="11" class="text-muted text-center">No items for this month.</td></tr>
+            <tr><td colspan="12" class="text-muted text-center">No items for this month.</td></tr>
             {% endfor %}
             {% if section.items %}
             <tr class="progress-row">
@@ -249,6 +255,14 @@
                   <span style="width:{{ section.progress.execution.working_on_it_pct }}%; background:#f57c00;"></span>
                   <span style="width:{{ section.progress.execution.stuck_pct }}%; background:#d32f2f;"></span>
                   <span style="width:{{ section.progress.execution.empty_pct }}%; background:#9aa3ad;"></span>
+                </div>
+              </td>
+              <td class="progress-cell">
+                <div class="progress-bar-wrap">
+                  <span style="width:{{ section.progress.test_deadline.done_pct }}%; background:#2e7d32;"></span>
+                  <span style="width:{{ section.progress.test_deadline.working_on_it_pct }}%; background:#f57c00;"></span>
+                  <span style="width:{{ section.progress.test_deadline.stuck_pct }}%; background:#d32f2f;"></span>
+                  <span style="width:{{ section.progress.test_deadline.empty_pct }}%; background:#9aa3ad;"></span>
                 </div>
               </td>
               <td class="progress-cell">

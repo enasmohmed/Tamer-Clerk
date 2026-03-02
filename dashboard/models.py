@@ -545,6 +545,13 @@ PROJECT_TRACKER_STATUS_CHOICES = [
     ("stuck", "Stuck"),
 ]
 
+# Test Deadline: 3 options only (no Stuck)
+TEST_DEADLINE_STATUS_CHOICES = [
+    ("", "Not started"),
+    ("done", "Done"),
+    ("working_on_it", "Working on it"),
+]
+
 PROJECT_TYPE_CHOICES = [
     ("idea", "Idea"),
     ("automation", "Automation"),
@@ -603,6 +610,13 @@ class ProjectTrackerItem(models.Model):
         blank=True,
         default="",
         help_text="Launch phase: Done / Working on it / Stuck"
+    )
+    test_deadline_status = models.CharField(
+        max_length=20,
+        choices=TEST_DEADLINE_STATUS_CHOICES,
+        blank=True,
+        default="",
+        help_text="Test Deadline: Not started / Done / Working on it"
     )
     end_date = models.DateField(
         null=True,

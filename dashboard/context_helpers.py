@@ -397,9 +397,11 @@ def get_project_tracker_list(project_type=None):
                 "brainstorming_status": obj.brainstorming_status or "",
                 "execution_status": obj.execution_status or "",
                 "launch_status": obj.launch_status or "",
+                "test_deadline_status": getattr(obj, "test_deadline_status", "") or "",
                 "brainstorming_display": obj.get_brainstorming_status_display() or "",
                 "execution_display": obj.get_execution_status_display() or "",
                 "launch_display": obj.get_launch_status_display() or "",
+                "test_deadline_display": obj.get_test_deadline_status_display() if getattr(obj, "test_deadline_status", None) is not None else "",
                 "remarks": getattr(obj, "remarks", "") or "",
             }
 
@@ -456,6 +458,7 @@ def get_project_tracker_list(project_type=None):
             progress = {
                 "brainstorming": phase_progress(items, "brainstorming_status"),
                 "execution": phase_progress(items, "execution_status"),
+                "test_deadline": phase_progress(items, "test_deadline_status"),
                 "launch": phase_progress(items, "launch_status"),
             }
             if y == this_year and m == this_month:

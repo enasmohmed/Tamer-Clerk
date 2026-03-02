@@ -530,16 +530,18 @@ class ProjectTrackerItemAdmin(admin.ModelAdmin):
         "brainstorming_badge",
         "execution_badge",
         "launch_badge",
+        "test_deadline_status",
         "end_date",
         "display_order",
         "remarks",
     )
-    list_editable = ("display_order",)
+    list_editable = ("test_deadline_status", "end_date", "display_order")
     list_filter = (
         "project_type",
         "brainstorming_status",
         "execution_status",
         "launch_status",
+        "test_deadline_status",
         "start_date",
     )
     date_hierarchy = "start_date"
@@ -561,3 +563,8 @@ class ProjectTrackerItemAdmin(admin.ModelAdmin):
         return obj.get_launch_status_display() or "—"
 
     launch_badge.short_description = "Launch"
+
+    def test_deadline_badge(self, obj):
+        return obj.get_test_deadline_status_display() or "—"
+
+    test_deadline_badge.short_description = "Test"
