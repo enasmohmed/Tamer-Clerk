@@ -233,11 +233,8 @@ p,
   color: var(--aramco-muted) !important;
 }
 
-/* الهيدر بعرض كامل (إلغاء margin-left من ثيم compact-wrapper) */
-.page-wrapper.compact-wrapper .page-header {
-  margin-left: 0 !important;
-  width: 100% !important;
-}
+/* الهيدر (الناف بار) بعرض كامل في الموقع كله */
+.page-wrapper.compact-wrapper .page-header,
 .page-wrapper.compact-wrapper .page-header.close_icon {
   margin-left: 0 !important;
   width: 100% !important;

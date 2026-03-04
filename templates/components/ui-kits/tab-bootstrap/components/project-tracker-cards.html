@@ -103,64 +103,53 @@
     background: #f8fafc;
     box-shadow: 0 1px 0 #e2e8f0;
   }
-  /* Launch % circular charts above table */
-  .pt-launch-charts {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1.5rem;
+  /* Overall progress (Launch Done) — full-width bar */
+  .pt-overall-progress {
+    width: 100%;
     margin-bottom: 1.25rem;
-    align-items: flex-start;
+    padding: 0.75rem 0;
   }
-  .pt-launch-chart-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-width: 100px;
-  }
-  .pt-launch-chart-wrap .pt-chart-label {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #344054;
-    margin-top: 0.35rem;
-    text-align: center;
-  }
-  .pt-launch-chart-circle {
-    width: 90px;
-    height: 90px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 700;
+  .pt-overall-progress-title {
     font-size: 1rem;
+    font-weight: 700;
     color: #2c2f33;
-    background: conic-gradient(#2e7d32 0deg calc(var(--pct, 0) * 3.6deg), #e2e8f0 calc(var(--pct, 0) * 3.6deg) 360deg);
+    margin: 0 0 0.5rem 0;
   }
-  .pt-launch-chart-circle .pt-chart-inner {
-    width: 62px;
-    height: 62px;
-    border-radius: 50%;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 0 0 3px #fff;
+  .pt-overall-progress-pct {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #2e7d32;
+    margin: 0 0 0.35rem 0;
+  }
+  .pt-overall-progress-bar-wrap {
+    width: 100%;
+    height: 12px;
+    background: #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .pt-overall-progress-bar-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: linear-gradient(90deg, #1b5e20 0%, #2e7d32 35%, #43a047 70%, #66bb6a 100%);
+    transition: width 0.3s ease;
+  }
+  .pt-overall-progress-caption {
+    font-size: 0.875rem;
+    color: #64748b;
+    margin: 0.35rem 0 0 0;
   }
 </style>
 
 <div class="project-tracker-container">
-  {% if project_tracker_items.month_sections %}
-  <div class="pt-launch-charts">
-    {% for section in project_tracker_items.month_sections %}
-    <div class="pt-launch-chart-wrap">
-      <div class="pt-launch-chart-circle" style="--pct: {{ section.launch_done_pct|default:0 }};">
-        <div class="pt-chart-inner">{{ section.launch_done_pct|default:0 }}%</div>
-      </div>
-      <span class="pt-chart-label">{{ section.label }}</span>
+  <div class="pt-overall-progress">
+    <h4 class="pt-overall-progress-title">Overall progress (Launch Done)</h4>
+    <p class="pt-overall-progress-pct">{{ project_tracker_items.overall_launch_done_pct|default:0 }}% completed</p>
+    <div class="pt-overall-progress-bar-wrap">
+      <div class="pt-overall-progress-bar-fill" style="width: {{ project_tracker_items.overall_launch_done_pct|default:0 }}%;"></div>
     </div>
-    {% endfor %}
+    <p class="pt-overall-progress-caption">{{ project_tracker_items.overall_launch_done_count|default:0 }} of {{ project_tracker_items.overall_launch_total|default:0 }} projects completed — {{ project_tracker_items.overall_launch_done_pct|default:0 }}%</p>
   </div>
-  {% endif %}
   <div class="project-tracker-filters mb-3 d-flex flex-wrap align-items-center gap-3">
     <div>
       <label for="projectTypeFilter" class="me-2" style="font-weight: 600;">Project Type:</label>

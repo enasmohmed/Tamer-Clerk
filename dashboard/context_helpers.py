@@ -498,6 +498,14 @@ def get_project_tracker_list(project_type=None):
             else this_month_progress
         )
 
+        # إجمالي التاب: كم مشروع Launch = Done ونسبتهم من كل المشاريع
+        all_items = []
+        for sec in month_sections:
+            all_items.extend(sec["items"])
+        total_all = len(all_items)
+        done_all = sum(1 for i in all_items if i.get("launch_status") == "done")
+        overall_launch_done_pct = round(100 * done_all / total_all) if total_all else 0
+
         return {
             "month_sections": month_sections,
             "this_month": this_month,
@@ -505,6 +513,9 @@ def get_project_tracker_list(project_type=None):
             "this_month_progress": this_month_progress,
             "last_month_progress": last_month_progress,
             "current_project_type": project_type or "",
+            "overall_launch_done_count": done_all,
+            "overall_launch_total": total_all,
+            "overall_launch_done_pct": overall_launch_done_pct,
         }
     except Exception as e:
         import traceback
@@ -540,4 +551,7 @@ def get_project_tracker_list(project_type=None):
                 "launch": _empty,
             },
             "current_project_type": "",
+            "overall_launch_done_count": 0,
+            "overall_launch_total": 0,
+            "overall_launch_done_pct": 0,
         }

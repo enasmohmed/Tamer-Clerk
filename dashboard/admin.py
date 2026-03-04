@@ -1,6 +1,7 @@
 # Registration order = display order in admin (follow 1 → 2 → … → 8 to create warehouse card)
 
 from django.contrib import admin
+from django.contrib.admin.models import LogEntry
 from django.shortcuts import redirect, render
 from django.urls import path
 from django.contrib import messages
@@ -568,3 +569,40 @@ class ProjectTrackerItemAdmin(admin.ModelAdmin):
         return obj.get_test_deadline_status_display() or "—"
 
     test_deadline_badge.short_description = "Test"
+
+
+# ─── سجل التعديلات (مين دخل إيه ومتى من الأدمن) ───
+@admin.register(LogEntry)
+class LogEntryAdmin(admin.ModelAdmin):
+    list_display = ("action_time", "user", "content_type", "object_repr_short", "action_flag_badge", "change_message")
+    list_filter = ("action_flag", "content_type", "action_time")
+    search_fields = ("user__username", "object_repr", "change_message")
+    date_hierarchy = "action_time"
+    ordering = ("-action_time",)
+    list_per_page = 50
+    readonly_fields = ("action_time", "user", "content_type", "object_id", "object_repr", "action_flag", "change_message")
+
+    def object_repr_short(self, obj):
+        return (obj.object_repr[:60] + "…") if obj.object_repr and len(obj.object_repr) > 60 else (obj.object_repr or "—")
+
+    object_repr_short.short_description = "العنصر"
+
+    def action_flag_badge(self, obj):
+        if obj.action_flag == 1:
+            return "إضافة"
+        if obj.action_flag == 2:
+            return "تعديل"
+        if obj.action_flag == 3:
+            return "حذف"
+        return "—"
+
+    action_flag_badge.short_description = "الإجراء"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False

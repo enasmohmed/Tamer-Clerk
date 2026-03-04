@@ -2011,11 +2011,13 @@ class UploadExcelViewRoche(View):
             request=request, selected_month=selected_month or None
         )
 
+        selected_tab_normalized = (selected_tab or "all").strip().lower()
         render_context = {
             "data_is_uploaded": data_is_uploaded,
             "months": all_months,
             "excel_tabs": excel_tabs,
             "active_tab": selected_tab or "all",
+            "body_extra_class": "tab-ideas-overview" if selected_tab_normalized == "project tracker" else "",
             "tab_summaries": [],
             "form": ExcelUploadForm(),
             "meeting_points": meeting_points,

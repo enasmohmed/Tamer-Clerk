@@ -922,11 +922,18 @@
     window.loadTabData = loadTabData;
     window.reinitializeScripts = reinitializeScripts;
 
+    // تحديث كلاس body للتاب Ideas & Automation (إزالة margin-left للهيدر)
+    function updateBodyTabClass() {
+      var isIdeasTab = (selectedTab || "").toLowerCase() === "project tracker";
+      document.body.classList.toggle("tab-ideas-overview", isIdeasTab);
+    }
+
     // 🔹 التعامل مع ضغط التاب
     $("#dashboard-tabs").on("click", "button", function () {
       selectedTab = $(this).data("tab");
       $("#dashboard-tabs button").removeClass("active");
       $(this).addClass("active");
+      updateBodyTabClass();
 
       // 🧹 تنظيف المحتوى القديم قبل تحميل الجديد
       $("#tab-content").empty();
