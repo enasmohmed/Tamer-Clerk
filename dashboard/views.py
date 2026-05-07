@@ -30,6 +30,113 @@ from django.utils.text import slugify
 
 from .models import MeetingPoint
 from . import context_helpers
+from django.views.decorators.http import require_POST
+from django.utils.dateparse import parse_date
+
+
+@require_POST
+def project_portfolio_add_project(request):
+    """
+    Create a new ProjectTrackerItem from Project Portfolio modal.
+    Stores extended fields into remarks as structured lines (Objective/KPI/Scope/...).
+    """
+    try:
+        from .models import ProjectTrackerItem
+
+        def _s(key, default=""):
+            return (request.POST.get(key) or default).strip()
+
+        description = _s("project_name")
+        if not description:
+            return JsonResponse({"ok": False, "message": "Project name is required."}, status=400)
+
+        project_id = _s("project_id")
+        manager = _s("project_manager")
+        department = _s("department")
+        priority = _s("priority")
+        risk_level = _s("risk_level")
+
+        start_date = parse_date(_s("start_date"))
+        deadline = parse_date(_s("planned_deadline"))
+        pmbok_phase = _s("pmbok_phase")
+
+        pct_complete_raw = _s("pct_complete", "0")
+        try:
+            pct_complete = max(0, min(100, int(float(pct_complete_raw))))
+        except Exception:
+            pct_complete = 0
+
+        budget = _s("budget_usd")
+        objective = _s("objective")
+        kpi = _s("kpi")
+        in_scope = _s("in_scope")
+        out_scope = _s("out_scope")
+        deliverables = _s("deliverables")
+        assumptions = _s("assumptions")
+        ch1 = _s("challenge_1")
+        ch1_sev = _s("severity_1")
+        ch2 = _s("challenge_2")
+        ch2_sev = _s("severity_2")
+
+        # Map % complete to phase statuses (best-effort)
+        if pct_complete >= 100:
+            brainstorming_status, execution_status, test_deadline_status, launch_status = "done", "done", "done", "done"
+        elif pct_complete >= 75:
+            brainstorming_status, execution_status, test_deadline_status, launch_status = "done", "done", "working_on_it", "working_on_it"
+        elif pct_complete >= 45:
+            brainstorming_status, execution_status, test_deadline_status, launch_status = "done", "working_on_it", "", ""
+        elif pct_complete > 0:
+            brainstorming_status, execution_status, test_deadline_status, launch_status = "working_on_it", "", "", ""
+        else:
+            brainstorming_status, execution_status, test_deadline_status, launch_status = "", "", "", ""
+
+        lines = []
+        if project_id:
+            lines.append(f"ID: {project_id}")
+        if priority:
+            lines.append(f"Priority: {priority}")
+        if risk_level:
+            lines.append(f"Risk level: {risk_level}")
+        if pmbok_phase:
+            lines.append(f"PMBOK phase: {pmbok_phase}")
+        if budget:
+            lines.append(f"Budget (USD): {budget}")
+        if objective:
+            lines.append(f"Objective: {objective}")
+        if kpi:
+            lines.append(f"KPI: {kpi}")
+        if in_scope:
+            lines.append(f"In scope: {in_scope}")
+        if out_scope:
+            lines.append(f"Out of scope: {out_scope}")
+        if deliverables:
+            lines.append(f"Deliverables: {deliverables}")
+        if ch1:
+            lines.append(f"Challenge: {ch1}" + (f" (Severity: {ch1_sev})" if ch1_sev else ""))
+        if ch2:
+            lines.append(f"Challenge: {ch2}" + (f" (Severity: {ch2_sev})" if ch2_sev else ""))
+        if assumptions:
+            lines.append(f"Assumptions: {assumptions}")
+
+        remarks = "\n".join(lines).strip()
+
+        obj = ProjectTrackerItem.objects.create(
+            description=description,
+            person_name=manager or "—",
+            department=department or "",
+            company="",  # optional, not in modal
+            start_date=start_date or datetime.date.today(),
+            end_date=deadline,
+            brainstorming_status=brainstorming_status,
+            execution_status=execution_status,
+            test_deadline_status=test_deadline_status,
+            launch_status=launch_status,
+            remarks=remarks,
+        )
+
+        return JsonResponse({"ok": True, "id": obj.id})
+    except Exception as e:
+        return JsonResponse({"ok": False, "message": str(e)}, status=500)
 
 
 def make_json_serializable(df):
@@ -1577,6 +1684,20 @@ class UploadExcelViewRoche(View):
                     request=request,
                 )
                 return JsonResponse({"detail_html": project_tracker_html}, safe=False)
+            if selected_tab == "project portfolio":
+                project_type_filter = request.GET.get("project_type", "").strip().lower()
+                if project_type_filter not in ("idea", "automation"):
+                    project_type_filter = None
+                project_portfolio = context_helpers.get_project_portfolio_list(project_type=project_type_filter)
+                html = render_to_string(
+                    "components/ui-kits/tab-bootstrap/components/project-portfolio.html",
+                    {
+                        "project_portfolio": project_portfolio,
+                        "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
+                    },
+                    request=request,
+                )
+                return JsonResponse({"detail_html": html}, safe=False)
             if selected_tab == "clerk details":
                 return self.clerk_details_tab(request)
 
@@ -1625,6 +1746,9 @@ class UploadExcelViewRoche(View):
                 "progress_status_rows": context_helpers.get_progress_status_list(),
                 "potential_challenges_rows": context_helpers.get_potential_challenges_list(),
                 "project_tracker_items": context_helpers.get_project_tracker_list(
+                    project_type=request.GET.get("project_type") or None
+                ),
+                "project_portfolio": context_helpers.get_project_portfolio_list(
                     project_type=request.GET.get("project_type") or None
                 ),
                 "clerk_details": context_helpers.get_clerk_details_list(),

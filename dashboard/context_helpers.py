@@ -555,3 +555,242 @@ def get_project_tracker_list(project_type=None):
             "overall_launch_total": 0,
             "overall_launch_done_pct": 0,
         }
+
+
+def get_project_portfolio_list(project_type=None):
+    """
+    Project Portfolio tab.
+    Flat list of projects (ProjectTrackerItem) for a "Project Register" + "Project Detail" layout.
+    """
+    try:
+        from .models import ProjectTrackerItem
+        from datetime import date, timedelta
+
+        qs = ProjectTrackerItem.objects.all()
+        if project_type and project_type in ("idea", "automation"):
+            qs = qs.filter(project_type=project_type)
+        # Show newest added projects first (especially for portfolio register UX)
+        qs = qs.order_by("-start_date", "display_order", "-id")
+
+        status_score = {
+            "done": 1.0,
+            "working_on_it": 0.55,
+            "stuck": 0.25,
+            "": 0.0,
+            None: 0.0,
+        }
+
+        def phase_label(val):
+            v = (val or "").strip()
+            if v == "done":
+                return "Done"
+            if v == "working_on_it":
+                return "Working"
+            if v == "stuck":
+                return "Stuck"
+            return "Not started"
+
+        def calc_progress(item):
+            vals = [
+                item.brainstorming_status,
+                item.execution_status,
+                getattr(item, "test_deadline_status", ""),
+                item.launch_status,
+            ]
+            total = sum(status_score.get(v, 0.0) for v in vals)
+            return int(round((total / 4.0) * 100))
+
+        def current_phase(item):
+            phases = [
+                ("Brainstorming", item.brainstorming_status),
+                ("Development", item.execution_status),
+                ("Test", getattr(item, "test_deadline_status", "")),
+                ("Launch", item.launch_status),
+            ]
+            for name, val in phases:
+                if (val or "") != "done":
+                    return name
+            return "Completed"
+
+        def risk_level(item):
+            vals = [
+                item.brainstorming_status,
+                item.execution_status,
+                getattr(item, "test_deadline_status", ""),
+                item.launch_status,
+            ]
+            vals = [(v or "").strip() for v in vals]
+            if "stuck" in vals:
+                return "High"
+            if "working_on_it" in vals:
+                return "Medium"
+            if "done" in vals and all(v == "done" for v in vals if v):
+                return "Low"
+            return "—"
+
+        items = []
+        today = date.today()
+        new_cutoff = today - timedelta(days=14)
+        active_count = 0
+        at_risk_count = 0
+        open_challenges_count = 0
+        stuck_count = 0
+        progress_sum = 0
+
+        # Earned Value (portfolio-level; derived)
+        # BAC = number of active projects (as "budget units")
+        # PV = planned progress sum based on time elapsed in each project (0..1)
+        # EV = earned progress sum based on actual progress_pct (0..1)
+        # AC = PV + penalties for stuck/overdue (0..)
+        pv_sum = 0.0
+        ev_sum = 0.0
+        ac_sum = 0.0
+
+        for obj in qs:
+            is_completed = (obj.launch_status or "").strip() == "done"
+            is_active = not is_completed
+            if is_active:
+                active_count += 1
+            if is_active and obj.end_date and obj.end_date < today:
+                at_risk_count += 1
+            if is_active and obj.start_date and obj.start_date >= new_cutoff:
+                open_challenges_count += 1
+            if is_active:
+                vals = [
+                    (obj.brainstorming_status or "").strip(),
+                    (obj.execution_status or "").strip(),
+                    (getattr(obj, "test_deadline_status", "") or "").strip(),
+                    (obj.launch_status or "").strip(),
+                ]
+                if "stuck" in vals:
+                    stuck_count += 1
+
+            items.append(
+                {
+                    "id": obj.id,
+                    "name": obj.description or "—",
+                    "project_type": (obj.project_type or "").strip(),
+                    "project_type_display": obj.get_project_type_display()
+                    if getattr(obj, "project_type", None)
+                    else "",
+                    "company": getattr(obj, "company", "") or "—",
+                    "department": getattr(obj, "department", "") or "—",
+                    "owner": obj.person_name or "—",
+                    "start_date": obj.start_date,
+                    "start_date_display": obj.start_date.strftime("%b %d, %Y")
+                    if obj.start_date
+                    else "—",
+                    "deadline": obj.end_date,
+                    "deadline_display": obj.end_date.strftime("%b %d, %Y")
+                    if obj.end_date
+                    else "—",
+                    "phase": current_phase(obj),
+                    "progress_pct": calc_progress(obj),
+                    "risk": risk_level(obj),
+                    "brainstorming_status": (obj.brainstorming_status or "").strip(),
+                    "execution_status": (obj.execution_status or "").strip(),
+                    "test_deadline_status": (getattr(obj, "test_deadline_status", "") or "").strip(),
+                    "launch_status": (obj.launch_status or "").strip(),
+                    "brainstorming_display": phase_label(obj.brainstorming_status),
+                    "execution_display": phase_label(obj.execution_status),
+                    "test_deadline_display": phase_label(getattr(obj, "test_deadline_status", "")),
+                    "launch_display": phase_label(obj.launch_status),
+                    "remarks": getattr(obj, "remarks", "") or "",
+                }
+            )
+            if is_active:
+                progress_sum += items[-1]["progress_pct"]
+
+                # Planned/earned/actual cost (derived)
+                start = obj.start_date
+                end = obj.end_date
+                if start and end and end > start:
+                    duration_days = (end - start).days
+                    elapsed_days = (today - start).days
+                    planned = max(0.0, min(1.0, elapsed_days / float(duration_days)))
+                else:
+                    planned = 0.0
+                earned = max(0.0, min(1.0, items[-1]["progress_pct"] / 100.0))
+                pv_sum += planned
+                ev_sum += earned
+                penalty = 0.0
+                if obj.end_date and obj.end_date < today:
+                    penalty += 0.25
+                if "stuck" in [
+                    (obj.brainstorming_status or "").strip(),
+                    (obj.execution_status or "").strip(),
+                    (getattr(obj, "test_deadline_status", "") or "").strip(),
+                    (obj.launch_status or "").strip(),
+                ]:
+                    penalty += 0.20
+                ac_sum += planned * (1.0 + penalty)
+
+        # SPI/CPI are derived indicators (no cost/schedule baseline in model).
+        # SPI: average progress of active projects (0.00–1.20).
+        # CPI: penalty based on stuck + at-risk ratios (0.00–1.20).
+        spi = 0.0
+        if active_count > 0:
+            spi = (progress_sum / active_count) / 100.0
+        spi = max(0.0, min(1.2, spi))
+
+        stuck_ratio = (stuck_count / active_count) if active_count else 0.0
+        risk_ratio = (at_risk_count / active_count) if active_count else 0.0
+        cpi = 1.0 - (0.40 * stuck_ratio) - (0.30 * risk_ratio)
+        cpi = max(0.0, min(1.2, cpi))
+
+        metrics = {
+            "active_projects": active_count,
+            "at_risk_deadlines": at_risk_count,
+            "open_challenges": open_challenges_count,
+            "spi": round(spi, 2),
+            "cpi": round(cpi, 2),
+        }
+
+        bac = float(active_count)
+        pv = pv_sum
+        ev = ev_sum
+        ac = ac_sum
+        ev_spi = (ev / pv) if pv > 0 else 0.0
+        ev_cpi = (ev / ac) if ac > 0 else 0.0
+        cv = ev - ac
+        eac = (bac / ev_cpi) if ev_cpi > 0 else 0.0
+
+        earned_value = {
+            "bac": round(bac, 2),
+            "pv": round(pv, 2),
+            "ev": round(ev, 2),
+            "ac": round(ac, 2),
+            "cv": round(cv, 2),
+            "eac": round(eac, 2),
+            "spi": round(ev_spi, 2),
+            "cpi": round(ev_cpi, 2),
+        }
+
+        return {
+            "items": items,
+            "current_project_type": project_type or "",
+            "metrics": metrics,
+            "earned_value": earned_value,
+        }
+    except Exception:
+        return {
+            "items": [],
+            "current_project_type": "",
+            "metrics": {
+                "active_projects": 0,
+                "at_risk_deadlines": 0,
+                "open_challenges": 0,
+                "spi": 0.0,
+                "cpi": 0.0,
+            },
+            "earned_value": {
+                "bac": 0.0,
+                "pv": 0.0,
+                "ev": 0.0,
+                "ac": 0.0,
+                "cv": 0.0,
+                "eac": 0.0,
+                "spi": 0.0,
+                "cpi": 0.0,
+            },
+        }

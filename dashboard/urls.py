@@ -15,6 +15,7 @@ urlpatterns = [
     path("meeting-points-unlock/", meeting_points_unlock, name="meeting_points_unlock"),
     # dashboard/urls.py
     path('quarter-ajax/', UploadExcelViewRoche.as_view(), name='quarter_ajax'),
+    path("project-portfolio/add-project/", views.project_portfolio_add_project, name="project_portfolio_add_project"),
 
 
 
