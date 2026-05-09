@@ -557,20 +557,133 @@ def get_project_tracker_list(project_type=None):
         }
 
 
-def get_project_portfolio_list(project_type=None):
+def get_transformation_workspace(project_type=None):
     """
-    Project Portfolio tab.
-    Flat list of projects (ProjectTrackerItem) for a "Project Register" + "Project Detail" layout.
+    Transformation Workspace: Project Register + KPIs from ProjectTrackerItem + PortfolioRaidItem (Admin).
+
+    SPI (portfolio): mean of (Actual progress % ÷ Planned progress % from timeline) for active projects.
+    CPI (portfolio): mean of (Planned hours ÷ Actual hours) when both set; else productivity ratio vs timeline.
+    PMO score: weighted Progress/SPI/CPI/Risk/Updates per active project; card shows portfolio average %.
     """
     try:
-        from .models import ProjectTrackerItem
+        from django.db.models import Prefetch
+
+        from .models import (
+            PortfolioRaidItem,
+            ProjectProcessStep,
+            ProjectTrackerItem,
+            WorkspaceDepartment,
+            WorkspaceProjectCategory,
+            WorkspaceStrategicAlignment,
+        )
         from datetime import date, timedelta
 
-        qs = ProjectTrackerItem.objects.all()
+        qs = ProjectTrackerItem.objects.select_related(
+            "department_ref",
+            "register_category",
+            "strategic_alignment_ref",
+        ).prefetch_related(
+            Prefetch(
+                "process_steps",
+                queryset=ProjectProcessStep.objects.order_by("display_order", "id"),
+            ),
+            Prefetch(
+                "raid_items",
+                queryset=PortfolioRaidItem.objects.order_by("display_order", "id"),
+            ),
+        ).all()
         if project_type and project_type in ("idea", "automation"):
             qs = qs.filter(project_type=project_type)
-        # Show newest added projects first (especially for portfolio register UX)
-        qs = qs.order_by("-start_date", "display_order", "-id")
+        qs = qs.order_by("-created_at", "-id")
+
+        project_details_map = {}
+
+        def remark_field(raw, prefix):
+            """Extract value after 'Prefix:' from remarks (Add Project snapshot)."""
+            pl = prefix.lower()
+            for line in (raw or "").split("\n"):
+                s = line.strip()
+                if s.lower().startswith(pl):
+                    return s.split(":", 1)[1].strip()
+            return ""
+
+        def enrich_detail_from_remarks(obj, payload):
+            """
+            When structured columns are empty, fill from remarks lines written by
+            Add Project (same prefixes as project_portfolio_add_project).
+            """
+            raw = (getattr(obj, "remarks", "") or "").strip()
+            if not raw:
+                return
+            pairs = [
+                ("objective_sow", "objective:"),
+                ("kpi_success_criteria", "kpi:"),
+                ("scope_in", "in scope:"),
+                ("scope_out", "out of scope:"),
+                ("scope_deliverables", "deliverables:"),
+                ("scope_dependencies", "dependencies:"),
+            ]
+            lines = [ln.strip() for ln in raw.split("\n") if ln.strip()]
+
+            def first_after(prefix):
+                pl = prefix.lower()
+                for line in lines:
+                    if line.lower().startswith(pl):
+                        return line.split(":", 1)[1].strip()
+                return ""
+
+            for field, prefix in pairs:
+                if (payload.get(field) or "").strip():
+                    continue
+                val = first_after(prefix)
+                if val:
+                    payload[field] = val
+
+            summ = payload.setdefault("summary", {})
+            if not (summ.get("alignment_display") or "").strip():
+                v = first_after("strategic alignment:")
+                if v:
+                    summ["alignment_display"] = v
+            if not (summ.get("category_display") or "").strip():
+                v = first_after("category:")
+                if v:
+                    summ["category_display"] = v
+
+            biz = payload.setdefault("biz", {})
+            if not (biz.get("sla_improvement") or "").strip():
+                v = first_after("sla improvement:")
+                if v:
+                    biz["sla_improvement"] = v
+            if not (biz.get("headcount_impact") or "").strip():
+                v = first_after("headcount impact:")
+                if v:
+                    biz["headcount_impact"] = v
+            crd = (biz.get("cost_reduction_pct_display") or "").strip()
+            if not crd:
+                v = first_after("cost reduction %:")
+                if v:
+                    biz["cost_reduction_pct_display"] = v.replace("%", "").strip()
+
+        register_lookups = {
+            "departments": [
+                {"id": d.id, "name": d.name}
+                for d in WorkspaceDepartment.objects.filter(is_active=True).order_by(
+                    "display_order", "name"
+                )
+            ],
+            "categories": [
+                {"id": c.id, "name": c.name}
+                for c in WorkspaceProjectCategory.objects.filter(is_active=True).order_by(
+                    "display_order", "name"
+                )
+            ],
+            "alignments": [
+                {"id": a.id, "name": a.name}
+                for a in WorkspaceStrategicAlignment.objects.filter(is_active=True).order_by(
+                    "display_order", "name"
+                )
+            ],
+        }
 
         status_score = {
             "done": 1.0,
@@ -628,54 +741,367 @@ def get_project_portfolio_list(project_type=None):
                 return "Low"
             return "—"
 
+        def planned_progress_pct(obj, today):
+            start, end = obj.start_date, obj.end_date
+            if not start or not end or end <= start:
+                return None
+            duration = (end - start).days
+            if duration <= 0:
+                return None
+            elapsed = (today - start).days
+            elapsed = max(0, min(duration, elapsed))
+            return (elapsed / float(duration)) * 100.0
+
+        def risk_score_numeric(label):
+            if label == "High":
+                return 40.0
+            if label == "Medium":
+                return 70.0
+            if label == "Low":
+                return 100.0
+            return 70.0
+
+        def updates_score_numeric(obj, today):
+            lu = getattr(obj, "last_status_update", None)
+            if lu:
+                days = (today - lu).days
+                if days <= 7:
+                    return 100.0
+                if days <= 14:
+                    return 70.0
+                return 40.0
+            return 60.0
+
+        REGISTER_STATUS_BADGE = {
+            "on_track": ("ON TRACK", "tw-st-ontrack"),
+            "at_risk": ("AT RISK", "tw-st-atrisk"),
+            "delayed": ("DELAYED", "tw-st-delayed"),
+            "blocked": ("BLOCKED", "tw-st-blocked"),
+            "approved": ("APPROVED", "tw-st-approved"),
+        }
+
+        PMBOK_PHASE_BADGE = {
+            "Brainstorming": ("INITIATING", "tw-pmbok-init"),
+            "Development": ("EXECUTING", "tw-pmbok-exec"),
+            "Test": ("MONITORING", "tw-pmbok-mon"),
+            "Launch": ("EXECUTING", "tw-pmbok-exec"),
+            "Completed": ("CLOSING", "tw-pmbok-close"),
+        }
+
         items = []
         today = date.today()
-        new_cutoff = today - timedelta(days=14)
-        active_count = 0
-        at_risk_count = 0
-        open_challenges_count = 0
-        stuck_count = 0
-        progress_sum = 0
+        mq = (today.month - 1) // 3
+        quarter_start_month = mq * 3 + 1
+        quarter_start = date(today.year, quarter_start_month, 1)
 
-        # Earned Value (portfolio-level; derived)
-        # BAC = number of active projects (as "budget units")
-        # PV = planned progress sum based on time elapsed in each project (0..1)
-        # EV = earned progress sum based on actual progress_pct (0..1)
-        # AC = PV + penalties for stuck/overdue (0..)
-        pv_sum = 0.0
-        ev_sum = 0.0
-        ac_sum = 0.0
+        pv_sum = ev_sum = ac_sum = 0.0
+        active_count = 0
+        started_this_quarter = 0
+        delayed_at_risk_count = 0
+        spi_vals = []
+        cpi_vals = []
+        pmo_scores = []
 
         for obj in qs:
             is_completed = (obj.launch_status or "").strip() == "done"
             is_active = not is_completed
+            prog_pct = calc_progress(obj)
+            planned_pct = planned_progress_pct(obj, today)
+
+            spi_p = None
+            if planned_pct is not None and planned_pct > 1e-6:
+                spi_p = min(2.0, max(0.0, float(prog_pct) / float(planned_pct)))
+
+            ph = getattr(obj, "planned_hours", None)
+            ah = getattr(obj, "actual_hours", None)
+            cpi_p = None
+            try:
+                if ph is not None and ah is not None and float(ah) > 0:
+                    cpi_p = min(2.0, max(0.0, float(ph) / float(ah)))
+                elif planned_pct is not None and planned_pct > 1e-6:
+                    cpi_p = min(2.0, max(0.0, float(prog_pct) / float(planned_pct)))
+            except (TypeError, ValueError, ZeroDivisionError):
+                cpi_p = spi_p
+
+            rl = risk_level(obj)
+            rs_num = risk_score_numeric(rl)
+            us = updates_score_numeric(obj, today)
+            spi_s = min(100.0, spi_p * 100.0) if spi_p is not None else 70.0
+            cpi_s = min(100.0, cpi_p * 100.0) if cpi_p is not None else 70.0
+            pmo_val = (
+                0.35 * float(prog_pct)
+                + 0.25 * spi_s
+                + 0.20 * cpi_s
+                + 0.10 * rs_num
+                + 0.10 * us
+            )
+            pmo_score_pct = int(round(max(0.0, min(100.0, pmo_val))))
+
             if is_active:
                 active_count += 1
-            if is_active and obj.end_date and obj.end_date < today:
-                at_risk_count += 1
-            if is_active and obj.start_date and obj.start_date >= new_cutoff:
-                open_challenges_count += 1
-            if is_active:
-                vals = [
-                    (obj.brainstorming_status or "").strip(),
-                    (obj.execution_status or "").strip(),
-                    (getattr(obj, "test_deadline_status", "") or "").strip(),
-                    (obj.launch_status or "").strip(),
-                ]
-                if "stuck" in vals:
-                    stuck_count += 1
+                if obj.start_date and obj.start_date >= quarter_start:
+                    started_this_quarter += 1
+                if spi_p is not None:
+                    spi_vals.append(spi_p)
+                if cpi_p is not None:
+                    cpi_vals.append(cpi_p)
+
+                pmo_scores.append(pmo_val)
+
+                is_delayed = False
+                if obj.end_date and obj.end_date < today:
+                    is_delayed = True
+                elif spi_p is not None and spi_p < 0.85:
+                    is_delayed = True
+                if is_delayed:
+                    delayed_at_risk_count += 1
+
+            dept_label = "—"
+            if getattr(obj, "department_ref_id", None) and obj.department_ref:
+                dept_label = obj.department_ref.name
+            elif getattr(obj, "department", None):
+                dept_label = (obj.department or "").strip() or "—"
+
+            lead = (getattr(obj, "project_lead", "") or "").strip()
+            secondary = (obj.person_name or "").strip()
+            owner_show = lead or secondary or "—"
+
+            rp = (getattr(obj, "register_priority", "") or "").strip()
+            rs_reg = (getattr(obj, "register_status", "") or "").strip()
+            rp_disp = obj.get_register_priority_display() if rp else ""
+            rs_disp = obj.get_register_status_display() if rs_reg else ""
+
+            rs_eff = rs_reg
+            if not rs_eff:
+                if obj.end_date and obj.end_date < today:
+                    rs_eff = "delayed"
+                elif spi_p is not None and spi_p < 0.85:
+                    rs_eff = "at_risk"
+                elif risk_level(obj) == "High":
+                    rs_eff = "at_risk"
+                else:
+                    rs_eff = "on_track"
+
+            cat_disp = ""
+            if getattr(obj, "register_category_id", None) and obj.register_category:
+                cat_disp = obj.register_category.name
+
+            align_disp = ""
+            if getattr(obj, "strategic_alignment_ref_id", None) and obj.strategic_alignment_ref:
+                align_disp = obj.strategic_alignment_ref.name
+
+            cr = getattr(obj, "cost_reduction_pct", None)
+            cr_disp = ""
+            if cr is not None:
+                cr_disp = str(cr)
+
+            proc_steps = []
+            for s in obj.process_steps.all():
+                proc_steps.append(
+                    {
+                        "description": s.description or "",
+                        "deadline": s.step_deadline.strftime("%b %d, %Y")
+                        if s.step_deadline
+                        else "",
+                        "owner_name": s.owner_name or "",
+                    }
+                )
+            raid_cat_abbr = {"risk": "R", "issue": "I", "dependency": "D", "assumption": "A"}
+            raid_rows = []
+            for r in obj.raid_items.all():
+                raid_rows.append(
+                    {
+                        "category": r.get_category_display() if r.category else "",
+                        "category_abbr": raid_cat_abbr.get(r.category or "", "?"),
+                        "title": r.title or "",
+                        "severity": r.get_severity_display() if r.severity else "",
+                        "severity_code": (r.severity or "").strip(),
+                        "owner_name": r.owner_name or "",
+                        "status": r.get_status_display() if r.status else "",
+                    }
+                )
+
+            pc = (getattr(obj, "project_code", "") or "").strip()
+            log_id = pc if pc else f"LOG-{obj.id:03d}"
+            pt_disp = (
+                obj.get_project_type_display()
+                if getattr(obj, "project_type", None)
+                else ""
+            )
+            subtitle_parts = []
+            if cat_disp:
+                subtitle_parts.append(cat_disp)
+            if pt_disp:
+                subtitle_parts.append(pt_disp)
+            if not subtitle_parts and dept_label and dept_label != "—":
+                subtitle_parts.append(dept_label)
+            subtitle_line = " · ".join(subtitle_parts) if subtitle_parts else "—"
+
+            phase_nm = current_phase(obj)
+            pmbok_label, pmbok_badge_class = PMBOK_PHASE_BADGE.get(
+                phase_nm, ("PLANNING", "tw-pmbok-plan")
+            )
+            reg_badge_label, reg_badge_class = REGISTER_STATUS_BADGE.get(
+                rs_eff,
+                ((rs_disp.upper() if rs_disp else "—"), "tw-st-none"),
+            )
+            if rs_eff not in REGISTER_STATUS_BADGE and rs_disp:
+                reg_badge_label = rs_disp.upper()
+
+            deadline_days_int = None
+            deadline_iso = ""
+            deadline_days_label = ""
+            if obj.end_date:
+                deadline_iso = obj.end_date.isoformat()
+                deadline_days_int = (obj.end_date - today).days
+                deadline_days_label = f"{deadline_days_int}d"
+
+            if pmo_score_pct >= 75:
+                pmo_row_class = "tw-pmo-good"
+            elif pmo_score_pct >= 60:
+                pmo_row_class = "tw-pmo-warn"
+            else:
+                pmo_row_class = "tw-pmo-bad"
+
+            planned_single = 0.0
+            if obj.start_date and obj.end_date and obj.end_date > obj.start_date:
+                _dur = (obj.end_date - obj.start_date).days
+                _el = (today - obj.start_date).days
+                planned_single = max(0.0, min(1.0, _el / float(_dur)))
+            earned_single = prog_pct / 100.0
+            penalty_single = 0.0
+            if obj.end_date and obj.end_date < today:
+                penalty_single += 0.25
+            if "stuck" in [
+                (obj.brainstorming_status or "").strip(),
+                (obj.execution_status or "").strip(),
+                (getattr(obj, "test_deadline_status", "") or "").strip(),
+                (obj.launch_status or "").strip(),
+            ]:
+                penalty_single += 0.20
+            ac_single = planned_single * (1.0 + penalty_single)
+            spi_u = spi_p if spi_p is not None else (
+                earned_single / planned_single if planned_single > 1e-6 else 0.0
+            )
+            cpi_u = cpi_p if cpi_p is not None else (
+                earned_single / ac_single if ac_single > 1e-6 else 0.0
+            )
+            spi_u = max(0.0, min(2.0, float(spi_u)))
+            cpi_u = max(0.0, min(2.0, float(cpi_u)))
+            cv_u = earned_single - ac_single
+            eac_u = (1.0 / cpi_u) if cpi_u > 1e-6 else 0.0
+
+            lu_dt = getattr(obj, "last_status_update", None)
+            days_since_update = None
+            if lu_dt:
+                days_since_update = (today - lu_dt).days
+
+            _gov_appr = (getattr(obj, "gov_approval_status", "") or "").strip()
+            detail_payload = {
+                "objective_sow": getattr(obj, "objective_sow", "") or "",
+                "kpi_success_criteria": getattr(obj, "kpi_success_criteria", "") or "",
+                "scope_in": getattr(obj, "scope_in", "") or "",
+                "scope_out": getattr(obj, "scope_out", "") or "",
+                "scope_deliverables": getattr(obj, "scope_deliverables", "") or "",
+                "scope_dependencies": getattr(obj, "scope_dependencies", "") or "",
+                "process_steps": proc_steps,
+                "raid_items": raid_rows,
+                "gov": {
+                    "submitted_by": getattr(obj, "gov_submitted_by", "") or "",
+                    "reviewed_by": getattr(obj, "gov_reviewed_by", "") or "",
+                    "approval_status": obj.get_gov_approval_status_display()
+                    if _gov_appr
+                    else "",
+                    "stakeholders": getattr(obj, "gov_stakeholders", "") or "",
+                    "operational_impact": getattr(obj, "gov_operational_impact", "") or "",
+                    "assumptions_constraints": getattr(obj, "gov_assumptions_constraints", "") or "",
+                },
+                "evm": {
+                    "bac": 1.0,
+                    "pv": round(planned_single, 3),
+                    "ev": round(earned_single, 3),
+                    "ac": round(ac_single, 3),
+                    "cv": round(cv_u, 3),
+                    "spi": round(spi_u, 2),
+                    "cpi": round(cpi_u, 2),
+                    "eac": round(eac_u, 2),
+                },
+                "summary": {
+                    "log_id": log_id,
+                    "pmo_score_pct": pmo_score_pct,
+                    "pmbok_label": pmbok_label,
+                    "register_badge_label": reg_badge_label,
+                    "priority_display": rp_disp,
+                    "category_display": cat_disp,
+                    "alignment_display": align_disp,
+                    "last_update_display": lu_dt.strftime("%b %d, %Y") if lu_dt else "",
+                    "days_since_update": days_since_update,
+                },
+                "biz": {
+                    "cost_reduction_pct_display": cr_disp,
+                    "headcount_impact": (getattr(obj, "headcount_impact", "") or "").strip(),
+                    "sla_improvement": (getattr(obj, "sla_improvement", "") or "").strip(),
+                },
+                "effort_hours": {
+                    "planned": str(obj.planned_hours)
+                    if getattr(obj, "planned_hours", None) is not None
+                    else "",
+                    "actual": str(obj.actual_hours)
+                    if getattr(obj, "actual_hours", None) is not None
+                    else "",
+                },
+            }
+            enrich_detail_from_remarks(obj, detail_payload)
+            project_details_map[str(obj.id)] = detail_payload
+
+            remarks_txt = (getattr(obj, "remarks", "") or "").strip()
+            company_show = (getattr(obj, "company", "") or "").strip() or remark_field(
+                remarks_txt, "company:"
+            )
+            dept_show = dept_label
+            if not dept_show or dept_show == "—":
+                dv = remark_field(remarks_txt, "department:")
+                if dv:
+                    dept_show = dv
+            cat_show = (cat_disp or "").strip() or remark_field(remarks_txt, "category:")
+            align_show = (align_disp or "").strip() or remark_field(
+                remarks_txt, "strategic alignment:"
+            )
 
             items.append(
                 {
                     "id": obj.id,
                     "name": obj.description or "—",
+                    "project_code": pc,
+                    "log_id": log_id,
+                    "subtitle_line": subtitle_line,
+                    "project_lead": lead,
+                    "contact_secondary": secondary,
                     "project_type": (obj.project_type or "").strip(),
-                    "project_type_display": obj.get_project_type_display()
-                    if getattr(obj, "project_type", None)
-                    else "",
-                    "company": getattr(obj, "company", "") or "—",
-                    "department": getattr(obj, "department", "") or "—",
-                    "owner": obj.person_name or "—",
+                    "project_type_display": pt_disp,
+                    "company": company_show or "—",
+                    "department": dept_show or "—",
+                    "owner": owner_show,
+                    "register_priority": rp,
+                    "register_priority_display": rp_disp,
+                    "register_status": rs_reg,
+                    "register_status_effective": rs_eff,
+                    "register_status_display": rs_disp,
+                    "register_badge_label": reg_badge_label,
+                    "register_badge_class": reg_badge_class,
+                    "pmbok_label": pmbok_label,
+                    "pmbok_badge_class": pmbok_badge_class,
+                    "deadline_iso": deadline_iso,
+                    "deadline_days_label": deadline_days_label,
+                    "deadline_days_int": deadline_days_int,
+                    "pmo_score_pct": pmo_score_pct,
+                    "pmo_row_class": pmo_row_class,
+                    "is_approved": bool(getattr(obj, "is_approved", False)),
+                    "category_display": cat_show or cat_disp,
+                    "strategic_alignment_display": align_show or align_disp,
+                    "cost_reduction_pct_display": cr_disp,
+                    "headcount_impact": (getattr(obj, "headcount_impact", "") or "").strip(),
+                    "sla_improvement": (getattr(obj, "sla_improvement", "") or "").strip(),
                     "start_date": obj.start_date,
                     "start_date_display": obj.start_date.strftime("%b %d, %Y")
                     if obj.start_date
@@ -684,8 +1110,8 @@ def get_project_portfolio_list(project_type=None):
                     "deadline_display": obj.end_date.strftime("%b %d, %Y")
                     if obj.end_date
                     else "—",
-                    "phase": current_phase(obj),
-                    "progress_pct": calc_progress(obj),
+                    "phase": phase_nm,
+                    "progress_pct": prog_pct,
                     "risk": risk_level(obj),
                     "brainstorming_status": (obj.brainstorming_status or "").strip(),
                     "execution_status": (obj.execution_status or "").strip(),
@@ -696,12 +1122,12 @@ def get_project_portfolio_list(project_type=None):
                     "test_deadline_display": phase_label(getattr(obj, "test_deadline_status", "")),
                     "launch_display": phase_label(obj.launch_status),
                     "remarks": getattr(obj, "remarks", "") or "",
+                    "days_since_status_update": days_since_update,
                 }
             )
-            if is_active:
-                progress_sum += items[-1]["progress_pct"]
 
-                # Planned/earned/actual cost (derived)
+            # Earned value rollups (same as before)
+            if is_active:
                 start = obj.start_date
                 end = obj.end_date
                 if start and end and end > start:
@@ -710,7 +1136,7 @@ def get_project_portfolio_list(project_type=None):
                     planned = max(0.0, min(1.0, elapsed_days / float(duration_days)))
                 else:
                     planned = 0.0
-                earned = max(0.0, min(1.0, items[-1]["progress_pct"] / 100.0))
+                earned = max(0.0, min(1.0, prog_pct / 100.0))
                 pv_sum += planned
                 ev_sum += earned
                 penalty = 0.0
@@ -725,25 +1151,80 @@ def get_project_portfolio_list(project_type=None):
                     penalty += 0.20
                 ac_sum += planned * (1.0 + penalty)
 
-        # SPI/CPI are derived indicators (no cost/schedule baseline in model).
-        # SPI: average progress of active projects (0.00–1.20).
-        # CPI: penalty based on stuck + at-risk ratios (0.00–1.20).
-        spi = 0.0
-        if active_count > 0:
-            spi = (progress_sum / active_count) / 100.0
-        spi = max(0.0, min(1.2, spi))
+        portfolio_spi = sum(spi_vals) / len(spi_vals) if spi_vals else 1.0
+        portfolio_cpi = sum(cpi_vals) / len(cpi_vals) if cpi_vals else portfolio_spi
+        portfolio_spi = max(0.0, min(2.0, portfolio_spi))
+        portfolio_cpi = max(0.0, min(2.0, portfolio_cpi))
 
-        stuck_ratio = (stuck_count / active_count) if active_count else 0.0
-        risk_ratio = (at_risk_count / active_count) if active_count else 0.0
-        cpi = 1.0 - (0.40 * stuck_ratio) - (0.30 * risk_ratio)
-        cpi = max(0.0, min(1.2, cpi))
+        avg_pmo = int(round(sum(pmo_scores) / len(pmo_scores))) if pmo_scores else 0
+
+        open_raid = PortfolioRaidItem.objects.filter(status="open").exclude(
+            project__launch_status="done"
+        ).count()
+        critical_raid = PortfolioRaidItem.objects.filter(
+            status="open",
+            severity="critical",
+        ).exclude(project__launch_status="done").count()
+
+        spi_footer = (
+            "≈ Target ≥0.90" if portfolio_spi >= 0.9 else "↓ Behind vs timeline plan"
+        )
+        cpi_footer = "≈ Target ≥0.90" if portfolio_cpi >= 0.9 else "↓ Below 0.90"
+        raid_footer = (
+            f"↑ {critical_raid} critical" if critical_raid else "No critical RAID items"
+        )
+        active_footer = (
+            f"↑ {started_this_quarter} started this quarter"
+            if started_this_quarter
+            else "Portfolio"
+        )
+        delayed_footer = (
+            f"↑ {delayed_at_risk_count} need action"
+            if delayed_at_risk_count
+            else "No delayed / at-risk"
+        )
+        if avg_pmo >= 75:
+            pmo_footer = "Strong portfolio health"
+        elif avg_pmo >= 60:
+            pmo_footer = "Review SPI / CPI drivers"
+        elif active_count:
+            pmo_footer = "Needs leadership attention"
+        else:
+            pmo_footer = "Add projects to measure"
+
+        def _fc(tone):
+            return {
+                "good": "tw-foot-good",
+                "bad": "tw-foot-bad",
+                "neutral": "tw-foot-neutral",
+                "warn": "tw-foot-warn",
+            }.get(tone, "tw-foot-neutral")
 
         metrics = {
             "active_projects": active_count,
-            "at_risk_deadlines": at_risk_count,
-            "open_challenges": open_challenges_count,
-            "spi": round(spi, 2),
-            "cpi": round(cpi, 2),
+            "delayed_at_risk": delayed_at_risk_count,
+            "started_this_quarter": started_this_quarter,
+            "spi": round(portfolio_spi, 2),
+            "cpi": round(portfolio_cpi, 2),
+            "open_raid_items": open_raid,
+            "critical_raid_items": critical_raid,
+            "avg_pmo_score": avg_pmo,
+            "spi_footer": spi_footer,
+            "cpi_footer": cpi_footer,
+            "delayed_footer": delayed_footer,
+            "active_footer": active_footer,
+            "raid_footer": raid_footer,
+            "pmo_footer": pmo_footer,
+            "spi_footer_class": _fc("neutral" if portfolio_spi >= 0.9 else "bad"),
+            "cpi_footer_class": _fc("neutral" if portfolio_cpi >= 0.9 else "bad"),
+            "delayed_footer_class": _fc("bad" if delayed_at_risk_count else "good"),
+            "active_footer_class": _fc("good" if started_this_quarter else "neutral"),
+            "raid_footer_class": _fc("bad" if critical_raid else "neutral"),
+            "pmo_footer_class": _fc(
+                "good"
+                if avg_pmo >= 75
+                else ("warn" if avg_pmo >= 60 else ("bad" if active_count else "neutral"))
+            ),
         }
 
         bac = float(active_count)
@@ -766,22 +1247,145 @@ def get_project_portfolio_list(project_type=None):
             "cpi": round(ev_cpi, 2),
         }
 
+        active_alerts = []
+        _alert_keys = set()
+
+        def _push_alert(kind, message, context, time_label, dedupe_key):
+            if dedupe_key in _alert_keys:
+                return
+            _alert_keys.add(dedupe_key)
+            active_alerts.append(
+                {
+                    "kind": kind,
+                    "message": message,
+                    "context": context,
+                    "time_label": time_label,
+                }
+            )
+
+        if portfolio_cpi < 0.90:
+            _push_alert(
+                "warn",
+                "Portfolio CPI below 0.90 — cost vs earned value pressure",
+                "Portfolio-wide",
+                "Portfolio",
+                "portfolio_cpi",
+            )
+        if portfolio_spi < 0.85:
+            _push_alert(
+                "info",
+                "Portfolio SPI below 0.85 — schedule vs timeline plan",
+                "Portfolio-wide",
+                "Portfolio",
+                "portfolio_spi",
+            )
+
+        for it in items:
+            lid = it["log_id"]
+            nm = (it["name"] or "")[:42]
+            ctx = f"{lid} {nm}"
+            pid = it["id"]
+
+            dd = it.get("deadline_days_int")
+            if dd is not None:
+                if dd < 0:
+                    _push_alert(
+                        "warn",
+                        f"Milestone overdue by {abs(dd)} days",
+                        ctx,
+                        "Deadline",
+                        f"overdue_{pid}",
+                    )
+                elif dd <= 90 and it["progress_pct"] < 92:
+                    _push_alert(
+                        "warn",
+                        f"Deadline in {dd} days — progress {it['progress_pct']}%",
+                        ctx,
+                        "Timeline",
+                        f"soon_{pid}",
+                    )
+
+            rsx = (it.get("register_status_effective") or "").strip()
+            if rsx in ("at_risk", "delayed", "blocked"):
+                _push_alert(
+                    "warn",
+                    f"Register status: {it.get('register_badge_label')}",
+                    ctx,
+                    "Status",
+                    f"reg_{pid}_{rsx}",
+                )
+
+            dsi = it.get("days_since_status_update")
+            if dsi is not None and dsi > 14:
+                _push_alert(
+                    "info",
+                    f"No PMO status update for {dsi} days",
+                    ctx,
+                    "Stale",
+                    f"stale_{pid}",
+                )
+
+        for raid in (
+            PortfolioRaidItem.objects.filter(status="open")
+            .exclude(project__launch_status="done")
+            .select_related("project")
+            .order_by("project_id", "-severity", "id")[:22]
+        ):
+            proj = raid.project
+            lid = (getattr(proj, "project_code", "") or "").strip() or f"LOG-{proj.id:03d}"
+            sev = (raid.severity or "").strip()
+            rk = "crit" if sev == "critical" else ("warn" if sev in ("high", "medium") else "info")
+            msg = (raid.title or "Open RAID item")[:56]
+            ctx = f"{lid} {(proj.description or '')[:36]}"
+            _push_alert(rk, msg, ctx, "RAID", f"raid_open_{raid.id}")
+
+        _alert_rank = {"crit": 0, "warn": 1, "info": 2}
+        active_alerts.sort(
+            key=lambda a: (_alert_rank.get(a.get("kind"), 5), a.get("context") or "")
+        )
+        active_alerts = active_alerts[:30]
+
         return {
             "items": items,
             "current_project_type": project_type or "",
             "metrics": metrics,
             "earned_value": earned_value,
+            "register_lookups": register_lookups,
+            "project_details_map": project_details_map,
+            "active_alerts": active_alerts,
         }
     except Exception:
         return {
             "items": [],
             "current_project_type": "",
+            "register_lookups": {
+                "departments": [],
+                "categories": [],
+                "alignments": [],
+            },
+            "project_details_map": {},
+            "active_alerts": [],
             "metrics": {
                 "active_projects": 0,
-                "at_risk_deadlines": 0,
-                "open_challenges": 0,
+                "delayed_at_risk": 0,
+                "started_this_quarter": 0,
                 "spi": 0.0,
                 "cpi": 0.0,
+                "open_raid_items": 0,
+                "critical_raid_items": 0,
+                "avg_pmo_score": 0,
+                "spi_footer": "—",
+                "cpi_footer": "—",
+                "delayed_footer": "—",
+                "active_footer": "—",
+                "raid_footer": "—",
+                "pmo_footer": "—",
+                "spi_footer_class": "tw-foot-neutral",
+                "cpi_footer_class": "tw-foot-neutral",
+                "delayed_footer_class": "tw-foot-neutral",
+                "active_footer_class": "tw-foot-neutral",
+                "raid_footer_class": "tw-foot-neutral",
+                "pmo_footer_class": "tw-foot-neutral",
             },
             "earned_value": {
                 "bac": 0.0,
@@ -794,3 +1398,8 @@ def get_project_portfolio_list(project_type=None):
                 "cpi": 0.0,
             },
         }
+
+
+def get_project_portfolio_list(project_type=None):
+    """Backward-compatible alias for Transformation Workspace context."""
+    return get_transformation_workspace(project_type)

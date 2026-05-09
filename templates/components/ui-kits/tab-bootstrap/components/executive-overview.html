@@ -1,0 +1,42 @@
+{% load static %}
+<style>
+  .eo-wrap {
+    border-radius: 16px;
+    border: 1px solid {{ dashboard_theme.border_color|default:"#e2e8f0" }};
+    background: {{ dashboard_theme.bg_light|default:"#f8fafc" }};
+    padding: 1.5rem;
+    box-shadow: 0 6px 22px rgba(16, 24, 40, 0.06);
+  }
+  .eo-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: {{ dashboard_theme.text_primary|default:"#1e293b" }};
+    margin-bottom: 0.35rem;
+    letter-spacing: 0.02em;
+  }
+  .eo-lead {
+    color: {{ dashboard_theme.text_muted|default:"#64748b" }};
+    font-size: 0.95rem;
+    margin-bottom: 1.25rem;
+    max-width: 720px;
+    line-height: 1.55;
+  }
+  .eo-placeholder {
+    border-radius: 14px;
+    border: 2px dashed rgba(13, 148, 136, 0.35);
+    background: #fff;
+    padding: 2rem;
+    text-align: center;
+    color: {{ dashboard_theme.text_muted|default:"#64748b" }};
+    font-weight: 650;
+  }
+</style>
+<div class="eo-wrap">
+  <h2 class="eo-title">Executive Overview dashboard</h2>
+  <p class="eo-lead">
+    High-level KPIs and portfolio summary for leadership. Connect widgets or charts here when ready.
+  </p>
+  <div class="eo-placeholder">
+    Content area — customize from Admin or extend this template as needed.
+  </div>
+</div>

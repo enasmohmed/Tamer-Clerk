@@ -557,6 +557,79 @@ PROJECT_TYPE_CHOICES = [
     ("automation", "Automation"),
 ]
 
+# ─── Project Register lookups (Transformation Workspace — dropdowns من الأدمن) ───
+
+
+class WorkspaceDepartment(models.Model):
+    """أقسام تظهر في دروب داون التسجيل؛ تُضاف من الأدمن."""
+
+    name = models.CharField(max_length=200, unique=True)
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["display_order", "name"]
+        verbose_name = "TW Lookup — Department"
+        verbose_name_plural = "03 — TW Lookups — Departments"
+
+    def __str__(self):
+        return self.name
+
+
+class WorkspaceProjectCategory(models.Model):
+    """فئة المشروع (مثل Automation) — تُدار من الأدمن وتظهر في المودال."""
+
+    name = models.CharField(max_length=120, unique=True)
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["display_order", "name"]
+        verbose_name = "TW Lookup — Category"
+        verbose_name_plural = "04 — TW Lookups — Project categories"
+
+    def __str__(self):
+        return self.name
+
+
+class WorkspaceStrategicAlignment(models.Model):
+    """محاذاة استراتيجية (Cost Optimization، …) — من الأدمن."""
+
+    name = models.CharField(max_length=120, unique=True)
+    is_active = models.BooleanField(default=True)
+    display_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["display_order", "name"]
+        verbose_name = "TW Lookup — Strategic alignment"
+        verbose_name_plural = "05 — TW Lookups — Strategic alignment"
+
+    def __str__(self):
+        return self.name
+
+
+REGISTER_PRIORITY_CHOICES = [
+    ("critical", "Critical"),
+    ("high", "High"),
+    ("medium", "Medium"),
+    ("low", "Low"),
+]
+
+REGISTER_PROJECT_STATUS_CHOICES = [
+    ("on_track", "On Track"),
+    ("at_risk", "At Risk"),
+    ("delayed", "Delayed"),
+    ("blocked", "Blocked"),
+    ("approved", "Approved"),
+]
+
+GOV_APPROVAL_STATUS_CHOICES = [
+    ("pending", "Pending"),
+    ("approved", "Approved"),
+    ("rejected", "Rejected"),
+    ("in_review", "In review"),
+]
+
 
 class ProjectTrackerItem(models.Model):
     """
@@ -567,9 +640,21 @@ class ProjectTrackerItem(models.Model):
         max_length=300,
         help_text="Project task description (e.g. Finalize kickoff materials)"
     )
+    project_code = models.CharField(
+        max_length=80,
+        blank=True,
+        help_text="External project ID / code (e.g. LOG-007)",
+    )
+    project_lead = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Team lead (مسؤول التيم)",
+    )
     person_name = models.CharField(
         max_length=120,
-        help_text="Employee name (person responsible)"
+        blank=True,
+        default="",
+        help_text="جهة اتصال ثانية — Project 2 (شخص آخر غير الـ Lead)",
     )
     project_type = models.CharField(
         max_length=20,
@@ -585,7 +670,41 @@ class ProjectTrackerItem(models.Model):
     department = models.CharField(
         max_length=200,
         blank=True,
-        help_text="Department"
+        help_text="Department (legacy text; يُفضّل اختيار السجل من القائمة)",
+    )
+    department_ref = models.ForeignKey(
+        WorkspaceDepartment,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="tracker_projects",
+        help_text="Department من قائمة الأدمن",
+    )
+    register_priority = models.CharField(
+        max_length=20,
+        choices=REGISTER_PRIORITY_CHOICES,
+        blank=True,
+        default="",
+        help_text="Priority في Project Register",
+    )
+    register_status = models.CharField(
+        max_length=20,
+        choices=REGISTER_PROJECT_STATUS_CHOICES,
+        blank=True,
+        default="",
+        help_text="حالة المشروع في السجل (يشمل Approved كخيار في القائمة)",
+    )
+    is_approved = models.BooleanField(
+        default=False,
+        help_text="يُحدَّث تلقائياً عند الحفظ: True عندما register_status = Approved",
+    )
+    register_category = models.ForeignKey(
+        WorkspaceProjectCategory,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="tracker_projects",
+        help_text="Category من الأدمن",
     )
     start_date = models.DateField(
         help_text="Project start date (used for month grouping and ordering)"
@@ -631,14 +750,213 @@ class ProjectTrackerItem(models.Model):
         blank=True,
         help_text="Remarks"
     )
+    planned_hours = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Planned effort (hours). Used for CPI when Actual hours is set.",
+    )
+    actual_hours = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Actual effort spent (hours). CPI ≈ Planned / Actual when both set.",
+    )
+    last_status_update = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Last PMO/status update (used in PMO Score — Updates component).",
+    )
+    objective_sow = models.TextField(
+        blank=True,
+        help_text="Project Objective / Statement of Work",
+    )
+    strategic_alignment_ref = models.ForeignKey(
+        WorkspaceStrategicAlignment,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="tracker_projects",
+    )
+    kpi_success_criteria = models.TextField(
+        blank=True,
+        help_text="KPI / Success criteria (مثلاً نسبة الهدف)",
+    )
+    cost_reduction_pct = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Cost reduction % — توفير تكلفة متوقع كنسبة",
+    )
+    headcount_impact = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="Headcount impact (نص حر)",
+    )
+    sla_improvement = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text="SLA improvement",
+    )
+    scope_in = models.TextField(blank=True, help_text="In scope")
+    scope_out = models.TextField(blank=True, help_text="Out of scope")
+    scope_deliverables = models.TextField(blank=True, help_text="Key deliverables")
+    scope_dependencies = models.TextField(blank=True, help_text="Dependencies")
+
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        db_index=True,
+        help_text="وقت إنشاء السجل — للترتيب من الأحدث للأقدم",
+    )
+
+    gov_submitted_by = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Governance — Submitted by",
+    )
+    gov_reviewed_by = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="Governance — Reviewed by",
+    )
+    gov_approval_status = models.CharField(
+        max_length=20,
+        choices=GOV_APPROVAL_STATUS_CHOICES,
+        blank=True,
+        default="",
+        help_text="Governance — Approval status",
+    )
+    gov_stakeholders = models.TextField(
+        blank=True,
+        help_text="Stakeholders list",
+    )
+    gov_operational_impact = models.TextField(
+        blank=True,
+        help_text="Operational impact summary",
+    )
+    gov_assumptions_constraints = models.TextField(
+        blank=True,
+        help_text="Governance — Assumptions & constraints",
+    )
+
+    def save(self, *args, **kwargs):
+        self.is_approved = (self.register_status or "").strip() == "approved"
+        super().save(*args, **kwargs)
 
     class Meta:
         verbose_name = "Project Tracker Item"
         verbose_name_plural = "Project Tracker Items"
-        ordering = ["-start_date", "display_order", "id"]
+        ordering = ["-created_at", "-id"]
 
     def __str__(self):
         return f"{self.description[:50]} ({self.start_date})"
+
+
+class ProjectProcessStep(models.Model):
+    """
+    خطوات تنفيذ المشروع (Project Process): وصف، موعد نهائي، مسؤول.
+    """
+
+    project = models.ForeignKey(
+        ProjectTrackerItem,
+        on_delete=models.CASCADE,
+        related_name="process_steps",
+    )
+    description = models.TextField(blank=True, help_text="الخطوة / ماذا سيتم إنجازه")
+    step_deadline = models.DateField(null=True, blank=True)
+    owner_name = models.CharField(max_length=120, blank=True, help_text="المسؤول عن الخطوة")
+    display_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["project", "display_order", "id"]
+        verbose_name = "Project Process Step"
+        verbose_name_plural = "Project Process Steps"
+
+    def __str__(self):
+        return (self.description or "—")[:40]
+
+
+RAID_CATEGORY_CHOICES = [
+    ("risk", "Risk"),
+    ("assumption", "Assumption"),
+    ("issue", "Issue"),
+    ("dependency", "Dependency"),
+]
+
+RAID_STATUS_CHOICES = [
+    ("open", "Open"),
+    ("mitigated", "Mitigated"),
+    ("closed", "Closed"),
+]
+
+RAID_SEVERITY_CHOICES = [
+    ("critical", "Critical"),
+    ("high", "High"),
+    ("medium", "Medium"),
+    ("low", "Low"),
+]
+
+
+class PortfolioRaidItem(models.Model):
+    """
+    RAID item linked to a project (Transformation Workspace — Open RAID count).
+    Managed from Admin or Project Register; counts toward Open RAID when status is Open.
+    """
+
+    project = models.ForeignKey(
+        ProjectTrackerItem,
+        on_delete=models.CASCADE,
+        related_name="raid_items",
+    )
+    category = models.CharField(max_length=20, choices=RAID_CATEGORY_CHOICES, default="issue")
+    title = models.CharField(max_length=300)
+    status = models.CharField(max_length=20, choices=RAID_STATUS_CHOICES, default="open")
+    severity = models.CharField(max_length=20, choices=RAID_SEVERITY_CHOICES, default="medium")
+    owner_name = models.CharField(
+        max_length=120,
+        blank=True,
+        help_text="RAID item owner / accountable person",
+    )
+    display_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        verbose_name = "Portfolio RAID Item"
+        verbose_name_plural = "Portfolio RAID Items"
+        ordering = ["project", "display_order", "id"]
+
+    def __str__(self):
+        return f"{self.title[:60]} ({self.get_status_display()})"
+
+
+class TransformationWorkspaceProject(ProjectTrackerItem):
+    """
+    Proxy — نفس جدول المشاريع؛ يظهر في الأدمن كقسم مستقل موضّح أنه مدخلات كاردات Transformation Workspace.
+    """
+
+    class Meta:
+        proxy = True
+        verbose_name = "Project — TW (KPI cards + register)"
+        verbose_name_plural = (
+            "01 — Transformation Workspace — Projects / المشاريع "
+            "(داتا الكاردات العلوية + جدول السجل)"
+        )
+
+
+class TransformationWorkspaceRaid(PortfolioRaidItem):
+    """
+    Proxy — نفس جدول RAID؛ قسم أدمن منفصل لكارد Open RAID Items.
+    """
+
+    class Meta:
+        proxy = True
+        verbose_name = "RAID row — TW (Open RAID KPI)"
+        verbose_name_plural = (
+            "02 — Transformation Workspace — RAID / عناصر RAID "
+            "(كارد Open RAID Items)"
+        )
 
 
 # ─── Weekly Project Tracker (تاب Progress Overview: جدول تحت Key Recommendations) ───

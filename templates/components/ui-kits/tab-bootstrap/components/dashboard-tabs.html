@@ -3,67 +3,59 @@
 {# CSS Variables from Dashboard Theme - All tab colors customizable from Admin #}
 <style>
   :root {
-    /* Tab Colors from Admin Theme */
-    --tab-active-bg: {{ dashboard_theme.tab_active_bg|default:"#1a5f2a" }};
+    /* Tab strip: light surface — accents cyan/indigo (no green) */
+    --tab-active-bg: {{ dashboard_theme.tab_active_bg|default:"#0ea5e9" }};
     --tab-active-text: {{ dashboard_theme.tab_active_text|default:"#ffffff" }};
     --tab-inactive-bg: {{ dashboard_theme.tab_inactive_bg|default:"#ffffff" }};
-    --tab-inactive-text: {{ dashboard_theme.tab_inactive_text|default:"#1a5f2a" }};
-    --tab-border-color: {{ dashboard_theme.tab_border_color|default:"#1a5f2a" }};
-    --tab-hover-bg: {{ dashboard_theme.tab_hover_bg|default:"#e8f5e9" }};
-    --primary-color: {{ dashboard_theme.primary_color|default:"#1a5f2a" }};
+    --tab-inactive-text: {{ dashboard_theme.tab_inactive_text|default:"#334155" }};
+    --tab-border-color: {{ dashboard_theme.tab_border_color|default:"#cbd5e1" }};
+    --tab-hover-bg: {{ dashboard_theme.tab_hover_bg|default:"#f1f5f9" }};
+    --primary-color: {{ dashboard_theme.primary_color|default:"#0ea5e9" }};
   }
 </style>
 
 <style>
-  .nav-tabs .nav-link {
-    background-color: var(--tab-inactive-bg);
-    color: var(--tab-inactive-text);
-    border: none;
-    transition: all 0.2s ease-in-out;
-  }
-  .nav-tabs .nav-link:hover {
-    background-color: var(--tab-hover-bg);
-  }
-  .nav-tabs .nav-link.active {
-    background-color: var(--tab-active-bg);
-    color: var(--tab-active-text) !important;
-  }
-
-  /* Tab Styling */
-  #dashboard-tabs {
+  /* Light tab strip — no dark bar */
+  #dashboard-tabs.nav-tabs {
     display: flex;
     justify-content: center;
-    gap: 10px;
     flex-wrap: wrap;
+    gap: 12px;
     margin-bottom: 20px;
+    margin-top: 1.25rem !important;
+    padding: 12px 14px;
+    border-bottom: none !important;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
   }
-
-  #dashboard-tabs button {
-    background: var(--tab-inactive-bg);
-    color: var(--tab-inactive-text);
-    border: 1px solid var(--tab-border-color);
-    border-radius: 10px;
+  #dashboard-tabs .nav-item {
+    margin: 0;
+  }
+  #dashboard-tabs button.nav-link {
+    background: #ffffff !important;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 10px !important;
     padding: 10px 20px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 15px;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
   }
-
-  #dashboard-tabs button:hover {
-    background: var(--tab-hover-bg);
-    color: var(--tab-inactive-text);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  #dashboard-tabs button.nav-link:hover {
+    background: #f1f5f9 !important;
+    color: #0f172a !important;
+    border-color: #94a3b8 !important;
+    transform: translateY(-1px);
   }
-
-  #dashboard-tabs button.active {
-    background: var(--tab-active-bg) !important;
-    color: var(--tab-active-text) !important;
-    border-color: var(--tab-active-bg) !important;
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
-    transform: scale(1.03);
-    font-weight: bold;
+  #dashboard-tabs button.nav-link.active {
+    background: linear-gradient(135deg, #0284c7, #6366f1) !important;
+    color: #ffffff !important;
+    border-color: rgba(14, 165, 233, 0.45) !important;
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.28);
+    font-weight: 800;
   }
 
   .btn-download-excel {
@@ -77,10 +69,29 @@
 
   /* 🩵 تابات أصغر على الموبايل */
   @media (max-width: 768px) {
-    #dashboard-tabs button {
+    #dashboard-tabs button.nav-link {
       padding: 8px 14px;
       font-size: 14px;
     }
+  }
+
+  /* Transformation Workspace: خلفية فاتحة لـ #tab-content */
+  #tab-content.card:has(.tw-pmo-theme) {
+    background-color: #f8fafc !important;
+    background-image: none;
+    border: 1px solid rgba(15, 23, 42, 0.12) !important;
+    box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08) !important;
+    color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    /* يملأ ما تبقّى من الشاشة تحت الهيدر والتابات */
+    min-height: calc(100dvh - 220px);
+  }
+  #tab-content.card:has(.tw-pmo-theme) > .tw-pmo-theme {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   /* تغليف الـ select علشان نتحكم في الشكل */
@@ -205,44 +216,11 @@
   }
 </style>
 <!-- Container-fluid starts  -->
-<div class="container-fluid mt-5">
+<div class="container-fluid">
   <div class="row">
-    <div class="col-md-12 mt-5">
+    <div class="col-md-12 mt-3">
       <div class="card">
-        <div
-          class="card-header card-no-border pb-0"
-          style="display: flex; align-items: center; gap: 12px"
-        >
-          <!-- 🟦 اللوجو -->
-          <img
-            src="{% static 'assets/images/tamer_logistics_logo.png' %}"
-            alt="Saudi Aramco Logo"
-            style="
-              height: 48px;
-              width: auto;
-              margin-top: -15px;
-              background: #e8f1fb;
-              border-radius: 6px;
-              padding: 4px;
-              border: 2px solid #e8f1fb;
-            "
-          />
-          <!-- 🟦 العنوان والنص -->
-          <div>
-            <h4
-              style="font-size: 20px; font-weight: 800; color: #000; margin: 0"
-            >
-            Tamer Clerk 
-            </h4>
-            <p
-              class="mt-1 f-m-light"
-              style="font-size: 16px; font-weight: 400; color: gray; margin: 0"
-            >
-              All-Tabs KPI — Complete View
-            </p>
-          </div>
-        </div>
-        <div class="card-body mb-5">
+        <div class="card-body mb-5 pt-4">
           {% if not data_is_uploaded %}
           <!-- ✅ أول مرة (رفع ملف Excel) -->
 <!--          <div class="card shadow-sm p-4 border-0 text-center">-->
@@ -392,49 +370,25 @@
 <!--              </div>-->
 <!--            </div>-->
 <!--          </div>-->
-          {% if data_is_uploaded %}
-          {% include 'components/ui-kits/alert/components/alert.html' %}
-          {% endif %}
           <div id="filter-message"></div>
-          <!-- 🔹 Warehouse + Meeting Points -->
+          <!-- Main dashboard tabs (Executive Overview + Transformation Workspace only) -->
           <ul
             class="nav nav-tabs mt-4 justify-content-start"
             id="dashboard-tabs"
             role="tablist"
           >
             <li class="nav-item" role="presentation">
-              <button class="nav-link active" data-tab="warehouse">Project Overview</button>
+              <button type="button" class="nav-link {% if active_tab == 'transformation workspace' or active_tab == 'project portfolio' %}{% else %}active{% endif %}" data-tab="executive overview">Executive Overview dashboard</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" data-tab="recommendation">Progress Overview</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" data-tab="project tracker">Ideas & Automation overview</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" data-tab="project portfolio">Project Portfolio</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" data-tab="meeting points">Meeting Points & Actions</button>
-            </li>
-            <li class="nav-item" role="presentation">
-              <button class="nav-link" data-tab="clerk Details">Clerk Details</button>
+              <button type="button" class="nav-link {% if active_tab == 'transformation workspace' or active_tab == 'project portfolio' %}active{% endif %}" data-tab="transformation workspace">Transformation Workspace</button>
             </li>
           </ul>
-          <!-- 🔹 محتوى التابات: Warehouse / Recommendation / Meeting Points -->
           <div id="tab-content" class="card p-4 shadow-sm bg-white mt-3">
-            {% if active_tab == "warehouse" %}
-              {% include 'components/ui-kits/tab-bootstrap/components/warehouse-cards.html' with warehouse_overview=warehouse_overview clerk_interview_rows=clerk_interview_rows %}
-            {% elif active_tab == "recommendation" %}
-              {% include 'components/ui-kits/tab-bootstrap/components/recommendation-cards.html' with recommendations=recommendations weekly_tracker_rows=weekly_tracker_rows progress_status_rows=progress_status_rows potential_challenges_rows=potential_challenges_rows %}
-            {% elif active_tab == "project tracker" %}
-              {% include 'components/ui-kits/tab-bootstrap/components/project-tracker-cards.html' with project_tracker_items=project_tracker_items %}
-            {% elif active_tab == "project portfolio" %}
-              {% include 'components/ui-kits/tab-bootstrap/components/project-portfolio.html' with project_portfolio=project_portfolio %}
-            {% elif active_tab == "clerk details" %}
-              {% include 'components/ui-kits/tab-bootstrap/components/clerk-details-cards.html' with clerk_details=clerk_details %}
+            {% if active_tab == "transformation workspace" or active_tab == "project portfolio" %}
+              {% include 'components/ui-kits/tab-bootstrap/components/transformation-workspace.html' with transformation_workspace=transformation_workspace %}
             {% else %}
-            <p class="text-muted text-center mb-0">No data available for this tab.</p>
+              {% include 'components/ui-kits/tab-bootstrap/components/executive-overview.html' %}
             {% endif %}
           </div>
           <!-- 🔹 محتوى التابات -->
@@ -574,7 +528,11 @@
     const csrftoken = document.querySelector(
       "[name=csrfmiddlewaretoken]",
     ).value;
-    let selectedTab = "warehouse";
+    let selectedTab = "{{ active_tab|default:'executive overview'|escapejs }}".toLowerCase().trim();
+    if (selectedTab === "project portfolio") selectedTab = "transformation workspace";
+    if (selectedTab !== "executive overview" && selectedTab !== "transformation workspace") {
+      selectedTab = "executive overview";
+    }
     let selectedQuarter = "";
     const TAB_CACHE_PREFIX = "dashboard_tab_cache";
     const TAB_CACHE_VERSION = "v7_table_style"; // زيدي الرقم عند تحديث شكل الجداول
@@ -619,7 +577,8 @@
       }
     }
 
-    $("#dashboard-tabs button[data-tab='warehouse']").addClass("active");
+    $("#dashboard-tabs button.nav-link").removeClass("active");
+    $("#dashboard-tabs button[data-tab='" + selectedTab + "']").addClass("active");
     $("#cards-section").hide();
 
     // 🔹 دالة عرض الكروت (Overview)
@@ -944,12 +903,7 @@
       $("#tab-content").empty();
       $("#cards-section").empty().hide();
 
-      if (selectedTab.toLowerCase() === "all") {
-        $("#cards-section").show();
-      }
-      if (selectedTab.toLowerCase() === "warehouse" || selectedTab.toLowerCase() === "project tracker" || selectedTab.toLowerCase() === "project portfolio" || selectedTab.toLowerCase() === "clerk details") {
-        $("#cards-section").hide();
-      }
+      $("#cards-section").hide();
 
       loadTabData();
     });
@@ -969,12 +923,12 @@
         $("#quarter-select").val("");
       }
       // نجيب اسم التاب الحالي
-      selectedTab = $(".nav-link.active").data("tab") || "overview";
+      selectedTab = $(".nav-link.active").data("tab") || "executive overview";
       loadTabData();
     });
 
-    // 🔹 أول تحميل: لا نستدعي AJAX لتاب Warehouse لأن المحتوى أتى من السيرفر بالفعل (كروت المستودعات)
-    if (selectedTab !== "warehouse") {
+    // Initial load: Executive Overview & Transformation Workspace are server-rendered — skip AJAX
+    if (selectedTab !== "executive overview" && selectedTab !== "transformation workspace") {
       loadTabData();
     }
 

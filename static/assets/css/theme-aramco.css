@@ -550,3 +550,8 @@ table {
     padding-right: 0.5rem;
   }
 }
+
+/* يطابق إعداد المستخدم: لا مسافة علوية تحت الهيدر (يتجاوز style.css margin-top: 136px) */
+.page-wrapper .page-body-wrapper .page-body {
+  margin-top: 0 !important;
+}

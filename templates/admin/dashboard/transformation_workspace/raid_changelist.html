@@ -1,0 +1,20 @@
+{% extends "admin/change_list.html" %}
+
+{# عناصر RAID المرتبطة بالمشاريع — كارد Open RAID Items في Transformation Workspace #}
+
+{% block content_title %}
+<div style="margin-bottom:14px;padding:14px 16px;background:linear-gradient(135deg,#f5edff 0%,#faf5ff 100%);border:1px solid #d8b4fe;border-radius:10px;border-inline-start:5px solid #9333ea;">
+  <div style="font-weight:800;font-size:14px;color:#3b0764;margin-bottom:8px;">
+    Transformation Workspace — داتا كارد Open RAID Items
+  </div>
+  <div style="font-size:12.5px;line-height:1.55;color:#581c87;">
+    <strong>الكارد الذي يتأثر:</strong>
+    <ul style="margin:8px 0 0 20px;padding:0;">
+      <li><strong>Open RAID Items</strong> — عدّ الصفوف بحالة <strong>Open</strong> أو <strong>Pending</strong> لمشاريع لم تُغلق بعد (<em>Launch ≠ Done</em>).</li>
+      <li>سطر التذييل <strong>critical</strong> يعتمد على عناصر بدرجة <strong>Critical</strong> بنفس الشروط أعلاه.</li>
+    </ul>
+    <span style="opacity:0.85;">كل صف مرتبط بمشروع؛ يمكن أيضاً إضافة RAID من صفحة المشروع تحت قسم <strong>01 — Transformation Workspace — Projects</strong>.</span>
+  </div>
+</div>
+{{ block.super }}
+{% endblock %}

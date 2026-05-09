@@ -37,25 +37,97 @@ from django.utils.dateparse import parse_date
 @require_POST
 def project_portfolio_add_project(request):
     """
-    Create a new ProjectTrackerItem from Project Portfolio modal.
-    Stores extended fields into remarks as structured lines (Objective/KPI/Scope/...).
+    Create a new ProjectTrackerItem from Transformation Workspace modal (Project Register).
+    Persists structured fields + mirrors key lines into remarks for legacy UI parsing.
     """
     try:
-        from .models import ProjectTrackerItem
+        from decimal import Decimal, InvalidOperation
+
+        from .models import (
+            PortfolioRaidItem,
+            ProjectProcessStep,
+            ProjectTrackerItem,
+            WorkspaceDepartment,
+            WorkspaceProjectCategory,
+            WorkspaceStrategicAlignment,
+        )
 
         def _s(key, default=""):
             return (request.POST.get(key) or default).strip()
+
+        def _pid(key):
+            raw = (request.POST.get(key) or "").strip()
+            if not raw:
+                return None
+            try:
+                return int(raw)
+            except ValueError:
+                return None
 
         description = _s("project_name")
         if not description:
             return JsonResponse({"ok": False, "message": "Project name is required."}, status=400)
 
-        project_id = _s("project_id")
-        manager = _s("project_manager")
-        department = _s("department")
-        priority = _s("priority")
-        risk_level = _s("risk_level")
+        company_name = _s("company")
+        project_code = _s("project_code")
+        project_lead = _s("project_lead")
+        project_secondary = _s("project_secondary")
 
+        dept_id = _pid("department_id")
+        department_ref = None
+        department_text = ""
+        if dept_id:
+            department_ref = WorkspaceDepartment.objects.filter(pk=dept_id, is_active=True).first()
+            if department_ref:
+                department_text = department_ref.name
+
+        register_priority = _s("register_priority")
+        if register_priority not in ("critical", "high", "medium", "low"):
+            register_priority = ""
+
+        register_status = _s("register_status")
+        if register_status not in ("on_track", "at_risk", "delayed", "blocked", "approved"):
+            register_status = ""
+
+        category_id = _pid("category_id")
+        register_category = None
+        if category_id:
+            register_category = WorkspaceProjectCategory.objects.filter(pk=category_id, is_active=True).first()
+
+        alignment_id = _pid("strategic_alignment_id")
+        strategic_alignment_ref = None
+        if alignment_id:
+            strategic_alignment_ref = WorkspaceStrategicAlignment.objects.filter(pk=alignment_id, is_active=True).first()
+
+        objective_sow = _s("objective_sow")
+        kpi_success_criteria = _s("kpi_success_criteria")
+
+        cost_reduction_pct = None
+        cr_raw = _s("cost_reduction_pct")
+        if cr_raw:
+            try:
+                cost_reduction_pct = Decimal(cr_raw.replace(",", "."))
+            except (InvalidOperation, ValueError):
+                cost_reduction_pct = None
+
+        headcount_impact = _s("headcount_impact")
+        sla_improvement = _s("sla_improvement")
+
+        scope_in = _s("scope_in")
+        scope_out = _s("scope_out")
+        scope_deliverables = _s("scope_deliverables")
+        scope_dependencies = _s("scope_dependencies")
+
+        gov_submitted_by = _s("gov_submitted_by")
+        gov_reviewed_by = _s("gov_reviewed_by")
+        gov_approval_status = _s("gov_approval_status")
+        if gov_approval_status not in ("", "pending", "approved", "rejected", "in_review"):
+            gov_approval_status = ""
+        gov_stakeholders = _s("gov_stakeholders")
+        gov_operational_impact = _s("gov_operational_impact")
+        gov_assumptions_constraints = _s("gov_assumptions_constraints")
+
+        risk_level = _s("risk_level")
         start_date = parse_date(_s("start_date"))
         deadline = parse_date(_s("planned_deadline"))
         pmbok_phase = _s("pmbok_phase")
@@ -67,12 +139,6 @@ def project_portfolio_add_project(request):
             pct_complete = 0
 
         budget = _s("budget_usd")
-        objective = _s("objective")
-        kpi = _s("kpi")
-        in_scope = _s("in_scope")
-        out_scope = _s("out_scope")
-        deliverables = _s("deliverables")
-        assumptions = _s("assumptions")
         ch1 = _s("challenge_1")
         ch1_sev = _s("severity_1")
         ch2 = _s("challenge_2")
@@ -90,49 +156,152 @@ def project_portfolio_add_project(request):
         else:
             brainstorming_status, execution_status, test_deadline_status, launch_status = "", "", "", ""
 
+        project_type = "idea"
+        if register_category and "automation" in (register_category.name or "").lower():
+            project_type = "automation"
+
         lines = []
-        if project_id:
-            lines.append(f"ID: {project_id}")
-        if priority:
-            lines.append(f"Priority: {priority}")
+        if company_name:
+            lines.append(f"Company: {company_name}")
+        if project_code:
+            lines.append(f"ID: {project_code}")
+        if project_lead:
+            lines.append(f"Project Lead: {project_lead}")
+        if project_secondary:
+            lines.append(f"Project 2: {project_secondary}")
+        if department_text:
+            lines.append(f"Department: {department_text}")
+        if register_priority:
+            lines.append(f"Priority: {register_priority}")
+        if register_status:
+            lines.append(f"Register status: {register_status}")
+        if register_category:
+            lines.append(f"Category: {register_category.name}")
+        if strategic_alignment_ref:
+            lines.append(f"Strategic alignment: {strategic_alignment_ref.name}")
         if risk_level:
             lines.append(f"Risk level: {risk_level}")
         if pmbok_phase:
             lines.append(f"PMBOK phase: {pmbok_phase}")
         if budget:
             lines.append(f"Budget (USD): {budget}")
-        if objective:
-            lines.append(f"Objective: {objective}")
-        if kpi:
-            lines.append(f"KPI: {kpi}")
-        if in_scope:
-            lines.append(f"In scope: {in_scope}")
-        if out_scope:
-            lines.append(f"Out of scope: {out_scope}")
-        if deliverables:
-            lines.append(f"Deliverables: {deliverables}")
+        if objective_sow:
+            lines.append(f"Objective: {objective_sow}")
+        if kpi_success_criteria:
+            lines.append(f"KPI: {kpi_success_criteria}")
+        if cost_reduction_pct is not None:
+            lines.append(f"Cost reduction %: {cost_reduction_pct}")
+        if headcount_impact:
+            lines.append(f"Headcount impact: {headcount_impact}")
+        if sla_improvement:
+            lines.append(f"SLA improvement: {sla_improvement}")
+        if scope_in:
+            lines.append(f"In scope: {scope_in}")
+        if scope_out:
+            lines.append(f"Out of scope: {scope_out}")
+        if scope_deliverables:
+            lines.append(f"Deliverables: {scope_deliverables}")
+        if scope_dependencies:
+            lines.append(f"Dependencies: {scope_dependencies}")
         if ch1:
             lines.append(f"Challenge: {ch1}" + (f" (Severity: {ch1_sev})" if ch1_sev else ""))
         if ch2:
             lines.append(f"Challenge: {ch2}" + (f" (Severity: {ch2_sev})" if ch2_sev else ""))
-        if assumptions:
-            lines.append(f"Assumptions: {assumptions}")
+        if gov_submitted_by:
+            lines.append(f"Gov submitted by: {gov_submitted_by}")
+        if gov_reviewed_by:
+            lines.append(f"Gov reviewed by: {gov_reviewed_by}")
+        if gov_approval_status:
+            lines.append(f"Gov approval: {gov_approval_status}")
 
         remarks = "\n".join(lines).strip()
 
+        today = datetime.date.today()
         obj = ProjectTrackerItem.objects.create(
             description=description,
-            person_name=manager or "—",
-            department=department or "",
-            company="",  # optional, not in modal
-            start_date=start_date or datetime.date.today(),
+            project_code=project_code,
+            project_lead=project_lead,
+            person_name=project_secondary,
+            department=department_text,
+            department_ref=department_ref,
+            register_priority=register_priority,
+            register_status=register_status,
+            register_category=register_category,
+            strategic_alignment_ref=strategic_alignment_ref,
+            objective_sow=objective_sow,
+            kpi_success_criteria=kpi_success_criteria,
+            cost_reduction_pct=cost_reduction_pct,
+            headcount_impact=headcount_impact,
+            sla_improvement=sla_improvement,
+            scope_in=scope_in,
+            scope_out=scope_out,
+            scope_deliverables=scope_deliverables,
+            scope_dependencies=scope_dependencies,
+            gov_submitted_by=gov_submitted_by,
+            gov_reviewed_by=gov_reviewed_by,
+            gov_approval_status=gov_approval_status,
+            gov_stakeholders=gov_stakeholders,
+            gov_operational_impact=gov_operational_impact,
+            gov_assumptions_constraints=gov_assumptions_constraints,
+            project_type=project_type,
+            company=company_name,
+            start_date=start_date or today,
             end_date=deadline,
             brainstorming_status=brainstorming_status,
             execution_status=execution_status,
             test_deadline_status=test_deadline_status,
             launch_status=launch_status,
             remarks=remarks,
+            last_status_update=today,
         )
+
+        proc_desc = request.POST.getlist("process_description")
+        proc_dl = request.POST.getlist("process_deadline")
+        proc_own = request.POST.getlist("process_owner")
+        for idx, pdesc in enumerate(proc_desc):
+            pdesc = (pdesc or "").strip()
+            if not pdesc:
+                continue
+            dl_raw = (proc_dl[idx] if idx < len(proc_dl) else "") or ""
+            dl_raw = dl_raw.strip()
+            step_dl = parse_date(dl_raw) if dl_raw else None
+            ow = (proc_own[idx] if idx < len(proc_own) else "") or ""
+            ProjectProcessStep.objects.create(
+                project=obj,
+                description=pdesc,
+                step_deadline=step_dl,
+                owner_name=ow.strip(),
+                display_order=idx,
+            )
+
+        raid_cat = request.POST.getlist("raid_category")
+        raid_title = request.POST.getlist("raid_title")
+        raid_priority = request.POST.getlist("raid_priority")
+        raid_owner = request.POST.getlist("raid_owner")
+        raid_status = request.POST.getlist("raid_status")
+        for idx, rtitle in enumerate(raid_title):
+            rtitle = (rtitle or "").strip()
+            if not rtitle:
+                continue
+            cat = (raid_cat[idx] if idx < len(raid_cat) else "") or "risk"
+            if cat not in ("risk", "assumption", "issue", "dependency"):
+                cat = "risk"
+            sev = (raid_priority[idx] if idx < len(raid_priority) else "") or "medium"
+            if sev not in ("critical", "high", "medium", "low"):
+                sev = "medium"
+            st = (raid_status[idx] if idx < len(raid_status) else "") or "open"
+            if st not in ("open", "mitigated", "closed"):
+                st = "open"
+            row_own = (raid_owner[idx] if idx < len(raid_owner) else "") or ""
+            PortfolioRaidItem.objects.create(
+                project=obj,
+                category=cat,
+                title=rtitle,
+                severity=sev,
+                status=st,
+                owner_name=row_own.strip(),
+                display_order=idx,
+            )
 
         return JsonResponse({"ok": True, "id": obj.id})
     except Exception as e:
@@ -1673,6 +1842,13 @@ class UploadExcelViewRoche(View):
                     request=request,
                 )
                 return JsonResponse({"detail_html": recommendation_html}, safe=False)
+            if selected_tab == "executive overview":
+                html = render_to_string(
+                    "components/ui-kits/tab-bootstrap/components/executive-overview.html",
+                    {"dashboard_theme": context_helpers.get_dashboard_theme_dict()},
+                    request=request,
+                )
+                return JsonResponse({"detail_html": html}, safe=False)
             if selected_tab == "project tracker":
                 project_type_filter = request.GET.get("project_type", "").strip().lower()
                 if project_type_filter not in ("idea", "automation"):
@@ -1684,15 +1860,17 @@ class UploadExcelViewRoche(View):
                     request=request,
                 )
                 return JsonResponse({"detail_html": project_tracker_html}, safe=False)
-            if selected_tab == "project portfolio":
+            if selected_tab in ("project portfolio", "transformation workspace"):
                 project_type_filter = request.GET.get("project_type", "").strip().lower()
                 if project_type_filter not in ("idea", "automation"):
                     project_type_filter = None
-                project_portfolio = context_helpers.get_project_portfolio_list(project_type=project_type_filter)
+                transformation_workspace = context_helpers.get_transformation_workspace(
+                    project_type=project_type_filter
+                )
                 html = render_to_string(
-                    "components/ui-kits/tab-bootstrap/components/project-portfolio.html",
+                    "components/ui-kits/tab-bootstrap/components/transformation-workspace.html",
                     {
-                        "project_portfolio": project_portfolio,
+                        "transformation_workspace": transformation_workspace,
                         "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
                     },
                     request=request,
@@ -1729,7 +1907,7 @@ class UploadExcelViewRoche(View):
                 "data_is_uploaded": True,
                 "months": [],
                 "excel_tabs": [],
-                "active_tab": "warehouse",
+                "active_tab": "executive overview",
                 "tab_summaries": [],
                 "form": ExcelUploadForm(),
                 "meeting_points": meeting_points,
@@ -1748,7 +1926,7 @@ class UploadExcelViewRoche(View):
                 "project_tracker_items": context_helpers.get_project_tracker_list(
                     project_type=request.GET.get("project_type") or None
                 ),
-                "project_portfolio": context_helpers.get_project_portfolio_list(
+                "transformation_workspace": context_helpers.get_transformation_workspace(
                     project_type=request.GET.get("project_type") or None
                 ),
                 "clerk_details": context_helpers.get_clerk_details_list(),
@@ -1772,7 +1950,10 @@ class UploadExcelViewRoche(View):
         # --------------------------
         # Read request parameters
         # --------------------------
-        selected_tab = request.GET.get("tab", "").lower() or "all"
+        selected_tab = (request.GET.get("tab") or "").strip().lower() or "executive overview"
+        _allowed_main_tabs = {"executive overview", "transformation workspace", "project portfolio"}
+        if selected_tab not in _allowed_main_tabs:
+            selected_tab = "executive overview"
         selected_month = request.GET.get("month", "").strip()
         selected_quarter = request.GET.get("quarter", "").strip()
         action = request.GET.get("action", "").lower()
@@ -2118,7 +2299,7 @@ class UploadExcelViewRoche(View):
         # وضع تاب Warehouse فقط: تاب واحد وعرض الكروت من الأدمن
         if getattr(self, "USE_WAREHOUSE_TAB_ONLY", False):
             excel_tabs = []
-            selected_tab = "warehouse"
+            selected_tab = "executive overview"
             data_is_uploaded = True
             warehouse_overview = context_helpers.get_warehouse_overview_list()
             clerk_interview_rows = context_helpers.get_clerk_interview_list()
@@ -2140,7 +2321,7 @@ class UploadExcelViewRoche(View):
             "data_is_uploaded": data_is_uploaded,
             "months": all_months,
             "excel_tabs": excel_tabs,
-            "active_tab": selected_tab or "all",
+            "active_tab": selected_tab or "executive overview",
             "body_extra_class": "tab-ideas-overview" if selected_tab_normalized == "project tracker" else "",
             "tab_summaries": [],
             "form": ExcelUploadForm(),
@@ -2157,6 +2338,9 @@ class UploadExcelViewRoche(View):
             "progress_status_rows": context_helpers.get_progress_status_list(),
             "potential_challenges_rows": context_helpers.get_potential_challenges_list(),
             "project_tracker_items": context_helpers.get_project_tracker_list(
+                project_type=request.GET.get("project_type") or None
+            ),
+            "transformation_workspace": context_helpers.get_transformation_workspace(
                 project_type=request.GET.get("project_type") or None
             ),
             "clerk_details": context_helpers.get_clerk_details_list(),

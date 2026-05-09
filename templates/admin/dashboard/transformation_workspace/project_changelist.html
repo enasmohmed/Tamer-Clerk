@@ -1,0 +1,23 @@
+{% extends "admin/change_list.html" %}
+
+{# مدخلات كاردات أول صفحة Transformation Workspace — نفس جدول المشاريع في النظام #}
+
+{% block content_title %}
+<div style="margin-bottom:14px;padding:14px 16px;background:linear-gradient(135deg,#e8f4fc 0%,#f0f7ff 100%);border:1px solid #b6d9f7;border-radius:10px;border-inline-start:5px solid #0d6efd;">
+  <div style="font-weight:800;font-size:14px;color:#0b2239;margin-bottom:8px;">
+    Transformation Workspace — داتا الكاردات العلوية + جدول السجل
+  </div>
+  <div style="font-size:12.5px;line-height:1.55;color:#1e3a5f;">
+    <strong>الكاردات التي تتأثر بهذه الصفحة:</strong>
+    <ul style="margin:8px 0 0 20px;padding:0;">
+      <li><strong>Active Projects</strong> — أي مشروع لم تكن مرحلة <em>Launch</em> فيها <strong>Done</strong>.</li>
+      <li><strong>Delayed / At-Risk</strong> — موعد <strong>End date</strong> تجاوز اليوم، أو مؤشر الجدول مقابل التقديم منخفض (SPI).</li>
+      <li><strong>SPI</strong> — تواريخ <strong>Start / End</strong> وحالات المراحل (التقدّم الفعلي مقابل الزمن المنقضي).</li>
+      <li><strong>CPI</strong> — <strong>Planned hours</strong> و <strong>Actual hours</strong> (إن وُجدت)، أو بديل منطقي من الجدول الزمني.</li>
+      <li><strong>Avg PMO Score</strong> — مركّب من التقدّم، SPI، CPI، مخاطر المراحل، و<strong>آخر تحديث حالة</strong>.</li>
+    </ul>
+    <span style="opacity:0.85;">عناصر <strong>RAID</strong> تُدار من القسم <strong>02 — Transformation Workspace — RAID</strong> (أو من داخل كل مشروع بالأسفل).</span>
+  </div>
+</div>
+{{ block.super }}
+{% endblock %}

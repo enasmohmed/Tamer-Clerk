@@ -24,7 +24,13 @@ from .models import (
     DashboardTheme,
     MeetingPoint,
     Recommendation,
-    ProjectTrackerItem,
+    PortfolioRaidItem,
+    ProjectProcessStep,
+    WorkspaceDepartment,
+    WorkspaceProjectCategory,
+    WorkspaceStrategicAlignment,
+    TransformationWorkspaceProject,
+    TransformationWorkspaceRaid,
     WeeklyProjectTrackerRow,
     PotentialChallenge,
     ProgressStatus,
@@ -518,25 +524,152 @@ class PotentialChallengeAdmin(admin.ModelAdmin):
         return render(request, "admin/dashboard/potentialchallenge/import_excel.html", context)
 
 
-# ─── Project Tracker ───
-@admin.register(ProjectTrackerItem)
-class ProjectTrackerItemAdmin(admin.ModelAdmin):
+# ─── Transformation Workspace — لوحة منفصلة (كاردات أول التاب + السجل + RAID) ───
+# أي موديل جديد يخص هذه الشاشة يُسجَّل هنا مع بادئة "03 — …" في verbose_name_plural.
+# النماذج الفعلية في قاعدة البيانات هي ProjectTrackerItem و PortfolioRaidItem؛
+# الـ proxy للعرض فقط في الأدمن بأسماء توضيحية.
+
+
+@admin.register(WorkspaceDepartment)
+class WorkspaceDepartmentAdmin(admin.ModelAdmin):
+    list_display = ("name", "is_active", "display_order")
+    list_editable = ("is_active", "display_order")
+    ordering = ("display_order", "name")
+
+
+@admin.register(WorkspaceProjectCategory)
+class WorkspaceProjectCategoryAdmin(admin.ModelAdmin):
+    list_display = ("name", "is_active", "display_order")
+    list_editable = ("is_active", "display_order")
+    ordering = ("display_order", "name")
+
+
+@admin.register(WorkspaceStrategicAlignment)
+class WorkspaceStrategicAlignmentAdmin(admin.ModelAdmin):
+    list_display = ("name", "is_active", "display_order")
+    list_editable = ("is_active", "display_order")
+    ordering = ("display_order", "name")
+
+
+class ProjectProcessStepInline(admin.TabularInline):
+    model = ProjectProcessStep
+    extra = 0
+    fields = ("description", "step_deadline", "owner_name", "display_order")
+
+
+class PortfolioRaidItemInline(admin.TabularInline):
+    model = PortfolioRaidItem
+    extra = 1
+    fields = ("category", "title", "status", "severity", "owner_name", "display_order")
+
+
+@admin.register(TransformationWorkspaceProject)
+class TransformationWorkspaceProjectAdmin(admin.ModelAdmin):
+    """بيانات المشاريع التي تغذّي الكاردات العلوية (Active / Delayed / SPI / CPI / PMO) وجدول السجل."""
+
+    change_list_template = "admin/dashboard/transformation_workspace/project_changelist.html"
+    readonly_fields = ("is_approved",)
+
+    fieldsets = (
+        (
+            "01 — Project identity",
+            {
+                "fields": (
+                    "description",
+                    "project_code",
+                    "project_lead",
+                    "person_name",
+                    "company",
+                    "department_ref",
+                    "department",
+                    "register_priority",
+                    "register_status",
+                    "is_approved",
+                    "register_category",
+                    "project_type",
+                    "start_date",
+                    "end_date",
+                    "display_order",
+                )
+            },
+        ),
+        (
+            "02 — Business case & impact",
+            {
+                "fields": (
+                    "objective_sow",
+                    "strategic_alignment_ref",
+                    "kpi_success_criteria",
+                    "cost_reduction_pct",
+                    "headcount_impact",
+                    "sla_improvement",
+                )
+            },
+        ),
+        (
+            "03 — Scope definition",
+            {"fields": ("scope_in", "scope_out", "scope_deliverables", "scope_dependencies")},
+        ),
+        (
+            "06 — Governance & approvals",
+            {
+                "fields": (
+                    "gov_submitted_by",
+                    "gov_reviewed_by",
+                    "gov_approval_status",
+                    "gov_stakeholders",
+                    "gov_operational_impact",
+                    "gov_assumptions_constraints",
+                )
+            },
+        ),
+        (
+            "Phases (KPI progress)",
+            {
+                "fields": (
+                    "brainstorming_status",
+                    "execution_status",
+                    "test_deadline_status",
+                    "launch_status",
+                    "planned_hours",
+                    "actual_hours",
+                    "last_status_update",
+                )
+            },
+        ),
+        ("Notes", {"fields": ("remarks",)}),
+    )
+
     list_display = (
         "description",
+        "project_code",
+        "project_lead",
         "person_name",
+        "department_ref",
+        "register_priority",
+        "register_status",
+        "is_approved",
         "project_type",
-        "company",
-        "department",
         "start_date",
         "brainstorming_badge",
-        "execution_badge",
         "launch_badge",
         "test_deadline_status",
         "end_date",
+        "planned_hours",
+        "actual_hours",
+        "last_status_update",
         "display_order",
-        "remarks",
     )
-    list_editable = ("test_deadline_status", "end_date", "display_order")
+    list_editable = (
+        "register_priority",
+        "register_status",
+        "test_deadline_status",
+        "end_date",
+        "planned_hours",
+        "actual_hours",
+        "last_status_update",
+        "display_order",
+    )
     list_filter = (
         "project_type",
         "brainstorming_status",
@@ -547,8 +680,9 @@ class ProjectTrackerItemAdmin(admin.ModelAdmin):
     )
     date_hierarchy = "start_date"
     search_fields = ("description", "person_name", "company", "department")
-    ordering = ("-start_date", "display_order", "id")
+    ordering = ("-created_at", "-id")
     list_per_page = 25
+    inlines = [ProjectProcessStepInline, PortfolioRaidItemInline]
 
     def brainstorming_badge(self, obj):
         return obj.get_brainstorming_status_display() or "—"
@@ -569,6 +703,19 @@ class ProjectTrackerItemAdmin(admin.ModelAdmin):
         return obj.get_test_deadline_status_display() or "—"
 
     test_deadline_badge.short_description = "Test"
+
+
+@admin.register(TransformationWorkspaceRaid)
+class TransformationWorkspaceRaidAdmin(admin.ModelAdmin):
+    """عناصر RAID المفتوحة/المعلقة تُحسب في كارد Open RAID Items (ومع Critical في التذييل)."""
+
+    change_list_template = "admin/dashboard/transformation_workspace/raid_changelist.html"
+
+    list_display = ("title", "project", "category", "status", "severity", "owner_name", "display_order")
+    list_editable = ("display_order",)
+    list_filter = ("category", "status", "severity")
+    search_fields = ("title", "project__description")
+    ordering = ("project", "display_order", "id")
 
 
 # ─── سجل التعديلات (مين دخل إيه ومتى من الأدمن) ───

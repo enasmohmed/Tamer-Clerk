@@ -1,0 +1,2966 @@
+{% load static %}
+<style>
+  :root {
+    --pp-primary: {{ dashboard_theme.primary_color|default:"#0ea5e9" }};
+    --pp-secondary: {{ dashboard_theme.secondary_color|default:"#818cf8" }};
+    --pp-border: {{ dashboard_theme.border_color|default:"#e2e8f0" }};
+    --pp-muted: {{ dashboard_theme.text_muted|default:"#64748b" }};
+    --pp-text: {{ dashboard_theme.text_primary|default:"#1e293b" }};
+    --pp-bg: #ffffff;
+    --pp-soft: {{ dashboard_theme.bg_light|default:"#f1f5f9" }};
+    --pp-shadow: 0 10px 26px rgba(16, 24, 40, 0.08);
+    --pp-radius: 16px;
+    /* Project details overlay — مدة أطول وحركة أنعم */
+    --tw-detail-dur: 0.72s;
+    --tw-detail-ease: cubic-bezier(0.33, 1, 0.32, 1);
+  }
+
+  /* Transformation Workspace — portfolio KPI strip (same card language as pp-card) */
+  .tw-kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 1400px) {
+    .tw-kpi-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+  @media (max-width: 768px) {
+    .tw-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (max-width: 520px) {
+    .tw-kpi-strip { grid-template-columns: 1fr; }
+  }
+
+  .tw-kpi-card {
+    position: relative;
+    border-radius: var(--pp-radius);
+    padding: 16px 16px 14px;
+    min-height: 118px;
+    background: var(--pp-bg);
+    border: 1px solid var(--pp-border);
+    box-shadow: 0 6px 22px rgba(16, 24, 40, 0.07);
+    overflow: hidden;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  .tw-kpi-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 26px rgba(16, 24, 40, 0.1);
+    border-color: rgba(14, 165, 233, 0.22);
+  }
+  .tw-kpi-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 3px;
+    background: var(--tw-accent, var(--pp-secondary));
+    border-radius: var(--pp-radius) var(--pp-radius) 0 0;
+  }
+  .tw-kpi-card .tw-kpi-title {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--pp-muted);
+    margin: 0 0 8px;
+    line-height: 1.25;
+  }
+  .tw-kpi-card .tw-kpi-value {
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1.05;
+    color: var(--tw-accent, var(--pp-primary));
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .tw-kpi-card .tw-kpi-sub {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--pp-muted);
+  }
+  .tw-kpi-card .tw-kpi-foot {
+    margin-top: 12px;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.35;
+  }
+  .tw-foot-good { color: #0284c7; }
+  .tw-foot-bad { color: #dc2626; }
+  .tw-foot-neutral { color: var(--pp-muted); }
+  .tw-foot-warn { color: #c2410c; }
+
+  .pp-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  /* Project Register + Active Alerts */
+  .tw-register-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 440px);
+    gap: 18px;
+    align-items: stretch;
+  }
+  @media (max-width: 1100px) {
+    .tw-register-row { grid-template-columns: 1fr; }
+  }
+
+  .tw-register-panel.pp-card {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: min(620px, 62vh);
+    overflow: hidden;
+  }
+  .tw-register-panel .pp-register-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0 !important;
+  }
+
+  .tw-reg-table-wrap {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: min(540px, 56vh);
+    overflow: auto;
+    border-radius: 14px;
+    border: 1px solid var(--pp-border);
+    margin: 0 12px 12px;
+  }
+  .tw-reg-table.pp-table {
+    font-size: 12.8px;
+    color: var(--pp-text);
+    background: #ffffff;
+  }
+  .tw-reg-table.pp-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f8fafc;
+    color: var(--pp-text);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    padding: 10px 10px;
+    border-bottom: 1px solid var(--pp-border);
+    white-space: nowrap;
+  }
+  .tw-reg-table.pp-table tbody tr.pp-active td {
+    outline: 1px solid rgba(14, 165, 233, 0.35);
+  }
+
+  .tw-project-code {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: var(--pp-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+  .tw-project-name {
+    font-weight: 900;
+    font-size: 13px;
+    color: var(--pp-text);
+    line-height: 1.25;
+  }
+  .tw-project-sub {
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--pp-muted);
+    line-height: 1.3;
+  }
+
+  .tw-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .tw-st-ontrack { background: rgba(14, 165, 233, 0.12); color: #0369a1; border-color: rgba(14, 165, 233, 0.32); }
+  .tw-st-atrisk { background: rgba(245, 158, 11, 0.14); color: #c2410c; border-color: rgba(245, 158, 11, 0.35); }
+  .tw-st-delayed { background: rgba(220, 38, 38, 0.10); color: #b91c1c; border-color: rgba(220, 38, 38, 0.28); }
+  .tw-st-blocked { background: rgba(234, 88, 12, 0.12); color: #c2410c; border-color: rgba(234, 88, 12, 0.28); }
+  .tw-st-approved { background: rgba(56, 189, 248, 0.12); color: #0369a1; border-color: rgba(56, 189, 248, 0.28); }
+  .tw-st-none { background: rgba(241, 245, 249, 0.95); color: var(--pp-muted); border-color: var(--pp-border); }
+
+  .tw-pmbok-init { background: rgba(139, 92, 246, 0.10); color: #6d28d9; border-color: rgba(139, 92, 246, 0.22); }
+  .tw-pmbok-plan { background: rgba(59, 130, 246, 0.10); color: #1d4ed8; border-color: rgba(59, 130, 246, 0.22); }
+  .tw-pmbok-exec { background: rgba(59, 130, 246, 0.12); color: #1d4ed8; border-color: rgba(59, 130, 246, 0.28); }
+  .tw-pmbok-mon { background: rgba(245, 158, 11, 0.12); color: #b45309; border-color: rgba(245, 158, 11, 0.22); }
+  .tw-pmbok-close { background: rgba(100, 116, 139, 0.10); color: #475569; border-color: rgba(100, 116, 139, 0.22); }
+
+  .tw-reg-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 120px;
+  }
+  .tw-reg-progress .tw-bar {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(226,232,240,0.95);
+    overflow: hidden;
+    border: 1px solid var(--pp-border);
+  }
+  .tw-reg-progress .tw-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #6366f1, #38bdf8, #0284c7);
+  }
+  .tw-reg-progress strong {
+    font-size: 11px;
+    font-weight: 900;
+    color: var(--pp-text);
+    min-width: 34px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tw-dead-cell .tw-dead-date {
+    font-weight: 800;
+    font-size: 12px;
+    color: var(--pp-text);
+    font-variant-numeric: tabular-nums;
+  }
+  .tw-dead-cell .tw-dead-d {
+    margin-top: 3px;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--pp-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .tw-pmo-pct {
+    font-weight: 950;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+  }
+  .tw-pmo-good { color: #0284c7; }
+  .tw-pmo-warn { color: #c2410c; }
+  .tw-pmo-bad { color: #b91c1c; }
+
+  .tw-pm-name {
+    font-weight: 750;
+    font-size: 12.5px;
+    color: var(--pp-text);
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Active Alerts — عرض أوسع، نفس ارتفاع كارت السجل */
+  .tw-alerts-panel {
+    border-radius: var(--pp-radius);
+    background: var(--pp-bg);
+    border: 1px solid var(--pp-border);
+    box-shadow: 0 6px 22px rgba(16, 24, 40, 0.07);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: min(620px, 62vh);
+    overflow: hidden;
+  }
+  .tw-alerts-head {
+    flex-shrink: 0;
+    padding: 12px 14px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--pp-border);
+  }
+  .tw-alerts-head-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .tw-alerts-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--pp-text);
+    letter-spacing: 0.06em;
+  }
+  .tw-alerts-title .tw-bell { font-size: 15px; }
+  .tw-alerts-help {
+    margin: 8px 0 0;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--pp-muted);
+    font-weight: 600;
+  }
+  .tw-alerts-config {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: var(--pp-primary);
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .tw-alerts-config:hover {
+    color: #0369a1;
+    text-decoration: underline;
+  }
+  .tw-alerts-list {
+    padding: 10px 12px 12px;
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+    max-height: min(540px, 56vh);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .tw-alert-card {
+    display: grid;
+    grid-template-columns: 10px 1fr auto;
+    gap: 8px;
+    align-items: start;
+    padding: 10px 10px;
+    border-radius: 12px;
+    background: var(--pp-soft);
+    border: 1px solid var(--pp-border);
+  }
+  .tw-alert-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    margin-top: 4px;
+    flex-shrink: 0;
+  }
+  .tw-alert-crit .tw-alert-dot { background: #dc2626; }
+  .tw-alert-warn .tw-alert-dot { background: #ea580c; }
+  .tw-alert-info .tw-alert-dot { background: #38bdf8; }
+
+  .tw-alert-msg {
+    font-size: 12px;
+    font-weight: 750;
+    color: var(--pp-text);
+    line-height: 1.35;
+  }
+  .tw-alert-ctx {
+    margin-top: 3px;
+    font-size: 10.5px;
+    color: var(--pp-muted);
+    line-height: 1.3;
+    word-break: break-word;
+  }
+  .tw-alert-time {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    color: var(--pp-muted);
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+  .tw-alert-empty {
+    padding: 20px 12px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--pp-muted);
+  }
+
+  .pp-card {
+    border-radius: var(--pp-radius);
+    background: var(--pp-bg);
+    border: 1px solid var(--pp-border);
+    box-shadow: 0 6px 22px rgba(16, 24, 40, 0.07);
+    overflow: hidden;
+  }
+  .pp-card:hover {
+    border-color: rgba(14, 165, 233, 0.2);
+  }
+  .pp-card-header {
+    padding: 14px 16px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--pp-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .pp-title {
+    margin: 0;
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--pp-text);
+    letter-spacing: 0.2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0369a1;
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(14, 165, 233, 0.22);
+    white-space: nowrap;
+  }
+
+  .pp-body { padding: 12px 14px 14px; }
+  .pp-table-wrap {
+    max-height: 640px;
+    overflow: auto;
+    border-radius: 14px;
+    border: 1px solid var(--pp-border);
+  }
+  .pp-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12.8px;
+    color: var(--pp-text);
+    background: #ffffff;
+  }
+  .pp-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #f8fafc;
+    color: var(--pp-text);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 11px;
+    padding: 10px 10px;
+    border-bottom: 1px solid var(--pp-border);
+  }
+  .pp-table tbody tr {
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .pp-table tbody tr:nth-child(even) td {
+    background: rgba(241,245,249,0.55);
+  }
+  .pp-table tbody tr:hover {
+    background: rgba(14, 165, 233, 0.06);
+  }
+  .pp-table tbody tr.pp-active {
+    background: rgba(14, 165, 233, 0.1);
+    outline: 1px solid rgba(14, 165, 233, 0.28);
+  }
+  .pp-table td {
+    padding: 10px 10px;
+    border-bottom: 1px solid var(--pp-border);
+    vertical-align: middle;
+    color: var(--pp-text);
+  }
+  .pp-muted { color: var(--pp-muted); }
+
+  .pp-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 62px;
+    padding: 5px 8px;
+    border-radius: 10px;
+    font-weight: 800;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    border: 1px solid var(--pp-border);
+    background: var(--pp-soft);
+    color: var(--pp-text);
+  }
+
+  .pp-badge.phase {
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.22);
+    color: #4f46e5;
+  }
+
+  .pp-new-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 8px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 950;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    color: #0284c7;
+    vertical-align: middle;
+    line-height: 1;
+  }
+  .pp-risk-high { background: rgba(220,38,38,0.10); border-color: rgba(220,38,38,0.22); color: #991b1b; }
+  .pp-risk-med { background: rgba(245,124,0,0.10); border-color: rgba(245,124,0,0.22); color: #9a3412; }
+  .pp-risk-low { background: rgba(14, 165, 233, 0.10); border-color: rgba(14, 165, 233, 0.22); color: #0369a1; }
+
+  .pp-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 140px;
+  }
+  .pp-bar {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(226,232,240,0.95);
+    overflow: hidden;
+    border: 1px solid rgba(226,232,240,1);
+  }
+  .pp-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #6366f1, #38bdf8, #0284c7);
+    width: 0%;
+    transition: width 0.2s ease;
+  }
+  .pp-progress strong {
+    font-size: 12px;
+    color: var(--pp-text);
+    min-width: 34px;
+    text-align: right;
+  }
+
+  .pp-detail-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  /* Project Detail — عرض كامل تحت السجل */
+  .pp-detail-scroll {
+    max-height: min(92vh, 1400px);
+    overflow: auto;
+    padding-right: 6px;
+  }
+  .pp-detail-title {
+    font-size: 14px;
+    font-weight: 900;
+    margin: 0;
+    color: var(--pp-text);
+  }
+  .pp-kv {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid var(--pp-border);
+    color: var(--pp-text);
+    font-size: 12.8px;
+  }
+  .pp-kv .k { color: rgba(219,230,243,0.65); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; }
+  .pp-kv .k { color: var(--pp-muted); }
+  .pp-kv .v { color: var(--pp-text); font-weight: 650; }
+  .pp-remarks {
+    white-space: pre-wrap;
+    line-height: 1.35;
+  }
+
+  .pp-list {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--pp-text);
+  }
+  .pp-list li { margin: 6px 0; }
+  .pp-mini-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: 11px;
+    border: 1px solid var(--pp-border);
+    background: var(--pp-soft);
+    color: var(--pp-text);
+    white-space: nowrap;
+  }
+  .pp-mini-tag.high { border-color: rgba(220,38,38,0.22); background: rgba(220,38,38,0.08); color: #991b1b; }
+  .pp-mini-tag.med { border-color: rgba(245,124,0,0.22); background: rgba(245,124,0,0.08); color: #9a3412; }
+  .pp-mini-tag.low { border-color: rgba(14, 165, 233, 0.22); background: rgba(14, 165, 233, 0.08); color: #0369a1; }
+
+  /* Modal placeholders (حقول فاتحة) */
+  #ppAddProjectModal .form-control::placeholder,
+  #ppAddProjectModal textarea.form-control::placeholder {
+    color: rgba(71, 85, 105, 0.75);
+    opacity: 1;
+  }
+  #ppAddProjectModal .form-control::-webkit-input-placeholder,
+  #ppAddProjectModal textarea.form-control::-webkit-input-placeholder {
+    color: rgba(71, 85, 105, 0.75);
+  }
+  #ppAddProjectModal .form-control:-ms-input-placeholder,
+  #ppAddProjectModal textarea.form-control:-ms-input-placeholder {
+    color: rgba(71, 85, 105, 0.75);
+  }
+  #ppAddProjectModal .form-control::-ms-input-placeholder,
+  #ppAddProjectModal textarea.form-control::-ms-input-placeholder {
+    color: rgba(71, 85, 105, 0.75);
+  }
+  #ppAddProjectModal .form-control,
+  #ppAddProjectModal .form-select {
+    caret-color: #0f172a;
+  }
+
+  /* Add Project modal: أضيق من xl + عناوين أقسام على سطر واحد */
+  #ppAddProjectModal .modal-dialog.pp-register-modal {
+    max-width: min(640px, 96vw);
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #ppAddProjectModal .pp-modal-section-title {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #0369a1;
+    padding: 10px 14px;
+    margin: 0;
+    background: #f1f5f9;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 10px;
+    line-height: 1.35;
+    white-space: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  #ppAddProjectModal .pp-modal-section-title.pp-modal-section-spaced {
+    margin-top: 1.35rem;
+  }
+  #ppAddProjectModal .pp-modal-section-subtitle {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #0284c7;
+    margin: 12px 0 8px;
+  }
+  #ppAddProjectModal .pp-repeat-table {
+    width: 100%;
+    font-size: 12px;
+    border-collapse: separate;
+    border-spacing: 0;
+  }
+  #ppAddProjectModal .pp-repeat-table th {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b;
+    padding: 4px 6px 8px 0;
+    text-align: left;
+    white-space: nowrap;
+  }
+  #ppAddProjectModal .pp-repeat-table td {
+    padding: 4px 8px 8px 0;
+    vertical-align: middle;
+  }
+  #ppAddProjectModal .pp-repeat-table .form-control,
+  #ppAddProjectModal .pp-repeat-table .form-select {
+    padding-top: 6px;
+    padding-bottom: 6px;
+    font-size: 12px;
+  }
+  #ppAddProjectModal .pp-add-repeat {
+    margin-top: 6px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #0284c7;
+    font-weight: 800;
+    font-size: 12px;
+    letter-spacing: 0.02em;
+  }
+  #ppAddProjectModal .pp-add-repeat:hover {
+    color: #bae6fd;
+    text-decoration: underline;
+  }
+  .pp-tw-detail-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 12px;
+  }
+  .pp-tw-detail-table thead th {
+    position: sticky;
+    top: 0;
+    background: #f8fafc;
+    color: var(--pp-text);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--pp-border);
+    text-align: left;
+  }
+  .pp-tw-detail-table tbody td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--pp-border);
+    vertical-align: top;
+  }
+
+  /* Selected project — light layout (matches pp-card / tab-bootstrap theme) */
+  .tw-project-detail-card .pp-body { overflow: hidden; }
+  .tw-detail-placeholder {
+    padding: 22px 18px;
+    font-size: 13px;
+    text-align: center;
+  }
+  .tw-detail-shell {
+    background: var(--pp-bg);
+    color: var(--pp-text);
+    border-radius: 0 0 var(--pp-radius) var(--pp-radius);
+    border-top: 1px solid var(--pp-border);
+  }
+  .tw-detail-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--pp-border);
+    background: var(--pp-bg);
+  }
+  .tw-detail-header-title {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 950;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--pp-text);
+    line-height: 1.25;
+    flex: 1;
+    min-width: 0;
+  }
+  .tw-detail-header-log {
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    color: var(--pp-secondary);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .tw-detail-badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 16px 14px;
+    background: var(--pp-soft);
+    border-bottom: 1px solid var(--pp-border);
+  }
+  .tw-detail-tabbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    padding: 0 16px;
+    background: var(--pp-bg);
+    border-bottom: 1px solid var(--pp-border);
+  }
+  .tw-detail-tab {
+    border: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: var(--pp-muted);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    padding: 12px 2px 10px;
+    margin-bottom: -1px;
+    cursor: pointer;
+    transition: color 0.15s ease, border-color 0.15s ease;
+  }
+  .tw-detail-tab:hover {
+    color: var(--pp-text);
+  }
+  .tw-detail-tab.active {
+    color: var(--pp-secondary);
+    border-bottom-color: var(--pp-secondary);
+  }
+  .tw-detail-panel-scroll {
+    max-height: min(560px, 58vh);
+    overflow-y: auto;
+    padding: 14px 16px 18px;
+    background: var(--pp-bg);
+  }
+  .tw-kpi-strategy-line {
+    margin-top: 10px;
+    font-size: 12.5px;
+    font-weight: 700;
+    line-height: 1.45;
+    color: var(--pp-secondary);
+  }
+  .tw-overview-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-top: 14px;
+    align-items: stretch;
+  }
+  @media (max-width: 768px) {
+    .tw-overview-split { grid-template-columns: 1fr; }
+  }
+  .tw-split-half .tw-pmo-display-val {
+    font-size: 38px;
+    font-weight: 950;
+    line-height: 1;
+    color: #38bdf8;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .tw-pmo-split-inner {
+    text-align: center;
+    padding-bottom: 16px !important;
+  }
+  .tw-pmo-display-sub {
+    margin-top: 10px;
+    font-size: 11px;
+    color: var(--pp-muted);
+    font-weight: 600;
+  }
+  .tw-dl-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 12.5px;
+    margin-bottom: 10px;
+    color: var(--pp-text);
+  }
+  .tw-days-remain {
+    font-weight: 900;
+    color: #38bdf8;
+    font-variant-numeric: tabular-nums;
+  }
+  .tw-dl-deadline-foot {
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--pp-muted);
+  }
+  .tw-detail-footer-meta-light {
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--pp-border);
+    background: var(--pp-soft);
+    font-size: 12px;
+    color: var(--pp-muted);
+    line-height: 1.55;
+  }
+  .tw-detail-footer-meta-light strong {
+    color: var(--pp-text);
+    font-weight: 800;
+  }
+  .tw-detail-badge-row .tw-hp-prio {
+    background: #ffffff;
+    color: var(--pp-text);
+    border: 1px solid var(--pp-border);
+  }
+  .tw-detail-badge-row .tw-hp-cat {
+    background: #ffffff;
+    color: var(--pp-secondary);
+    border: 1px solid rgba(99, 102, 241, 0.35);
+  }
+
+  /* PMO skin: خلفية فاتحة + حدود كما هي نسبيًا + نص داكن */
+  .tw-pmo-theme {
+    --tw-bg-deep: #f1f5f9;
+    --tw-bg-card: #ffffff;
+    --tw-bg-elevated: #f8fafc;
+    --tw-line: rgba(15, 23, 42, 0.12);
+    --tw-text-hi: #0f172a;
+    --tw-text-lo: #475569;
+    --tw-neon-cyan: #0284c7;
+    --tw-neon-green: #059669;
+    --tw-neon-red: #dc2626;
+    --tw-neon-amber: #d97706;
+    --tw-neon-purple: #7c3aed;
+    /* عرض ~15 صفًا ثم سكرول داخل Project Register و Active Alerts */
+    --tw-scroll-visible-count: 15;
+    --tw-reg-thead-est: 2.75rem;
+    --tw-reg-row-est: 3.2rem;
+    --tw-scroll-panel-max: calc(var(--tw-reg-thead-est) + var(--tw-scroll-visible-count) * var(--tw-reg-row-est));
+    background-color: var(--tw-bg-deep);
+    background-image: none;
+    padding: 16px 14px 18px;
+    margin-bottom: 0;
+    border-radius: 14px;
+    border: 1px solid var(--tw-line);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .tw-pmo-theme .tw-kpi-strip {
+    flex-shrink: 0;
+  }
+
+  .tw-pmo-theme .tw-kpi-card {
+    background: var(--tw-bg-card);
+    border-color: var(--tw-line);
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
+  }
+  .tw-pmo-theme .tw-kpi-card:hover {
+    border-color: rgba(2, 132, 199, 0.35);
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+  }
+  .tw-pmo-theme .tw-kpi-card .tw-kpi-title {
+    color: var(--tw-text-lo);
+  }
+  .tw-pmo-theme .tw-kpi-card .tw-kpi-sub,
+  .tw-pmo-theme .tw-kpi-card .tw-kpi-foot {
+    color: var(--tw-text-lo);
+  }
+  .tw-pmo-theme .tw-kpi-card .tw-kpi-value {
+    text-shadow: none;
+  }
+  .tw-pmo-theme .tw-foot-good { color: var(--tw-neon-green); }
+  .tw-pmo-theme .tw-foot-bad { color: var(--tw-neon-red); }
+  .tw-pmo-theme .tw-foot-warn { color: var(--tw-neon-amber); }
+  .tw-pmo-theme .tw-foot-neutral { color: var(--tw-text-lo); }
+
+  .tw-pmo-theme .pp-card {
+    background: var(--tw-bg-card);
+    border-color: var(--tw-line);
+    box-shadow: 0 4px 22px rgba(15, 23, 42, 0.08);
+  }
+  .tw-pmo-theme .pp-card:hover {
+    border-color: rgba(2, 132, 199, 0.28);
+  }
+  .tw-pmo-theme .pp-card-header {
+    background: var(--tw-bg-elevated) !important;
+    border-bottom-color: var(--tw-line) !important;
+  }
+  .tw-pmo-theme .pp-title {
+    color: var(--tw-text-hi) !important;
+  }
+  .tw-pmo-theme .pp-pill {
+    color: var(--tw-neon-cyan);
+    background: rgba(2, 132, 199, 0.1);
+    border-color: rgba(2, 132, 199, 0.35);
+  }
+
+  .tw-pmo-theme .tw-reg-table-wrap {
+    border-color: var(--tw-line);
+    background: var(--tw-bg-card);
+  }
+  .tw-pmo-theme .tw-reg-table.pp-table {
+    background: transparent;
+    color: var(--tw-text-hi);
+  }
+  .tw-pmo-theme .tw-reg-table.pp-table thead th {
+    background: var(--tw-bg-elevated);
+    color: var(--tw-text-hi);
+    border-bottom-color: var(--tw-line);
+  }
+  .tw-pmo-theme .pp-table tbody tr:nth-child(even) td {
+    background: rgba(15, 23, 42, 0.03);
+  }
+  .tw-pmo-theme .pp-table tbody tr:nth-child(odd) td {
+    background: rgba(15, 23, 42, 0.055);
+  }
+  .tw-pmo-theme .pp-table tbody tr:hover td {
+    background: rgba(2, 132, 199, 0.08);
+  }
+  .tw-pmo-theme .pp-table tbody tr.pp-active td {
+    background: rgba(2, 132, 199, 0.12);
+    box-shadow: inset 0 0 0 1px rgba(2, 132, 199, 0.4);
+  }
+  .tw-pmo-theme .pp-table td {
+    border-bottom-color: var(--tw-line);
+    color: var(--tw-text-hi);
+  }
+
+  /* Register grid: نص داكن (الأكواد تبقى مميّزة بلون التمييز) */
+  .tw-pmo-theme .tw-reg-table.pp-table .tw-project-name {
+    color: var(--tw-text-hi) !important;
+  }
+  .tw-pmo-theme .tw-reg-table.pp-table .tw-project-sub {
+    color: var(--tw-text-lo) !important;
+  }
+  .tw-pmo-theme .tw-reg-table.pp-table .tw-pm-name {
+    color: var(--tw-text-hi) !important;
+  }
+  .tw-pmo-theme .tw-reg-table.pp-table .tw-dead-cell .tw-dead-date {
+    color: var(--tw-text-hi) !important;
+  }
+  .tw-pmo-theme .tw-reg-table.pp-table .tw-dead-cell .tw-dead-d {
+    color: var(--tw-neon-cyan) !important;
+  }
+  .tw-pmo-theme .tw-reg-table.pp-table tbody td.tw-reg-empty-msg {
+    color: var(--tw-text-lo) !important;
+  }
+
+  .tw-pmo-theme .tw-project-code {
+    color: var(--tw-neon-cyan);
+  }
+  .tw-pmo-theme .tw-project-sub {
+    color: var(--tw-text-lo);
+  }
+
+  .tw-pmo-theme .tw-st-ontrack {
+    background: rgba(5, 150, 105, 0.12);
+    color: var(--tw-neon-green);
+    border-color: rgba(5, 150, 105, 0.38);
+    box-shadow: none;
+  }
+  .tw-pmo-theme .tw-st-atrisk {
+    background: rgba(255, 171, 64, 0.12);
+    color: var(--tw-neon-amber);
+    border-color: rgba(255, 171, 64, 0.4);
+  }
+  .tw-pmo-theme .tw-st-delayed {
+    background: rgba(255, 82, 82, 0.12);
+    color: var(--tw-neon-red);
+    border-color: rgba(255, 82, 82, 0.38);
+  }
+  .tw-pmo-theme .tw-st-blocked {
+    background: rgba(255, 171, 64, 0.1);
+    color: var(--tw-neon-amber);
+    border-color: rgba(255, 171, 64, 0.35);
+  }
+  .tw-pmo-theme .tw-st-approved {
+    background: rgba(2, 132, 199, 0.1);
+    color: var(--tw-neon-cyan);
+    border-color: rgba(2, 132, 199, 0.35);
+  }
+  .tw-pmo-theme .tw-st-none {
+    background: rgba(15, 23, 42, 0.05);
+    color: var(--tw-text-lo);
+    border-color: var(--tw-line);
+  }
+
+  .tw-pmo-theme .tw-pmbok-init {
+    background: rgba(123, 97, 255, 0.12);
+    color: var(--tw-neon-purple);
+    border-color: rgba(123, 97, 255, 0.35);
+  }
+  .tw-pmo-theme .tw-pmbok-plan {
+    background: rgba(2, 132, 199, 0.1);
+    color: var(--tw-neon-cyan);
+    border-color: rgba(2, 132, 199, 0.32);
+  }
+  .tw-pmo-theme .tw-pmbok-exec {
+    background: rgba(0, 230, 118, 0.12);
+    color: var(--tw-neon-green);
+    border-color: rgba(0, 230, 118, 0.35);
+  }
+  .tw-pmo-theme .tw-pmbok-mon {
+    background: rgba(255, 171, 64, 0.12);
+    color: var(--tw-neon-amber);
+    border-color: rgba(255, 171, 64, 0.35);
+  }
+  .tw-pmo-theme .tw-pmbok-close {
+    background: rgba(138, 138, 157, 0.12);
+    color: var(--tw-text-lo);
+    border-color: var(--tw-line);
+  }
+
+  .tw-pmo-theme .tw-reg-progress .tw-bar {
+    background: rgba(226, 232, 240, 0.95);
+    border-color: var(--tw-line);
+  }
+  .tw-pmo-theme .tw-reg-progress .tw-bar > span {
+    background: linear-gradient(90deg, #0369a1, var(--tw-neon-cyan));
+    box-shadow: none;
+  }
+  .tw-pmo-theme .tw-reg-progress strong {
+    color: var(--tw-text-hi);
+  }
+
+  .tw-pmo-theme .tw-pmo-good {
+    color: var(--tw-neon-green);
+    text-shadow: none;
+  }
+  .tw-pmo-theme .tw-pmo-warn {
+    color: var(--tw-neon-amber);
+  }
+  .tw-pmo-theme .tw-pmo-bad {
+    color: var(--tw-neon-red);
+  }
+
+  .tw-pmo-theme .tw-alerts-panel {
+    background: var(--tw-bg-card);
+    border-color: var(--tw-line);
+  }
+  .tw-pmo-theme .tw-alerts-head {
+    background: var(--tw-bg-elevated) !important;
+    border-bottom-color: var(--tw-line) !important;
+  }
+  .tw-pmo-theme .tw-alerts-title {
+    color: var(--tw-text-hi) !important;
+  }
+  .tw-pmo-theme .tw-alerts-config {
+    color: var(--tw-neon-cyan);
+  }
+  .tw-pmo-theme .tw-alert-card {
+    background: var(--tw-bg-elevated);
+    border-color: var(--tw-line);
+  }
+  .tw-pmo-theme .tw-alert-msg {
+    color: var(--tw-text-hi);
+  }
+  .tw-pmo-theme .tw-alert-ctx,
+  .tw-pmo-theme .tw-alert-time {
+    color: var(--tw-text-lo);
+  }
+  .tw-pmo-theme .tw-alert-empty {
+    color: var(--tw-text-lo);
+  }
+
+  .tw-pmo-theme .tw-detail-placeholder {
+    color: var(--tw-text-lo);
+  }
+  .tw-pmo-theme .tw-detail-shell {
+    background: var(--tw-bg-card);
+    border-top-color: var(--tw-line);
+    color: var(--tw-text-hi);
+  }
+  .tw-pmo-theme .tw-detail-header-row {
+    background: transparent;
+    border-bottom-color: var(--tw-line);
+  }
+  .tw-pmo-theme .tw-detail-header-title,
+  .tw-pmo-theme #ppName {
+    color: var(--tw-text-hi) !important;
+    text-shadow: none;
+  }
+  .tw-pmo-theme .tw-detail-header-log {
+    color: var(--tw-neon-cyan);
+  }
+  .tw-pmo-theme .tw-detail-badge-row {
+    background: var(--tw-bg-elevated);
+    border-bottom-color: var(--tw-line);
+  }
+  .tw-pmo-theme .tw-detail-tabbar {
+    background: transparent;
+    border-bottom-color: var(--tw-line);
+  }
+  .tw-pmo-theme .tw-detail-tab {
+    color: var(--tw-text-lo);
+  }
+  .tw-pmo-theme .tw-detail-tab:hover {
+    color: var(--tw-text-hi);
+  }
+  .tw-pmo-theme .tw-detail-tab.active {
+    color: var(--tw-neon-cyan);
+    border-bottom-color: var(--tw-neon-cyan);
+    text-shadow: none;
+  }
+  .tw-pmo-theme .tw-detail-panel-scroll {
+    background: var(--tw-bg-card);
+    color: var(--tw-text-hi);
+  }
+  .tw-pmo-theme .tw-kpi-strategy-line {
+    color: var(--tw-neon-purple);
+  }
+  .tw-pmo-theme .tw-split-half .tw-pmo-display-val {
+    color: var(--tw-neon-cyan);
+    text-shadow: none;
+  }
+  .tw-pmo-theme .tw-pmo-display-sub {
+    color: var(--tw-text-lo);
+  }
+  .tw-pmo-theme .tw-dl-top-row {
+    color: var(--tw-text-hi);
+  }
+  .tw-pmo-theme .tw-days-remain {
+    color: var(--tw-neon-cyan);
+  }
+  .tw-pmo-theme .tw-dl-deadline-foot {
+    color: var(--tw-text-lo);
+  }
+  .tw-pmo-theme #ppProgressInline {
+    color: var(--tw-neon-cyan) !important;
+  }
+  .tw-pmo-theme .pp-bar {
+    background: rgba(226, 232, 240, 0.95) !important;
+    border-color: var(--tw-line) !important;
+  }
+  .tw-pmo-theme .pp-bar > span {
+    background: linear-gradient(90deg, #0369a1, var(--tw-neon-cyan)) !important;
+    box-shadow: none;
+  }
+
+  .tw-pmo-theme .tw-detail-footer-meta-light {
+    background: var(--tw-bg-elevated);
+    border-color: var(--tw-line);
+    color: var(--tw-text-lo);
+  }
+  .tw-pmo-theme .tw-detail-footer-meta-light strong {
+    color: var(--tw-text-hi);
+  }
+
+  .tw-pmo-theme .pp-kv {
+    background: var(--tw-bg-elevated) !important;
+    border-color: var(--tw-line) !important;
+    color: var(--tw-text-hi);
+  }
+  .tw-pmo-theme .pp-kv .k {
+    color: var(--tw-text-lo) !important;
+  }
+  .tw-pmo-theme .pp-kv .v {
+    color: var(--tw-text-hi) !important;
+  }
+  .tw-pmo-theme .pp-muted {
+    color: var(--tw-text-lo) !important;
+  }
+
+  .tw-pmo-theme .pp-mini-tag {
+    background: rgba(15, 23, 42, 0.05);
+    border-color: var(--tw-line);
+    color: var(--tw-text-hi);
+  }
+  .tw-pmo-theme .pp-mini-tag.high {
+    border-color: rgba(255, 82, 82, 0.45);
+    background: rgba(255, 82, 82, 0.12);
+    color: var(--tw-neon-red);
+  }
+  .tw-pmo-theme .pp-mini-tag.med {
+    border-color: rgba(255, 171, 64, 0.45);
+    background: rgba(255, 171, 64, 0.12);
+    color: var(--tw-neon-amber);
+  }
+  .tw-pmo-theme .pp-mini-tag.low {
+    border-color: rgba(2, 132, 199, 0.35);
+    background: rgba(2, 132, 199, 0.1);
+    color: var(--tw-neon-cyan);
+  }
+
+  .tw-pmo-theme .tw-detail-badge-row .tw-hp-prio {
+    background: var(--tw-bg-card);
+    color: var(--tw-text-hi);
+    border-color: var(--tw-line);
+  }
+  .tw-pmo-theme .tw-detail-badge-row .tw-hp-cat {
+    background: rgba(123, 97, 255, 0.12);
+    color: var(--tw-neon-purple);
+    border-color: rgba(123, 97, 255, 0.35);
+  }
+
+  .tw-pmo-theme .pp-new-badge {
+    background: rgba(2, 132, 199, 0.12);
+    border-color: rgba(2, 132, 199, 0.4);
+    color: var(--tw-neon-cyan);
+    box-shadow: none;
+  }
+
+  .tw-pmo-theme .pp-tw-detail-table thead th {
+    background: var(--tw-bg-elevated);
+    color: var(--tw-text-lo);
+    border-bottom-color: var(--tw-line);
+  }
+  .tw-pmo-theme .pp-tw-detail-table tbody td {
+    border-bottom-color: var(--tw-line);
+    color: var(--tw-text-hi);
+  }
+  .tw-pmo-theme .pp-table-wrap {
+    border-color: var(--tw-line);
+  }
+  .tw-pmo-theme .pp-list {
+    color: var(--tw-text-hi);
+  }
+
+  .tw-pmo-theme .tw-detail-panel-scroll .pp-card {
+    border-color: var(--tw-line);
+    background: var(--tw-bg-elevated);
+  }
+  .tw-pmo-theme .tw-detail-panel-scroll .pp-card-header {
+    background: var(--tw-bg-elevated) !important;
+    border-bottom-color: var(--tw-line) !important;
+  }
+  .tw-pmo-theme .tw-detail-panel-scroll .pp-card-header .pp-title {
+    color: var(--tw-text-hi) !important;
+  }
+
+  .tw-pmo-theme #ppAddProjectBtn {
+    background: linear-gradient(135deg, #0284c7, #6366f1) !important;
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
+  }
+
+  /* Register + Alerts: نفس ارتفاع منطقة السكرول (~15 صف / ~15 بطاقة) */
+  .tw-pmo-theme .pp-wrap {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .tw-register-stack {
+    position: relative;
+    flex: 0 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: 0;
+  }
+  .tw-register-stack .tw-register-row {
+    flex: 0 1 auto;
+    min-height: 0;
+    align-items: stretch;
+  }
+  .tw-pmo-theme .tw-register-panel.pp-card {
+    max-height: none !important;
+    flex: 0 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .tw-register-panel .pp-register-body {
+    flex: 0 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .tw-register-panel.tw-register-panel-overlay-host {
+    position: relative;
+    overflow: hidden;
+  }
+  .tw-pmo-theme .tw-reg-table-wrap {
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: var(--tw-scroll-panel-max);
+    overflow-x: auto;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .tw-register-stack .tw-alerts-panel {
+    flex: 0 1 auto;
+    align-self: stretch;
+    min-height: 0;
+    max-height: none !important;
+    display: flex;
+    flex-direction: column;
+  }
+  .tw-pmo-theme .tw-alerts-list {
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: var(--tw-scroll-panel-max) !important;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tw-detail-backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    visibility: hidden;
+    /* عند الإغلاق: إخفاء visibility بعد انتهاء الشفافية */
+    transition:
+      opacity var(--tw-detail-dur) var(--tw-detail-ease),
+      visibility 0s linear var(--tw-detail-dur);
+    pointer-events: none;
+    border-radius: 12px;
+  }
+  .tw-pmo-theme .tw-detail-backdrop {
+    background: rgba(15, 23, 42, 0.28);
+  }
+  .tw-detail-backdrop.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transition:
+      opacity var(--tw-detail-dur) var(--tw-detail-ease),
+      visibility 0s linear 0s;
+  }
+
+  /* Centered modal over the register table (not a bottom sheet) */
+  .tw-detail-drawer {
+    position: absolute;
+    inset: 0;
+    z-index: 70;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    pointer-events: none;
+    padding: 12px 14px;
+  }
+  .tw-detail-drawer-sheet {
+    width: min(100%, 920px);
+    max-width: 100%;
+    max-height: min(calc(100% - 24px), min(88vh, 900px));
+    display: flex;
+    flex-direction: column;
+    transform: translateY(10px) scale(0.97);
+    opacity: 0;
+    transition:
+      transform var(--tw-detail-dur) var(--tw-detail-ease),
+      opacity var(--tw-detail-dur) var(--tw-detail-ease);
+    border-radius: 18px !important;
+    overflow: hidden;
+    /* مهم: بدون is-open لا نلتقط نقرات/سكرول — وإلا يغطي الجدول بالكامل شفافًا */
+    pointer-events: none;
+    box-shadow:
+      0 24px 72px rgba(0, 0, 0, 0.72),
+      0 0 1px rgba(255, 255, 255, 0.12);
+  }
+  .tw-pmo-theme .tw-detail-drawer-sheet {
+    box-shadow:
+      0 18px 48px rgba(15, 23, 42, 0.14),
+      0 0 1px rgba(15, 23, 42, 0.12);
+  }
+  .tw-detail-drawer.is-open .tw-detail-drawer-sheet {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .tw-detail-drawer.is-open {
+    pointer-events: auto;
+  }
+
+  /* يغطي كارت Project Register بالكامل (العنوان + الجدول) */
+  .tw-register-panel-overlay-host .tw-detail-drawer {
+    justify-content: stretch;
+    align-items: stretch;
+    padding: 0;
+  }
+  .tw-register-panel-overlay-host .tw-detail-drawer-sheet {
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    min-height: 0;
+    flex: 1 1 auto;
+    align-self: stretch;
+    transform: translateY(12px) scale(0.992);
+    opacity: 0;
+    transition:
+      opacity var(--tw-detail-dur) var(--tw-detail-ease),
+      transform var(--tw-detail-dur) var(--tw-detail-ease);
+    border-radius: 0 !important;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+    pointer-events: none;
+  }
+  .tw-register-panel-overlay-host .tw-detail-drawer.is-open .tw-detail-drawer-sheet {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .tw-register-panel-overlay-host .tw-detail-backdrop {
+    border-radius: 0;
+  }
+
+  .tw-detail-drawer-header {
+    flex-shrink: 0;
+  }
+  .tw-detail-close-btn {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    font-size: 20px;
+    line-height: 1;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .tw-detail-close-btn:hover {
+    background: rgba(255, 82, 82, 0.25);
+    border-color: rgba(255, 82, 82, 0.5);
+    color: #fff;
+  }
+  .tw-pmo-theme .tw-detail-close-btn {
+    border: 1px solid rgba(15, 23, 42, 0.18);
+    background: var(--tw-bg-elevated);
+    color: var(--tw-text-hi);
+  }
+  .tw-pmo-theme .tw-detail-close-btn:hover {
+    background: rgba(220, 38, 38, 0.12);
+    border-color: rgba(220, 38, 38, 0.45);
+    color: var(--tw-neon-red);
+  }
+  .tw-detail-drawer-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    padding-top: 0 !important;
+  }
+  .tw-detail-drawer-body .tw-detail-shell {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .tw-detail-drawer-body .tw-detail-panel-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none !important;
+    overflow-y: auto;
+  }
+
+  /* Detail drawer فوق Project Register — نفس الثيم الفاتح */
+  .tw-register-panel-overlay-host .tw-detail-drawer-sheet.tw-project-detail-card {
+    background: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, 0.12) !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-drawer-header.pp-card-header {
+    background: #f8fafc !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.12) !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-drawer-header .pp-title {
+    color: #0f172a !important;
+  }
+  .tw-register-panel-overlay-host #ppName.tw-detail-header-title,
+  .tw-register-panel-overlay-host .tw-detail-header-title {
+    color: #0f172a !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-shell {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border-top-color: rgba(15, 23, 42, 0.12) !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-header-row {
+    background: #ffffff !important;
+    border-bottom-color: rgba(15, 23, 42, 0.12) !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-header-log {
+    color: #0284c7 !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-badge-row {
+    background: #f8fafc !important;
+    border-bottom-color: rgba(15, 23, 42, 0.1) !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-tabbar {
+    background: #ffffff !important;
+    border-bottom-color: rgba(15, 23, 42, 0.12) !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-tab {
+    color: #64748b !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-tab.active {
+    color: #0284c7 !important;
+    border-bottom-color: rgba(2, 132, 199, 0.65) !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-panel-scroll .pp-card-header {
+    background: #f8fafc !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.12) !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-panel-scroll .pp-card-header .pp-title {
+    color: #0f172a !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-panel-scroll .pp-body,
+  .tw-register-panel-overlay-host .pp-kv .v,
+  .tw-register-panel-overlay-host .tw-dl-top-row {
+    color: #0f172a !important;
+  }
+  .tw-register-panel-overlay-host .tw-detail-panel-scroll .pp-muted,
+  .tw-register-panel-overlay-host .pp-kv .k,
+  .tw-register-panel-overlay-host .tw-pmo-display-sub,
+  .tw-register-panel-overlay-host .tw-dl-deadline-foot,
+  .tw-register-panel-overlay-host .tw-detail-footer-meta-light {
+    color: #475569 !important;
+  }
+  .tw-register-panel-overlay-host .tw-kpi-strategy-line {
+    color: #7c3aed !important;
+  }
+  .tw-register-panel-overlay-host .pp-tw-detail-table thead th {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    border-bottom-color: rgba(15, 23, 42, 0.12) !important;
+  }
+  .tw-register-panel-overlay-host .pp-tw-detail-table tbody td {
+    color: #0f172a !important;
+    border-bottom-color: rgba(15, 23, 42, 0.08) !important;
+  }
+  .tw-register-panel-overlay-host .pp-list {
+    color: #0f172a !important;
+  }
+  .tw-register-panel-overlay-host #ppProgressInline {
+    color: #0284c7 !important;
+  }
+
+  /* نافذة Add Project: ثيم فاتح يتغلب على الـ inline على الحقول */
+  #ppAddProjectModal .modal-header {
+    background: #f8fafc !important;
+    color: #0f172a !important;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.12) !important;
+  }
+  #ppAddProjectModal .modal-title {
+    color: #0f172a !important;
+    text-shadow: none !important;
+  }
+  #ppAddProjectModal .modal-body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+  #ppAddProjectModal .modal-footer {
+    background: #f8fafc !important;
+    border-top: 1px solid rgba(15, 23, 42, 0.12) !important;
+  }
+  #ppAddProjectModal .form-control,
+  #ppAddProjectModal .form-select,
+  #ppAddProjectModal textarea.form-control {
+    background: #ffffff !important;
+    border: 1px solid rgba(15, 23, 42, 0.18) !important;
+    color: #0f172a !important;
+    caret-color: #0f172a !important;
+  }
+  #ppAddProjectModal .form-control:focus,
+  #ppAddProjectModal .form-select:focus,
+  #ppAddProjectModal textarea.form-control:focus {
+    border-color: rgba(2, 132, 199, 0.45) !important;
+    box-shadow: 0 0 0 0.2rem rgba(2, 132, 199, 0.12) !important;
+  }
+  #ppAddProjectModal #ppCancelAddProjectBtn {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    border: 1px solid rgba(15, 23, 42, 0.18) !important;
+  }
+  #ppAddProjectModal .form-text {
+    color: #64748b !important;
+  }
+
+  body.tw-detail-open {
+    overflow: hidden;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tw-detail-backdrop {
+      transition: opacity 0.28s ease, visibility 0s linear 0.28s !important;
+    }
+    .tw-detail-backdrop.is-open {
+      transition: opacity 0.28s ease, visibility 0s linear 0s !important;
+    }
+    .tw-detail-drawer-sheet,
+    .tw-register-panel-overlay-host .tw-detail-drawer-sheet {
+      transform: none !important;
+      transition: opacity 0.28s ease !important;
+    }
+  }
+</style>
+
+{{ transformation_workspace.project_details_map|json_script:"tw-project-details-data" }}
+
+<div class="tw-pmo-theme">
+<div class="tw-kpi-strip">
+  <div class="tw-kpi-card" style="--tw-accent:#0284c7;">
+    <div class="tw-kpi-title">Active Projects</div>
+    <div class="tw-kpi-value">{{ transformation_workspace.metrics.active_projects|default:0 }}</div>
+    <div class="tw-kpi-sub">Portfolio</div>
+    <div class="tw-kpi-foot {{ transformation_workspace.metrics.active_footer_class|default:'tw-foot-neutral' }}">{{ transformation_workspace.metrics.active_footer|default:"Portfolio" }}</div>
+  </div>
+  <div class="tw-kpi-card" style="--tw-accent:#dc2626;">
+    <div class="tw-kpi-title">Delayed / At-Risk</div>
+    <div class="tw-kpi-value">{{ transformation_workspace.metrics.delayed_at_risk|default:0 }}</div>
+    <div class="tw-kpi-sub">Needs action</div>
+    <div class="tw-kpi-foot {{ transformation_workspace.metrics.delayed_footer_class|default:'tw-foot-neutral' }}">{{ transformation_workspace.metrics.delayed_footer|default:"—" }}</div>
+  </div>
+  <div class="tw-kpi-card" style="--tw-accent:#059669;">
+    <div class="tw-kpi-title">SPI</div>
+    <div class="tw-kpi-value">{{ transformation_workspace.metrics.spi|default:0|floatformat:2 }}</div>
+    <div class="tw-kpi-sub">Schedule Perf.</div>
+    <div class="tw-kpi-foot {{ transformation_workspace.metrics.spi_footer_class|default:'tw-foot-neutral' }}">{{ transformation_workspace.metrics.spi_footer|default:"—" }}</div>
+  </div>
+  <div class="tw-kpi-card" style="--tw-accent:#d97706;">
+    <div class="tw-kpi-title">CPI</div>
+    <div class="tw-kpi-value">{{ transformation_workspace.metrics.cpi|default:0|floatformat:2 }}</div>
+    <div class="tw-kpi-sub">Cost Perf.</div>
+    <div class="tw-kpi-foot {{ transformation_workspace.metrics.cpi_footer_class|default:'tw-foot-neutral' }}">{{ transformation_workspace.metrics.cpi_footer|default:"—" }}</div>
+  </div>
+  <div class="tw-kpi-card" style="--tw-accent:#7c3aed;">
+    <div class="tw-kpi-title">Open RAID Items</div>
+    <div class="tw-kpi-value">{{ transformation_workspace.metrics.open_raid_items|default:0 }}</div>
+    <div class="tw-kpi-sub">Across portfolio</div>
+    <div class="tw-kpi-foot {{ transformation_workspace.metrics.raid_footer_class|default:'tw-foot-neutral' }}">{{ transformation_workspace.metrics.raid_footer|default:"—" }}</div>
+  </div>
+  <div class="tw-kpi-card" style="--tw-accent:#0284c7;">
+    <div class="tw-kpi-title">Avg PMO Score</div>
+    <div class="tw-kpi-value">{{ transformation_workspace.metrics.avg_pmo_score|default:0 }}%</div>
+    <div class="tw-kpi-sub">Health index</div>
+    <div class="tw-kpi-foot {{ transformation_workspace.metrics.pmo_footer_class|default:'tw-foot-neutral' }}">{{ transformation_workspace.metrics.pmo_footer|default:"—" }}</div>
+  </div>
+</div>
+
+<div class="pp-wrap">
+  <div class="tw-register-stack">
+  <div class="tw-register-row">
+    <div class="pp-card tw-register-panel tw-register-panel-overlay-host">
+      <div class="pp-card-header">
+        <h3 class="pp-title">
+          Project Register
+          <span class="pp-pill">{{ transformation_workspace.items|length }} Projects</span>
+        </h3>
+        <div class="d-flex align-items-center gap-2">
+          <button type="button" class="btn btn-sm" id="ppAddProjectBtn"
+                  style="font-weight:900; border-radius:10px; padding:8px 14px; border:0;">
+            + ADD PROJECT
+          </button>
+        </div>
+      </div>
+      <div class="pp-body pp-register-body">
+      <div class="tw-reg-table-wrap">
+        <table class="pp-table tw-reg-table">
+          <thead>
+            <tr>
+              <th style="min-width:200px;">Project</th>
+              <th style="min-width:96px;">Status</th>
+              <th style="min-width:104px;">PMBOK phase</th>
+              <th style="min-width:140px;">Progress</th>
+              <th style="min-width:112px;">Deadline</th>
+              <th style="min-width:72px;">PMO score</th>
+              <th style="min-width:100px;">PM</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in transformation_workspace.items %}
+            <tr class="pp-row"
+                data-id="{{ p.id }}"
+                data-log-id="{{ p.log_id|escape }}"
+                data-register-badge="{{ p.register_badge_label|escape }}"
+                data-register-badge-class="{{ p.register_badge_class|escape }}"
+                data-category="{{ p.category_display|escape }}"
+                data-alignment="{{ p.strategic_alignment_display|escape }}"
+                data-pmbok="{{ p.pmbok_label|escape }}"
+                data-pmbok-class="{{ p.pmbok_badge_class|escape }}"
+                data-pmo="{{ p.pmo_score_pct }}"
+                data-name="{{ p.name|escape }}"
+                data-company="{{ p.company|escape }}"
+                data-department="{{ p.department|escape }}"
+                data-owner="{{ p.owner|escape }}"
+                data-project-lead="{{ p.project_lead|escape }}"
+                data-secondary="{{ p.contact_secondary|escape }}"
+                data-register-priority="{{ p.register_priority_display|escape }}"
+                data-register-status="{{ p.register_status_display|escape }}"
+                data-type="{{ p.project_type|escape }}"
+                data-type-display="{{ p.project_type_display|escape }}"
+                data-phase="{{ p.phase|escape }}"
+                data-progress="{{ p.progress_pct }}"
+                data-start="{{ p.start_date_display|escape }}"
+                data-deadline="{{ p.deadline_display|escape }}"
+                {% if p.start_date %}data-start-iso="{{ p.start_date|date:'Y-m-d' }}"{% endif %}
+                {% if p.deadline %}data-end-iso="{{ p.deadline|date:'Y-m-d' }}"{% endif %}
+                data-risk="{{ p.risk|escape }}"
+                data-brain="{{ p.brainstorming_display|escape }}"
+                data-dev="{{ p.execution_display|escape }}"
+                data-test="{{ p.test_deadline_display|escape }}"
+                data-launch="{{ p.launch_display|escape }}"
+                data-remarks="{{ p.remarks|escape }}">
+              <td>
+                <div class="tw-project-code">{{ p.log_id }}</div>
+                <div class="tw-project-name">{{ p.name }}</div>
+                <div class="tw-project-sub">{{ p.subtitle_line }}</div>
+              </td>
+              <td>
+                <span class="tw-badge-pill {{ p.register_badge_class }}">{{ p.register_badge_label }}</span>
+              </td>
+              <td>
+                <span class="tw-badge-pill {{ p.pmbok_badge_class }}">{{ p.pmbok_label }}</span>
+              </td>
+              <td>
+                <div class="tw-reg-progress">
+                  <div class="tw-bar"><span style="width: {{ p.progress_pct }}%;"></span></div>
+                  <strong>{{ p.progress_pct }}%</strong>
+                </div>
+              </td>
+              <td class="tw-dead-cell">
+                {% if p.deadline_iso %}
+                <div class="tw-dead-date">{{ p.deadline_iso }}</div>
+                {% else %}
+                <div class="tw-dead-date">—</div>
+                {% endif %}
+                {% if p.deadline_days_label %}
+                <div class="tw-dead-d">{{ p.deadline_days_label }}</div>
+                {% endif %}
+              </td>
+              <td>
+                <span class="tw-pmo-pct {{ p.pmo_row_class }}">{{ p.pmo_score_pct }}%</span>
+              </td>
+              <td>
+                {% with pm_disp=p.project_lead|default:p.owner %}
+                <span class="tw-pm-name" title="{{ pm_disp|escape }}">{{ pm_disp }}</span>
+                {% endwith %}
+              </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="tw-reg-empty-msg" style="text-align:center;padding:22px;">No projects found. Use + ADD PROJECT or Admin → Transformation Workspace — Projects.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      </div>
+
+  <div id="twDetailBackdrop" class="tw-detail-backdrop" aria-hidden="true"></div>
+  <div id="twDetailDrawer" class="tw-detail-drawer" aria-hidden="true">
+    <div class="tw-detail-drawer-sheet pp-card tw-project-detail-card">
+    <div class="pp-card-header tw-detail-drawer-header">
+      <h3 class="pp-title mb-0">Project details</h3>
+      <div class="d-flex align-items-center gap-2">
+        <span id="ppSelectedId" class="pp-pill">—</span>
+        <button type="button" id="twDetailCloseBtn" class="tw-detail-close-btn" aria-label="Close project details">✕</button>
+      </div>
+    </div>
+    <div class="pp-body tw-detail-drawer-body">
+      <div id="twDetailShell" class="tw-detail-shell">
+        <div class="tw-detail-header-row">
+          <h4 id="ppName" class="tw-detail-header-title">—</h4>
+          <span id="ppHeroLogId" class="tw-detail-header-log">LOG —</span>
+        </div>
+        <div class="tw-detail-tabbar" role="tablist" aria-label="Project sections">
+          <button type="button" class="tw-detail-tab active" data-tw-tab="overview" role="tab" aria-selected="true">Overview</button>
+          <button type="button" class="tw-detail-tab" data-tw-tab="scope" role="tab" aria-selected="false">Scope</button>
+          <button type="button" class="tw-detail-tab" data-tw-tab="schedule" role="tab" aria-selected="false">Schedule</button>
+          <button type="button" class="tw-detail-tab" data-tw-tab="raid" role="tab" aria-selected="false">RAID log</button>
+          <button type="button" class="tw-detail-tab" data-tw-tab="biz" role="tab" aria-selected="false">Biz impact</button>
+          <button type="button" class="tw-detail-tab" data-tw-tab="gov" role="tab" aria-selected="false">Governance</button>
+        </div>
+        <div id="ppHeroBadges" class="tw-detail-badge-row" aria-label="Project badges"></div>
+        <div class="tw-detail-panel-scroll">
+              <div class="tw-tab-section" data-tw-panel="overview">
+                <div class="pp-card" style="box-shadow:none;border-style:dashed;">
+                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
+                    <h3 class="pp-title" style="font-size:13px;">Objective / SOW</h3>
+                  </div>
+                  <div class="pp-body">
+                    <div id="ppObjective" class="pp-muted" style="font-size:13px;line-height:1.45;">—</div>
+                    <div id="ppKpiStrategyLine" class="tw-kpi-strategy-line">—</div>
+                  </div>
+                </div>
+                <div class="tw-overview-split">
+                  <div class="pp-card tw-split-half">
+                    <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
+                      <h3 class="pp-title" style="font-size:13px;">PMO health score</h3>
+                    </div>
+                    <div class="pp-body tw-pmo-split-inner">
+                      <div id="ppHeroPmoVal" class="tw-pmo-display-val">—</div>
+                      <div class="tw-pmo-display-sub">Based on progress, risk, deadline</div>
+                    </div>
+                  </div>
+                  <div class="pp-card tw-split-half">
+                    <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
+                      <h3 class="pp-title" style="font-size:13px;">Deadline tracker</h3>
+                    </div>
+                    <div class="pp-body">
+                      <div class="tw-dl-top-row">
+                        <span>Progress: <strong id="ppProgressInline" style="color:var(--pp-primary);">—</strong></span>
+                        <span id="ppDaysRemaining" class="tw-days-remain">—</span>
+                      </div>
+                      <div class="pp-bar" style="height:10px;background:rgba(226,232,240,0.9);border:1px solid var(--pp-border);">
+                        <span id="ppProgressBarFill" style="width:0%;"></span>
+                      </div>
+                      <div class="tw-dl-deadline-foot">Deadline: <span id="ppDeadlineIso">—</span></div>
+                    </div>
+                  </div>
+                </div>
+                <div id="twDetailFooterMeta" class="tw-detail-footer-meta-light"></div>
+                <div class="d-flex flex-wrap gap-2 mb-2 mt-3">
+                  <span id="ppRiskTag" class="pp-mini-tag">—</span>
+                  <span id="ppPriorityTag" class="pp-mini-tag">—</span>
+                </div>
+                <div class="pp-kv"><div class="k">Type</div><div class="v" id="ppType">—</div></div>
+                <div class="pp-kv"><div class="k">Business</div><div class="v" id="ppCompany">—</div></div>
+                <div class="pp-kv"><div class="k">Department</div><div class="v" id="ppDepartment">—</div></div>
+                <div class="pp-kv"><div class="k">Project Lead</div><div class="v" id="ppLead">—</div></div>
+                <div class="pp-kv"><div class="k">Project 2</div><div class="v" id="ppSecondary">—</div></div>
+                <div class="pp-kv"><div class="k">Lead / Owner</div><div class="v" id="ppOwner">—</div></div>
+                <div class="pp-kv"><div class="k">Register status</div><div class="v" id="ppRegStatus">—</div></div>
+                <div class="pp-kv"><div class="k">Start</div><div class="v" id="ppStart">—</div></div>
+                <div class="pp-kv"><div class="k">Deadline</div><div class="v" id="ppDeadline">—</div></div>
+                <div class="pp-kv"><div class="k">Planned completion</div><div class="v" id="ppPlanned">—</div></div>
+                <div class="pp-kv"><div class="k">Phase</div><div class="v" id="ppPhase">—</div></div>
+                <div class="pp-kv"><div class="k">Progress</div><div class="v" id="ppProgress">—</div></div>
+                <div class="pp-card mt-3" style="box-shadow:none;border-style:dashed;">
+                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
+                    <h3 class="pp-title" style="font-size:13px;">Active challenges</h3>
+                  </div>
+                  <div class="pp-body">
+                    <div id="ppChallenges" class="d-grid gap-2"></div>
+                  </div>
+                </div>
+                <div class="pp-kv mt-2"><div class="k">Remarks</div><div class="v pp-remarks" id="ppRemarks">—</div></div>
+              </div>
+              <div class="tw-tab-section d-none" data-tw-panel="scope">
+                <div class="pp-card" style="box-shadow:none;border-style:dashed;">
+                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
+                    <h3 class="pp-title" style="font-size:13px;">Scope definition</h3>
+                  </div>
+                  <div class="pp-body">
+                    <div class="pp-muted" style="font-weight:900;letter-spacing:0.08em;text-transform:uppercase;font-size:11px;color:var(--pp-secondary);">In scope</div>
+                    <ul id="ppInScope" class="pp-list"></ul>
+                    <div class="pp-muted" style="margin-top:10px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;font-size:11px;color:#dc2626;">Out of scope</div>
+                    <ul id="ppOutScope" class="pp-list"></ul>
+                    <div class="pp-muted" style="margin-top:10px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;font-size:11px;color:var(--pp-primary);">Key deliverables</div>
+                    <div id="ppDeliverables" class="pp-muted" style="margin-top:4px;font-size:12.8px;line-height:1.45;white-space:pre-wrap;">—</div>
+                    <div class="pp-muted" style="margin-top:10px;font-weight:900;letter-spacing:0.08em;text-transform:uppercase;font-size:11px;color:var(--pp-muted);">Dependencies</div>
+                    <div id="ppScopeDeps" class="pp-muted" style="margin-top:4px;font-size:12.8px;line-height:1.45;white-space:pre-wrap;">—</div>
+                  </div>
+                </div>
+              </div>
+              <div class="tw-tab-section d-none" data-tw-panel="schedule">
+                <div class="pp-card" style="box-shadow:none;border-style:dashed;">
+                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
+                    <h3 class="pp-title" style="font-size:13px;">Project process</h3>
+                  </div>
+                  <div class="pp-body" style="padding:0;">
+                    <div class="pp-table-wrap" style="max-height:min(240px,28vh);border:0;">
+                      <table class="pp-tw-detail-table">
+                        <thead>
+                          <tr>
+                            <th>Step / description</th>
+                            <th style="min-width:110px;">Deadline</th>
+                            <th style="min-width:100px;">Owner</th>
+                          </tr>
+                        </thead>
+                        <tbody id="ppProcessBody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                <div class="pp-kv mt-2"><div class="k">Brainstorming</div><div class="v" id="ppBrain">—</div></div>
+                <div class="pp-kv"><div class="k">Development</div><div class="v" id="ppDev">—</div></div>
+                <div class="pp-kv"><div class="k">Test</div><div class="v" id="ppTest">—</div></div>
+                <div class="pp-kv"><div class="k">Launch</div><div class="v" id="ppLaunch">—</div></div>
+              </div>
+              <div class="tw-tab-section d-none" data-tw-panel="raid">
+                <div class="pp-card" style="box-shadow:none;border-style:dashed;">
+                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
+                    <h3 class="pp-title" style="font-size:13px;">RAID log</h3>
+                  </div>
+                  <div class="pp-body" style="padding:0;">
+                    <div class="pp-table-wrap" style="max-height:min(260px,30vh);border:0;">
+                      <table class="pp-tw-detail-table">
+                        <thead>
+                          <tr>
+                            <th style="min-width:88px;">Type</th>
+                            <th>Description</th>
+                            <th style="min-width:72px;">Priority</th>
+                            <th style="min-width:72px;">Owner</th>
+                            <th style="min-width:72px;">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody id="ppRaidBody"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="tw-tab-section d-none" data-tw-panel="biz">
+                <div class="pp-card" style="box-shadow:none;border-style:dashed;">
+                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
+                    <h3 class="pp-title" style="font-size:13px;">Business impact</h3>
+                  </div>
+                  <div class="pp-body">
+                    <div class="pp-kv"><div class="k">Cost reduction (%)</div><div class="v" id="ppBizCostRed">—</div></div>
+                    <div class="pp-kv"><div class="k">SLA improvement</div><div class="v" id="ppBizSla">—</div></div>
+                    <div class="pp-kv"><div class="k">Headcount impact</div><div class="v" id="ppBizHeadcount">—</div></div>
+                    <div class="pp-kv"><div class="k">Strategic alignment</div><div class="v" id="ppBizAlign">—</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="tw-tab-section d-none" data-tw-panel="gov">
+                <div class="pp-card" style="box-shadow:none;border-style:dashed;">
+                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
+                    <h3 class="pp-title" style="font-size:13px;">Governance &amp; approvals</h3>
+                  </div>
+                  <div class="pp-body">
+                    <div class="pp-kv" style="margin-bottom:8px;"><div class="k">Submitted by</div><div class="v" id="ppGovSubmitted">—</div></div>
+                    <div class="pp-kv" style="margin-bottom:8px;"><div class="k">Reviewed by</div><div class="v" id="ppGovReviewed">—</div></div>
+                    <div class="pp-kv" style="margin-bottom:8px;"><div class="k">Approval</div><div class="v" id="ppGovApproval">—</div></div>
+                    <div class="pp-kv" style="margin-bottom:8px;"><div class="k">Stakeholders</div><div class="v" id="ppGovStakeholders">—</div></div>
+                    <div class="pp-kv" style="margin-bottom:8px;"><div class="k">Operational impact</div><div class="v" id="ppGovImpact">—</div></div>
+                    <div class="pp-muted" style="font-weight:900;letter-spacing:0.06em;text-transform:uppercase;font-size:11px;margin-bottom:6px;">Assumptions &amp; constraints</div>
+                    <div id="ppGovAssumptions" class="pp-muted" style="font-size:12.8px;line-height:1.45;white-space:pre-wrap;">—</div>
+                  </div>
+                </div>
+              </div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+    </div>
+
+    <aside class="tw-alerts-panel" aria-label="Active alerts">
+      <div class="tw-alerts-head">
+        <div class="tw-alerts-head-top">
+          <h3 class="tw-alerts-title">
+            <span class="tw-bell" aria-hidden="true">🔔</span>
+            Active Alerts
+          </h3>
+          <a href="#" class="tw-alerts-config" onclick="return false;">CONFIGURE</a>
+        </div>
+      </div>
+      <div class="tw-alerts-list">
+        {% for a in transformation_workspace.active_alerts %}
+        <div class="tw-alert-card tw-alert-{{ a.kind }}">
+          <span class="tw-alert-dot" aria-hidden="true"></span>
+          <div>
+            <div class="tw-alert-msg">{{ a.message }}</div>
+            <div class="tw-alert-ctx">{{ a.context }}</div>
+          </div>
+          <div class="tw-alert-time">{{ a.time_label }}</div>
+        </div>
+        {% empty %}
+        <div class="tw-alert-empty">No active alerts — portfolio looks calm.</div>
+        {% endfor %}
+      </div>
+    </aside>
+  </div>
+
+  </div>
+  </div>
+</div>
+
+<!-- Add Project Modal -->
+<div class="modal fade" id="ppAddProjectModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable pp-register-modal">
+    <div class="modal-content" style="border-radius:16px; overflow:hidden;">
+      <div class="modal-header" style="background:#0b1220; color:#e6edf7; border-bottom:1px solid rgba(255,255,255,0.08);">
+        <h5 class="modal-title" style="font-weight:950; letter-spacing:0.08em; color:#ffffff; text-shadow: 0 2px 10px rgba(0,0,0,0.55);">
+          REGISTER NEW PROJECT
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" style="background:#0b1220; color:#e6edf7;">
+        <form id="ppAddProjectForm">
+          {% csrf_token %}
+
+          <div class="pp-modal-section-title">01 — PROJECT IDENTITY</div>
+
+          <div class="row g-3 mt-2">
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Project Name *</label>
+              <input name="project_name" class="form-control" required placeholder="e.g. Fleet IoT Upgrade"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Business / Company</label>
+              <input name="company" class="form-control" placeholder="e.g. Tamer Logistics"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Project Status</label>
+              <select name="register_status" class="form-select"
+                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                <option value="">—</option>
+                <option value="on_track">● On Track</option>
+                <option value="at_risk">● At Risk</option>
+                <option value="delayed">● Delayed</option>
+                <option value="blocked">● Blocked</option>
+                <option value="approved">● Approved</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label pp-muted">Project Lead</label>
+              <input name="project_lead" class="form-control" placeholder="Team lead name"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label pp-muted">Project 2</label>
+              <input name="project_secondary" class="form-control" placeholder="Second contact / owner"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label pp-muted">Department</label>
+              <select name="department_id" class="form-select"
+                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                <option value="">—</option>
+                {% if transformation_workspace.register_lookups %}
+                {% for d in transformation_workspace.register_lookups.departments %}
+                <option value="{{ d.id }}">{{ d.name }}</option>
+                {% endfor %}
+                {% endif %}
+              </select>
+              <div class="form-text" style="font-size:11px;color:rgba(226,232,240,0.55);">Add departments in Admin → TW Lookups.</div>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label pp-muted">Priority</label>
+              <select name="register_priority" class="form-select"
+                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                <option value="">—</option>
+                <option value="critical">Critical</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label pp-muted">Category</label>
+              <select name="category_id" class="form-select"
+                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                <option value="">—</option>
+                {% if transformation_workspace.register_lookups %}
+                {% for c in transformation_workspace.register_lookups.categories %}
+                <option value="{{ c.id }}">{{ c.name }}</option>
+                {% endfor %}
+                {% endif %}
+              </select>
+            </div>
+          </div>
+
+          <div class="pp-modal-section-title pp-modal-section-spaced">02 — BUSINESS CASE &amp; IMPACT</div>
+
+          <div class="row g-3 mt-2">
+            <div class="col-12">
+              <label class="form-label pp-muted">Project Objective / SOW</label>
+              <textarea name="objective_sow" class="form-control" rows="3" placeholder="Describe the project objective and statement of work..."
+                        style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Strategic Alignment</label>
+              <select name="strategic_alignment_id" class="form-select"
+                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                <option value="">—</option>
+                {% if transformation_workspace.register_lookups %}
+                {% for a in transformation_workspace.register_lookups.alignments %}
+                <option value="{{ a.id }}">{{ a.name }}</option>
+                {% endfor %}
+                {% endif %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">KPI / Success Criteria</label>
+              <input name="kpi_success_criteria" class="form-control" placeholder="e.g. target 85% on-time delivery"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Cost Reduction (%)</label>
+              <input name="cost_reduction_pct" type="text" class="form-control" placeholder="e.g. 18"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+              <div class="form-text" style="font-size:11px;color:rgba(226,232,240,0.55);">Expected cost-saving impact.</div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">SLA Improvement</label>
+              <input name="sla_improvement" class="form-control" placeholder="e.g. +15% OTD"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+          </div>
+
+          <div class="pp-modal-section-title pp-modal-section-spaced">03 — SCOPE DEFINITION</div>
+
+          <div class="row g-3 mt-2">
+            <div class="col-md-6">
+              <label class="form-label pp-muted">In-scope (comma separated)</label>
+              <textarea name="scope_in" class="form-control" rows="2" placeholder="e.g. RFID tracking, Gate automation"
+                        style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Out-of-scope</label>
+              <textarea name="scope_out" class="form-control" rows="2" placeholder="e.g. HR module, Vessel scheduling"
+                        style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Key Deliverables</label>
+              <textarea name="scope_deliverables" class="form-control" rows="2" placeholder="Major deliverables..."
+                        style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;"></textarea>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Dependencies</label>
+              <textarea name="scope_dependencies" class="form-control" rows="2" placeholder="Systems, teams, approvals..."
+                        style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;"></textarea>
+            </div>
+          </div>
+
+          <div class="pp-modal-section-title pp-modal-section-spaced">04 — SCHEDULE &amp; DEADLINES</div>
+
+          <div class="row g-3 mt-2">
+            <div class="col-md-4">
+              <label class="form-label pp-muted">Start date</label>
+              <input name="start_date" type="date" class="form-control"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label pp-muted">Planned deadline *</label>
+              <input name="planned_deadline" type="date" class="form-control"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label pp-muted">PMBOK phase</label>
+              <select name="pmbok_phase" class="form-select"
+                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                <option value="">—</option>
+                <option value="Initiating">Initiating</option>
+                <option value="Planning">Planning</option>
+                <option value="Execution">Execution</option>
+                <option value="Monitoring">Monitoring</option>
+                <option value="Closing">Closing</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">% complete</label>
+              <input name="pct_complete" type="number" min="0" max="100" class="form-control" placeholder="0 - 100"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Budget (USD)</label>
+              <input name="budget_usd" class="form-control" placeholder="e.g. 450,000"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+          </div>
+
+          <div class="pp-modal-section-subtitle">Project process steps — Description · Deadline · Owner</div>
+          <table class="pp-repeat-table">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th style="min-width:132px;">Deadline</th>
+                <th style="min-width:108px;">Owner</th>
+                <th style="width:40px;"></th>
+              </tr>
+            </thead>
+            <tbody id="ppProcessRows">
+              <tr class="pp-process-row">
+                <td>
+                  <input name="process_description" type="text" class="form-control" placeholder="What will be done..."
+                         style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                </td>
+                <td>
+                  <input name="process_deadline" type="date" class="form-control"
+                         style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                </td>
+                <td>
+                  <input name="process_owner" type="text" class="form-control" placeholder="Owner"
+                         style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-light pp-remove-process" title="Remove row">×</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <button type="button" class="pp-add-repeat" id="ppAddProcessRow">+ Add process step</button>
+
+          <div class="pp-modal-section-title pp-modal-section-spaced">05 — RAID LOG (RISKS · ASSUMPTIONS · ISSUES · DEPENDENCIES)</div>
+          <table class="pp-repeat-table">
+            <thead>
+              <tr>
+                <th style="min-width:108px;">Type</th>
+                <th>Description</th>
+                <th style="min-width:96px;">Priority</th>
+                <th style="min-width:96px;">Owner</th>
+                <th style="min-width:96px;">Status</th>
+                <th style="width:40px;"></th>
+              </tr>
+            </thead>
+            <tbody id="ppRaidRows">
+              <tr class="pp-raid-row">
+                <td>
+                  <select name="raid_category" class="form-select"
+                          style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                    <option value="risk" selected>Risk</option>
+                    <option value="assumption">Assumption</option>
+                    <option value="issue">Issue</option>
+                    <option value="dependency">Dependency</option>
+                  </select>
+                </td>
+                <td>
+                  <input name="raid_title" type="text" class="form-control" placeholder="Description"
+                         style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                </td>
+                <td>
+                  <select name="raid_priority" class="form-select"
+                          style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                    <option value="critical">Critical</option>
+                    <option value="high" selected>High</option>
+                    <option value="medium">Medium</option>
+                    <option value="low">Low</option>
+                  </select>
+                </td>
+                <td>
+                  <input name="raid_owner" type="text" class="form-control" placeholder="Owner"
+                         style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                </td>
+                <td>
+                  <select name="raid_status" class="form-select"
+                          style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                    <option value="open" selected>Open</option>
+                    <option value="mitigated">Mitigated</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </td>
+                <td>
+                  <button type="button" class="btn btn-sm btn-outline-light pp-remove-raid" title="Remove row">×</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <button type="button" class="pp-add-repeat" id="ppAddRaidRow">+ Add RAID item</button>
+
+          <div class="pp-modal-section-title pp-modal-section-spaced">06 — GOVERNANCE &amp; APPROVALS</div>
+          <div class="row g-3 mt-2">
+            <div class="col-md-4">
+              <label class="form-label pp-muted">Submitted by</label>
+              <input name="gov_submitted_by" type="text" class="form-control" placeholder="Name"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label pp-muted">Reviewed by</label>
+              <input name="gov_reviewed_by" type="text" class="form-control" placeholder="Name"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label pp-muted">Approval status</label>
+              <select name="gov_approval_status" class="form-select"
+                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                <option value="">—</option>
+                <option value="pending" selected>Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+                <option value="in_review">In review</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Stakeholders</label>
+              <input name="gov_stakeholders" type="text" class="form-control"
+                     placeholder="e.g. Ops Manager, IT Lead, Finance, Warehouse Mgr"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Operational impact</label>
+              <input name="gov_operational_impact" type="text" class="form-control"
+                     placeholder="e.g. 3 warehouses, 120 accounts, Shift A&amp;B"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-12">
+              <label class="form-label pp-muted">Assumptions &amp; constraints</label>
+              <textarea name="gov_assumptions_constraints" class="form-control" rows="3"
+                        placeholder="e.g. Budget approved Q2, vendor contract finalized..."
+                        style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;"></textarea>
+            </div>
+          </div>
+
+          <div class="pp-modal-section-title pp-modal-section-spaced">07 — CHALLENGES &amp; CONSTRAINTS</div>
+
+          <div class="row g-3 mt-2">
+            <div class="col-md-8">
+              <label class="form-label pp-muted">Challenge #1</label>
+              <input name="challenge_1" class="form-control" placeholder="e.g. Vendor lead times 12+ weeks"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label pp-muted">Severity</label>
+              <select name="severity_1" class="form-select"
+                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                <option value="">—</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            <div class="col-md-8">
+              <label class="form-label pp-muted">Challenge #2</label>
+              <input name="challenge_2" class="form-control" placeholder="e.g. Integration with legacy ERP"
+                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label pp-muted">Severity</label>
+              <select name="severity_2" class="form-select"
+                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                <option value="">—</option>
+                <option value="High">High</option>
+                <option value="Medium">Medium</option>
+                <option value="Low">Low</option>
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Risk level</label>
+              <select name="risk_level" class="form-select"
+                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                <option value="">—</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="alert alert-danger d-none mt-3" id="ppAddProjectError"></div>
+        </form>
+      </div>
+      <div class="modal-footer" style="background:#0b1220; border-top:1px solid rgba(255,255,255,0.08);">
+        <button type="button" class="btn" id="ppCancelAddProjectBtn" data-bs-dismiss="modal"
+                style="background:#ffffff; color:#0b1220; font-weight:900; border-radius:10px; border:1px solid rgba(255,255,255,0.12);">
+          Cancel
+        </button>
+        <button type="button" class="btn btn-primary" id="ppSubmitProjectBtn" style="font-weight:900;">Register Project</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var addBtn = document.getElementById("ppAddProjectBtn");
+  var modalEl = document.getElementById("ppAddProjectModal");
+  var modal = (modalEl && window.bootstrap) ? new bootstrap.Modal(modalEl) : null;
+  if (addBtn && modal) {
+    addBtn.addEventListener("click", function() { modal.show(); });
+  }
+
+  function hardCleanupModalState() {
+    // In case Bootstrap backdrop/body classes get stuck (common with AJAX-injected modals)
+    document.body.classList.remove("modal-open");
+    document.body.style.removeProperty("padding-right");
+    document.body.style.removeProperty("overflow");
+    document.querySelectorAll(".modal-backdrop").forEach(function(b){ b.remove(); });
+  }
+
+  if (modalEl) {
+    modalEl.addEventListener("hidden.bs.modal", function() {
+      hardCleanupModalState();
+    });
+  }
+
+  var cancelBtn = document.getElementById("ppCancelAddProjectBtn");
+  if (cancelBtn && modal) {
+    cancelBtn.addEventListener("click", function() {
+      try { modal.hide(); } catch(e) {}
+      setTimeout(hardCleanupModalState, 50);
+    });
+  }
+
+  function getCsrfToken() {
+    var el = document.querySelector("[name=csrfmiddlewaretoken]");
+    return el ? el.value : "";
+  }
+
+  var submitBtn = document.getElementById("ppSubmitProjectBtn");
+  if (submitBtn) {
+    submitBtn.addEventListener("click", function() {
+      if (window.__ppAddProjectInFlight) return;
+      var form = document.getElementById("ppAddProjectForm");
+      var err = document.getElementById("ppAddProjectError");
+      if (!form) return;
+      if (err) { err.classList.add("d-none"); err.textContent = ""; }
+
+      window.__ppAddProjectInFlight = true;
+      var originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Saving...";
+
+      var formData = new FormData(form);
+      fetch("{% url 'dashboard:project_portfolio_add_project' %}", {
+        method: "POST",
+        headers: { "X-CSRFToken": getCsrfToken(), "X-Requested-With": "XMLHttpRequest" },
+        body: formData
+      }).then(function(res) {
+        return res.json().then(function(data){ return { ok: res.ok, data: data }; });
+      }).then(function(payload) {
+        if (!payload.ok || !payload.data || payload.data.ok === false) {
+          var msg = (payload.data && (payload.data.message || payload.data.error)) || "Failed to add project.";
+          if (err) { err.textContent = msg; err.classList.remove("d-none"); }
+          window.__ppAddProjectInFlight = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+          return;
+        }
+        var newId = payload.data && payload.data.id;
+        if (modal) modal.hide();
+        setTimeout(hardCleanupModalState, 50);
+        // Keep selected/added project highlighted after refresh
+        if (newId) {
+          var params = new URLSearchParams(window.location.search);
+          params.set("tab", "transformation workspace");
+          params.set("highlight", String(newId));
+          history.replaceState({}, "", window.location.pathname + "?" + params.toString());
+        }
+        if (typeof window.loadTabData === "function") window.loadTabData();
+        window.__ppAddProjectInFlight = false;
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      }).catch(function(e) {
+        if (err) { err.textContent = "Network error while adding project."; err.classList.remove("d-none"); }
+        window.__ppAddProjectInFlight = false;
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+      });
+    });
+  }
+
+  var detailMap = {};
+  (function loadTwDetails() {
+    var el = document.getElementById("tw-project-details-data");
+    if (!el || !el.textContent) return;
+    try { detailMap = JSON.parse(el.textContent); } catch (e) { detailMap = {}; }
+  })();
+
+  function splitScopeText(s) {
+    if (!s) return [];
+    return String(s).split(/[,،;\n\r]+/).map(function(x) { return x.trim(); }).filter(Boolean);
+  }
+
+  var procRowsEl = document.getElementById("ppProcessRows");
+  var addProcBtn = document.getElementById("ppAddProcessRow");
+  if (addProcBtn && procRowsEl) {
+    addProcBtn.addEventListener("click", function() {
+      var first = procRowsEl.querySelector(".pp-process-row");
+      if (!first) return;
+      var nr = first.cloneNode(true);
+      nr.querySelectorAll("input").forEach(function(inp) { inp.value = ""; });
+      procRowsEl.appendChild(nr);
+    });
+    procRowsEl.addEventListener("click", function(e) {
+      if (!e.target.closest(".pp-remove-process")) return;
+      var rows = procRowsEl.querySelectorAll(".pp-process-row");
+      var tr = e.target.closest("tr");
+      if (rows.length > 1 && tr) tr.remove();
+    });
+  }
+
+  var raidRowsEl = document.getElementById("ppRaidRows");
+  var addRaidBtn = document.getElementById("ppAddRaidRow");
+  if (addRaidBtn && raidRowsEl) {
+    addRaidBtn.addEventListener("click", function() {
+      var first = raidRowsEl.querySelector(".pp-raid-row");
+      if (!first) return;
+      var nr = first.cloneNode(true);
+      nr.querySelectorAll("input").forEach(function(inp) { inp.value = ""; });
+      var rc = nr.querySelector("select[name=\"raid_category\"]");
+      var rp = nr.querySelector("select[name=\"raid_priority\"]");
+      var rs = nr.querySelector("select[name=\"raid_status\"]");
+      if (rc) rc.selectedIndex = 0;
+      if (rp) rp.selectedIndex = 1;
+      if (rs) rs.selectedIndex = 0;
+      raidRowsEl.appendChild(nr);
+    });
+    raidRowsEl.addEventListener("click", function(e) {
+      if (!e.target.closest(".pp-remove-raid")) return;
+      var rows = raidRowsEl.querySelectorAll(".pp-raid-row");
+      var tr = e.target.closest("tr");
+      if (rows.length > 1 && tr) tr.remove();
+    });
+  }
+
+  function setText(id, txt) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = (txt && ("" + txt).trim()) ? txt : "—";
+  }
+
+  function setTag(el, text, kind) {
+    if (!el) return;
+    el.classList.remove("high", "med", "low");
+    el.textContent = (text && ("" + text).trim()) ? text : "—";
+    if (kind) el.classList.add(kind);
+  }
+
+  function fillList(el, items, emptyText) {
+    if (!el) return;
+    el.innerHTML = "";
+    if (!items || !items.length) {
+      var li = document.createElement("li");
+      li.textContent = emptyText || "—";
+      li.style.opacity = "0.75";
+      el.appendChild(li);
+      return;
+    }
+    items.slice(0, 6).forEach(function(t) {
+      var li = document.createElement("li");
+      li.textContent = t;
+      el.appendChild(li);
+    });
+  }
+
+  function daysBetween(d1, d2) {
+    var ms = d2.getTime() - d1.getTime();
+    return Math.ceil(ms / (1000 * 60 * 60 * 24));
+  }
+
+  function twEffortLabel(row) {
+    var s = (row.dataset.startIso || "").trim();
+    var e = (row.dataset.endIso || "").trim();
+    if (!s || !e) return "—";
+    var d0 = new Date(s + "T12:00:00");
+    var d1 = new Date(e + "T12:00:00");
+    if (isNaN(d0.getTime()) || isNaN(d1.getTime()) || d1 <= d0) return "—";
+    var days = (d1.getTime() - d0.getTime()) / 86400000;
+    var months = days / 30.44;
+    if (months >= 12) return "Very High (>12 months)";
+    if (months >= 6) return "High (6–12 months)";
+    return "Standard (<6 months)";
+  }
+
+  function twSwitchTab(name) {
+    var drawer = document.getElementById("twDetailDrawer");
+    if (!drawer || !drawer.classList.contains("is-open")) return;
+    document.querySelectorAll(".tw-detail-tab").forEach(function(btn) {
+      var on = btn.getAttribute("data-tw-tab") === name;
+      btn.classList.toggle("active", on);
+      btn.setAttribute("aria-selected", on ? "true" : "false");
+    });
+    document.querySelectorAll(".tw-tab-section[data-tw-panel]").forEach(function(sec) {
+      var on = sec.getAttribute("data-tw-panel") === name;
+      sec.classList.toggle("d-none", !on);
+    });
+  }
+
+  document.querySelectorAll(".tw-detail-tab").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      var name = btn.getAttribute("data-tw-tab");
+      if (name) twSwitchTab(name);
+    });
+  });
+
+  function openTwDetailDrawer() {
+    var drawer = document.getElementById("twDetailDrawer");
+    var backdrop = document.getElementById("twDetailBackdrop");
+    if (drawer) {
+      drawer.classList.add("is-open");
+      drawer.setAttribute("aria-hidden", "false");
+    }
+    if (backdrop) {
+      backdrop.classList.add("is-open");
+      backdrop.setAttribute("aria-hidden", "false");
+    }
+    document.body.classList.add("tw-detail-open");
+  }
+
+  function closeTwDetailDrawer() {
+    var drawer = document.getElementById("twDetailDrawer");
+    var backdrop = document.getElementById("twDetailBackdrop");
+    if (drawer) {
+      drawer.classList.remove("is-open");
+      drawer.setAttribute("aria-hidden", "true");
+    }
+    if (backdrop) {
+      backdrop.classList.remove("is-open");
+      backdrop.setAttribute("aria-hidden", "true");
+    }
+    document.body.classList.remove("tw-detail-open");
+    document.querySelectorAll(".pp-row").forEach(function(r) { r.classList.remove("pp-active"); });
+  }
+
+  var twCloseBtn = document.getElementById("twDetailCloseBtn");
+  var twBackdropEl = document.getElementById("twDetailBackdrop");
+  if (twCloseBtn) {
+    twCloseBtn.addEventListener("click", function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      closeTwDetailDrawer();
+    });
+  }
+  if (twBackdropEl) {
+    twBackdropEl.addEventListener("click", function() {
+      closeTwDetailDrawer();
+    });
+  }
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape") {
+      var dr = document.getElementById("twDetailDrawer");
+      if (dr && dr.classList.contains("is-open")) closeTwDetailDrawer();
+    }
+  });
+
+  function selectRow(row) {
+    if (!row) return;
+    document.querySelectorAll(".pp-row").forEach(function(r) { r.classList.remove("pp-active"); });
+    row.classList.add("pp-active");
+
+    var logHeader = (row.dataset.logId || "").trim() || ("LOG-" + String(row.dataset.id || ""));
+    setText("ppSelectedId", logHeader);
+    setText("ppName", row.dataset.name || "—");
+    setText("ppType", row.dataset.typeDisplay || row.dataset.type || "—");
+    setText("ppCompany", row.dataset.company || "—");
+    setText("ppDepartment", row.dataset.department || "—");
+    setText("ppLead", row.dataset.projectLead || "—");
+    setText("ppSecondary", row.dataset.secondary || "—");
+    setText("ppOwner", row.dataset.owner || "—");
+    setText("ppRegStatus", row.dataset.registerStatus || "—");
+    setText("ppStart", row.dataset.start || "—");
+    setText("ppDeadline", row.dataset.deadline || "—");
+    setText("ppPhase", row.dataset.phase || "—");
+    setText("ppProgress", (row.dataset.progress ? (row.dataset.progress + "%") : "—"));
+    setText("ppProgressInline", (row.dataset.progress ? (row.dataset.progress + "%") : "—"));
+    setText("ppPlanned", row.dataset.deadline || "—");
+    setText("ppBrain", row.dataset.brain || "—");
+    setText("ppDev", row.dataset.dev || "—");
+    setText("ppTest", row.dataset.test || "—");
+    setText("ppLaunch", row.dataset.launch || "—");
+    setText("ppRemarks", row.dataset.remarks || "—");
+
+    // tags
+    var risk = (row.dataset.risk || "").toLowerCase();
+    var riskEl = document.getElementById("ppRiskTag");
+    if (risk === "high") setTag(riskEl, "HIGH RISK", "high");
+    else if (risk === "medium") setTag(riskEl, "MED RISK", "med");
+    else if (risk === "low") setTag(riskEl, "LOW RISK", "low");
+    else setTag(riskEl, "RISK —", null);
+    var prioEl = document.getElementById("ppPriorityTag");
+    var regP = (row.dataset.registerPriority || "").trim();
+    if (regP) {
+      var pk = null;
+      if (/critical/i.test(regP)) pk = "high";
+      else if (/high/i.test(regP)) pk = "med";
+      else if (/medium|med/i.test(regP)) pk = "med";
+      else if (/low/i.test(regP)) pk = "low";
+      setTag(prioEl, regP, pk);
+    } else if (risk === "high") setTag(prioEl, "Critical priority", "high");
+    else if (risk === "medium") setTag(prioEl, "Medium priority", "med");
+    else if (risk === "low") setTag(prioEl, "Low priority", "low");
+    else setTag(prioEl, "Priority —", null);
+
+    var det = detailMap[String(row.dataset.id)] || detailMap[row.dataset.id] || {};
+    var sum = det.summary || {};
+    var biz = det.biz || {};
+    var alignTxt = (sum.alignment_display || row.dataset.alignment || "").trim();
+
+    /* Objective / KPI / scope: من حقول الموديل فقط (عبر project_details_map) — لا استبدال باسم المشروع أو بنص الملاحظات */
+    var objective = "—";
+    if (det.objective_sow && String(det.objective_sow).trim()) {
+      objective = String(det.objective_sow).trim();
+    }
+    var kpiLine = "—";
+    if (det.kpi_success_criteria && String(det.kpi_success_criteria).trim()) {
+      kpiLine = String(det.kpi_success_criteria).trim();
+    }
+    setText("ppObjective", objective);
+    var kpiStrParts = [];
+    if (kpiLine && kpiLine !== "—") kpiStrParts.push("KPI: " + kpiLine);
+    if (alignTxt) kpiStrParts.push("Strategy: " + alignTxt);
+    setText("ppKpiStrategyLine", kpiStrParts.length ? kpiStrParts.join(" · ") : "—");
+
+    setText("ppHeroLogId", (sum.log_id || row.dataset.logId || logHeader || "—").toString());
+
+    var hb = document.getElementById("ppHeroBadges");
+    if (hb) {
+      hb.innerHTML = "";
+      function addHeroPill(extraCls, text) {
+        var t = (text && String(text).trim()) ? String(text).trim() : "";
+        if (!t || t === "—") return;
+        var sp = document.createElement("span");
+        sp.className = "tw-badge-pill " + (extraCls || "").trim();
+        sp.textContent = t;
+        hb.appendChild(sp);
+      }
+      addHeroPill(row.dataset.registerBadgeClass || "", row.dataset.registerBadge || sum.register_badge_label);
+      addHeroPill(row.dataset.pmbokClass || "", row.dataset.pmbok);
+      var rp = (row.dataset.registerPriority || "").trim();
+      if (rp) {
+        var pp = document.createElement("span");
+        pp.className = "tw-badge-pill tw-hp-prio";
+        pp.textContent = rp;
+        hb.appendChild(pp);
+      }
+      var cat = (row.dataset.category || "").trim();
+      if (cat) {
+        var pc = document.createElement("span");
+        pc.className = "tw-badge-pill tw-hp-cat";
+        pc.textContent = cat;
+        hb.appendChild(pc);
+      }
+    }
+
+    var pmoEl = document.getElementById("ppHeroPmoVal");
+    if (pmoEl) {
+      var pmn = row.dataset.pmo;
+      if (sum.pmo_score_pct != null && sum.pmo_score_pct !== "") pmn = sum.pmo_score_pct;
+      var pn = parseInt(pmn, 10);
+      pmoEl.textContent = (!isNaN(pn)) ? (pn + "%") : "—";
+    }
+
+    var crdRaw = biz.cost_reduction_pct_display;
+    var crdTxt = (crdRaw !== undefined && crdRaw !== null && String(crdRaw).trim() !== "")
+      ? (String(crdRaw).trim() + "%") : "—";
+    setText("ppBizCostRed", crdTxt);
+    setText("ppBizSla", biz.sla_improvement || "—");
+    setText("ppBizHeadcount", biz.headcount_impact || "—");
+    setText("ppBizAlign", sum.alignment_display || alignTxt || "—");
+
+    var foot = document.getElementById("twDetailFooterMeta");
+    if (foot) {
+      var pmLine = (row.dataset.projectLead || row.dataset.owner || "—") + " · " +
+        (row.dataset.company || "—") + " · " + (row.dataset.department || "—");
+      var lu = (sum.last_update_display || "").trim();
+      var dsu = sum.days_since_update;
+      var stale = (dsu != null && dsu !== "") ? (" · " + dsu + " days since PMO update") : "";
+      var eh = det.effort_hours || {};
+      var hrsParts = [];
+      if (eh.planned) hrsParts.push("Planned " + eh.planned + " h");
+      if (eh.actual) hrsParts.push("Actual " + eh.actual + " h");
+      var hrsDisp = hrsParts.length ? hrsParts.join(" · ") : "—";
+      foot.innerHTML =
+        "<div><strong>PM / Sponsor / Department</strong><br>" + pmLine + "</div>" +
+        "<div style='margin-top:10px;'>" +
+        (lu ? ("Last updated: " + lu) : "Last updated: —") + stale +
+        "<br>Effort (timeline): " + twEffortLabel(row) + " · Hours (model): " + hrsDisp +
+        "</div>";
+    }
+
+    twSwitchTab("overview");
+
+    var inScope = splitScopeText(det.scope_in || "");
+    var outScope = splitScopeText(det.scope_out || "");
+    fillList(document.getElementById("ppInScope"), inScope, "—");
+    fillList(document.getElementById("ppOutScope"), outScope, "—");
+
+    setText("ppDeliverables", (det.scope_deliverables && String(det.scope_deliverables).trim()) ? String(det.scope_deliverables).trim() : "—");
+    setText("ppScopeDeps", (det.scope_dependencies && String(det.scope_dependencies).trim()) ? String(det.scope_dependencies).trim() : "—");
+
+    var pt = document.getElementById("ppProcessBody");
+    if (pt) {
+      pt.innerHTML = "";
+      var steps = det.process_steps || [];
+      if (!steps.length) {
+        var tr0 = document.createElement("tr");
+        var td0 = document.createElement("td");
+        td0.colSpan = 3;
+        td0.className = "pp-muted";
+        td0.style.padding = "10px";
+        td0.textContent = "No process steps";
+        tr0.appendChild(td0);
+        pt.appendChild(tr0);
+      } else {
+        steps.forEach(function(s) {
+          var tr = document.createElement("tr");
+          [s.description || "—", s.deadline || "—", s.owner_name || "—"].forEach(function(txt) {
+            var td = document.createElement("td");
+            td.textContent = txt;
+            tr.appendChild(td);
+          });
+          pt.appendChild(tr);
+        });
+      }
+    }
+
+    var rt = document.getElementById("ppRaidBody");
+    if (rt) {
+      rt.innerHTML = "";
+      var raids = det.raid_items || [];
+      if (!raids.length) {
+        var trr = document.createElement("tr");
+        var tdr = document.createElement("td");
+        tdr.colSpan = 5;
+        tdr.className = "pp-muted";
+        tdr.style.padding = "10px";
+        tdr.textContent = "No RAID items";
+        trr.appendChild(tdr);
+        rt.appendChild(trr);
+      } else {
+        raids.forEach(function(r) {
+          var tr = document.createElement("tr");
+          [r.category || "—", r.title || "—", r.severity || "—", r.owner_name || "—", r.status || "—"].forEach(function(txt) {
+            var td = document.createElement("td");
+            td.textContent = txt;
+            tr.appendChild(td);
+          });
+          rt.appendChild(tr);
+        });
+      }
+    }
+
+    var gv = det.gov || {};
+    setText("ppGovSubmitted", gv.submitted_by || "");
+    setText("ppGovReviewed", gv.reviewed_by || "");
+    setText("ppGovApproval", gv.approval_status || "");
+    setText("ppGovStakeholders", gv.stakeholders || "");
+    setText("ppGovImpact", gv.operational_impact || "");
+    setText("ppGovAssumptions", gv.assumptions_constraints || "");
+
+    // deadline tracker: days remaining + progress bar
+    var fill = document.getElementById("ppProgressBarFill");
+    if (fill) fill.style.width = (row.dataset.progress ? (row.dataset.progress + "%") : "0%");
+    var daysEl = document.getElementById("ppDaysRemaining");
+    var isoEnd = (row.dataset.endIso || "").trim();
+    setText("ppDeadlineIso", isoEnd || "—");
+    var deadlineText = (row.dataset.deadline || "").trim();
+    var d = null;
+    if (isoEnd) d = new Date(isoEnd + "T12:00:00");
+    else if (deadlineText && deadlineText !== "—") d = new Date(deadlineText);
+    var msg = "—";
+    if (d && !isNaN(d.getTime())) {
+      var now = new Date();
+      var remaining = daysBetween(now, d);
+      if (remaining >= 0) msg = remaining + " days remaining";
+      else msg = Math.abs(remaining) + " days overdue";
+    }
+    if (daysEl) daysEl.textContent = msg;
+
+    /* Active challenges: من عناصر RAID في الموديل (أولوية عالية / حرجة) */
+    var chall = document.getElementById("ppChallenges");
+    if (chall) {
+      chall.innerHTML = "";
+      var addCh = function(label, body) {
+        var div = document.createElement("div");
+        div.className = "pp-kv";
+        div.style.margin = "0";
+        div.innerHTML = "<div class='k'>" + label + "</div><div class='v'>" + (body || "—") + "</div>";
+        chall.appendChild(div);
+      };
+      var raids = det.raid_items || [];
+      var hot = raids.filter(function(r) {
+        var c = (r.severity_code || "").toString().toLowerCase();
+        return c === "critical" || c === "high";
+      });
+      if (hot.length) {
+        hot.slice(0, 8).forEach(function(r) {
+          var lab = (r.category || "RAID").toString().trim() || "RAID";
+          var line = (r.title || "—") + (r.status ? (" · " + r.status) : "");
+          addCh(lab.toUpperCase(), line);
+        });
+      } else {
+        addCh("INFO", "No high/critical RAID items in the model");
+      }
+    }
+
+    openTwDetailDrawer();
+  }
+
+  document.querySelectorAll(".pp-row").forEach(function(row) {
+    row.addEventListener("click", function() { selectRow(row); });
+  });
+
+  // Auto-select: highlighted row if provided, else first row
+  var params0 = new URLSearchParams(window.location.search);
+  var highlightId = (params0.get("highlight") || "").trim();
+  var target = null;
+  if (highlightId) {
+    target = document.querySelector(".pp-row[data-id='" + CSS.escape(highlightId) + "']");
+  }
+  if (target) {
+    selectRow(target);
+    // Add NEW badge to the added project row
+    if (highlightId && target.dataset.id === highlightId) {
+      var titleEl = target.querySelector(".tw-project-name");
+      if (titleEl && !titleEl.querySelector(".pp-new-badge")) {
+        var b = document.createElement("span");
+        b.className = "pp-new-badge";
+        b.textContent = "NEW";
+        titleEl.appendChild(b);
+      }
+      // Remove highlight param so NEW doesn't persist forever
+      try {
+        params0.delete("highlight");
+        history.replaceState({}, "", window.location.pathname + (params0.toString() ? ("?" + params0.toString()) : ""));
+      } catch(e) {}
+    }
+    try { target.scrollIntoView({ block: "nearest", behavior: "smooth" }); } catch(e) {}
+  }
+
+})();
+</script>
+
