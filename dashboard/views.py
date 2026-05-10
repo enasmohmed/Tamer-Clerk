@@ -1907,7 +1907,7 @@ class UploadExcelViewRoche(View):
                 "data_is_uploaded": True,
                 "months": [],
                 "excel_tabs": [],
-                "active_tab": "executive overview",
+                "active_tab": "transformation workspace",
                 "tab_summaries": [],
                 "form": ExcelUploadForm(),
                 "meeting_points": meeting_points,
@@ -1950,10 +1950,10 @@ class UploadExcelViewRoche(View):
         # --------------------------
         # Read request parameters
         # --------------------------
-        selected_tab = (request.GET.get("tab") or "").strip().lower() or "executive overview"
+        selected_tab = (request.GET.get("tab") or "").strip().lower() or "transformation workspace"
         _allowed_main_tabs = {"executive overview", "transformation workspace", "project portfolio"}
         if selected_tab not in _allowed_main_tabs:
-            selected_tab = "executive overview"
+            selected_tab = "transformation workspace"
         selected_month = request.GET.get("month", "").strip()
         selected_quarter = request.GET.get("quarter", "").strip()
         action = request.GET.get("action", "").lower()
@@ -2299,7 +2299,7 @@ class UploadExcelViewRoche(View):
         # وضع تاب Warehouse فقط: تاب واحد وعرض الكروت من الأدمن
         if getattr(self, "USE_WAREHOUSE_TAB_ONLY", False):
             excel_tabs = []
-            selected_tab = "executive overview"
+            selected_tab = "transformation workspace"
             data_is_uploaded = True
             warehouse_overview = context_helpers.get_warehouse_overview_list()
             clerk_interview_rows = context_helpers.get_clerk_interview_list()
@@ -2321,7 +2321,7 @@ class UploadExcelViewRoche(View):
             "data_is_uploaded": data_is_uploaded,
             "months": all_months,
             "excel_tabs": excel_tabs,
-            "active_tab": selected_tab or "executive overview",
+            "active_tab": selected_tab or "transformation workspace",
             "body_extra_class": "tab-ideas-overview" if selected_tab_normalized == "project tracker" else "",
             "tab_summaries": [],
             "form": ExcelUploadForm(),
