@@ -97,6 +97,592 @@ def get_phases_sections_list():
         return []
 
 
+def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
+    """
+    Executive Overview KPI cards (top strip).
+    If admin didn't add any rows yet, return a reasonable default set.
+    """
+    defaults = [
+        {
+            "key": "total_projects",
+            "title": "TOTAL PROJECTS",
+            "value_text": "—",
+            "subtitle": "Across portfolio",
+            "footer": "Connected from Admin / data model",
+            "accent": "cyan",
+        },
+        {
+            "key": "on_track",
+            "title": "ON TRACK",
+            "value_text": "—",
+            "subtitle": "Projects healthy",
+            "footer": "Improving vs last month",
+            "accent": "green",
+        },
+        {
+            "key": "at_risk",
+            "title": "AT RISK",
+            "value_text": "—",
+            "subtitle": "Needs attention",
+            "footer": "Review top drivers",
+            "accent": "amber",
+        },
+        {
+            "key": "spi",
+            "title": "SPI",
+            "value_text": "—",
+            "subtitle": "Schedule performance",
+            "footer": "6‑month view",
+            "accent": "cyan",
+        },
+        {
+            "key": "cpi",
+            "title": "CPI",
+            "value_text": "—",
+            "subtitle": "Cost performance",
+            "footer": "6‑month view",
+            "accent": "purple",
+        },
+        {
+            "key": "open_risks",
+            "title": "OPEN RISKS",
+            "value_text": "—",
+            "subtitle": "Across portfolio",
+            "footer": "Prioritize mitigations",
+            "accent": "red",
+        },
+    ]
+    def _compute_defaults():
+        """
+        Compute live values from Transformation Workspace data models.
+        Uses workspace_metrics when provided to avoid double work.
+        """
+        try:
+            from .models import PortfolioRaidItem, ProjectTrackerItem
+
+            qs = ProjectTrackerItem.objects.all()
+            if project_type and project_type in ("idea", "automation"):
+                qs = qs.filter(project_type=project_type)
+            total_projects = qs.count()
+            on_track = qs.filter(register_status="on_track").count()
+            at_risk = qs.filter(register_status="at_risk").count()
+            # Keep "open risks" aligned with TW meaning (open RAID excluding completed projects)
+            open_risks = PortfolioRaidItem.objects.filter(status="open").exclude(
+                project__launch_status="done"
+            ).count()
+
+            spi = None
+            cpi = None
+            if workspace_metrics:
+                spi = workspace_metrics.get("spi")
+                cpi = workspace_metrics.get("cpi")
+            return {
+                "total_projects": str(total_projects),
+                "on_track": str(on_track),
+                "at_risk": str(at_risk),
+                "open_risks": str(open_risks),
+                "spi": f"{spi:.2f}" if isinstance(spi, (int, float)) else "—",
+                "cpi": f"{cpi:.2f}" if isinstance(cpi, (int, float)) else "—",
+            }
+        except Exception:
+            return {}
+
+    computed = _compute_defaults()
+
+    try:
+        from .models import ExecutiveOverviewKpiCard
+
+        rows = list(
+            ExecutiveOverviewKpiCard.objects.filter(is_active=True).order_by(
+                "display_order", "id"
+            )
+        )
+        if not rows:
+            # Fill default placeholders with computed values if available
+            for d in defaults:
+                k = d.get("key")
+                if k in computed and (d.get("value_text") in ("—", "", None)):
+                    d["value_text"] = computed[k]
+            return defaults
+
+        result = []
+        for r in rows:
+            v = (r.value_text or "").strip() or "—"
+            if v in ("—", "-") and r.key in computed and computed[r.key] not in ("", "—", None):
+                v = computed[r.key]
+            result.append(
+                {
+                    "key": r.key,
+                    "title": r.title,
+                    "value_text": v,
+                    "subtitle": r.subtitle or "",
+                    "footer": r.footer or "",
+                    "accent": r.accent or "cyan",
+                }
+            )
+        return result
+    except Exception:
+        for d in defaults:
+            k = d.get("key")
+            if k in computed and (d.get("value_text") in ("—", "", None)):
+                d["value_text"] = computed[k]
+        return defaults
+
+
+def get_executive_overview_tw_payload(tw_items, top_n=6):
+    """
+    Build executive_charts + executive_top_projects from Transformation Workspace `items`.
+
+    TW register rows expose the display title as `name` (not `description`). PMBOK buckets
+    come from `pmbok_label` (INITIATING / PLANNING / EXECUTING / MONITORING / CLOSING), not
+    from the internal `phase` string (Brainstorming / Development / ...).
+    """
+    tw_items = tw_items or []
+    status_order = [
+        ("on_track", "On Track"),
+        ("at_risk", "At Risk"),
+        ("delayed", "Delayed"),
+        ("blocked", "Blocked"),
+        ("approved", "Approved"),
+    ]
+    status_counts = {k: 0 for k, _ in status_order}
+    phase_order = [
+        ("Initiating", "Initiating"),
+        ("Planning", "Planning"),
+        ("Executing", "Executing"),
+        ("Monitoring", "Monitoring"),
+        ("Closing", "Closing"),
+    ]
+    phase_counts = {k: 0 for k, _ in phase_order}
+    pmbok_map = {
+        "INITIATING": "Initiating",
+        "PLANNING": "Planning",
+        "EXECUTING": "Executing",
+        "MONITORING": "Monitoring",
+        "CLOSING": "Closing",
+    }
+    category_counts = {}
+    for it in tw_items:
+        sk = (it.get("register_status_effective") or it.get("register_status") or "").strip()
+        if sk in status_counts:
+            status_counts[sk] += 1
+        pl = (it.get("pmbok_label") or "").strip().upper()
+        bucket = pmbok_map.get(pl)
+        if bucket:
+            phase_counts[bucket] += 1
+        cat = (it.get("category_display") or "").strip()
+        if cat:
+            category_counts[cat] = category_counts.get(cat, 0) + 1
+
+    def _display_name(item):
+        n = (item.get("name") or "").strip()
+        if n and n != "—":
+            return n
+        pc = (item.get("project_code") or "").strip()
+        if pc:
+            return pc
+        lid = (item.get("log_id") or "").strip()
+        if lid:
+            return lid
+        oid = item.get("id")
+        return f"Project #{oid}" if oid is not None else "—"
+
+    top_projects = []
+    for it in tw_items[:top_n]:
+        top_projects.append(
+            {
+                "name": _display_name(it),
+                "progress_pct": int(it.get("progress_pct") or 0),
+                "status_display": (
+                    (it.get("register_status_display") or "").strip()
+                    or (it.get("register_badge_label") or "").strip()
+                    or "—"
+                ),
+                "status_key": (
+                    it.get("register_status_effective") or it.get("register_status") or ""
+                ).strip(),
+            }
+        )
+
+    def _pmo_tone_from_row_class(row_class):
+        rc = (row_class or "").strip()
+        if "tw-pmo-good" in rc:
+            return "good"
+        if "tw-pmo-bad" in rc:
+            return "bad"
+        return "warn"
+
+    executive_pmo_health = []
+    for it in tw_items[:8]:
+        pct = int(it.get("pmo_score_pct") or 0)
+        executive_pmo_health.append(
+            {
+                "name": _display_name(it),
+                "log_id": (it.get("log_id") or "").strip(),
+                "pmo_score_pct": pct,
+                "tone": _pmo_tone_from_row_class(it.get("pmo_row_class")),
+            }
+        )
+
+    deadline_rows = []
+    for it in tw_items:
+        if it.get("deadline") is None and it.get("deadline_days_int") is None:
+            continue
+        days = it.get("deadline_days_int")
+        if days is None:
+            urgency = "warn"
+        elif days < 0:
+            urgency = "bad"
+        elif days <= 30:
+            urgency = "warn"
+        else:
+            urgency = "good"
+        lbl = (it.get("deadline_days_label") or "").strip()
+        if not lbl and days is not None:
+            lbl = f"{days}d"
+        deadline_rows.append(
+            {
+                "name": _display_name(it),
+                "log_id": (it.get("log_id") or "").strip(),
+                "due_display": (it.get("deadline_display") or "").strip() or "—",
+                "days": days,
+                "days_label": lbl or "—",
+                "urgency": urgency,
+            }
+        )
+    deadline_rows.sort(
+        key=lambda r: (
+            r["days"] is None,
+            r["days"] if r["days"] is not None else 10**9,
+        )
+    )
+    deadline_rows = deadline_rows[:8]
+
+    def _gantt_status_tone(sk):
+        if sk == "on_track":
+            return "good"
+        if sk in ("delayed", "blocked"):
+            return "bad"
+        if sk == "at_risk":
+            return "warn"
+        return "neutral"
+
+    def _fmt_date(d):
+        if d is not None and hasattr(d, "strftime"):
+            return d.strftime("%b %d, %Y")
+        return str(d) if d else ""
+
+    def _gantt_css_num(val):
+        """ASCII decimals for CSS calc() (locale-safe, avoids broken positioning)."""
+        try:
+            v = float(val)
+        except (TypeError, ValueError):
+            return "0"
+        v = max(0.0, min(100.0, v))
+        s = f"{v:.8f}".rstrip("0").rstrip(".")
+        return s if s else "0"
+
+    gantt_projects = []
+    gantt_range_start = ""
+    gantt_range_end = ""
+    gantt_candidates = []
+    for it in tw_items:
+        sd = it.get("start_date")
+        ed = it.get("deadline")
+        if sd is None or ed is None:
+            continue
+        if not hasattr(sd, "toordinal") or not hasattr(ed, "toordinal"):
+            continue
+        try:
+            if sd > ed:
+                sd, ed = ed, sd
+        except (TypeError, ValueError):
+            continue
+        gantt_candidates.append((it, sd, ed))
+    gantt_month_ticks = []
+    gantt_now_pct = None
+    gantt_now_pct_css = None
+    month_axis_multi_year = False
+    if gantt_candidates:
+        from datetime import date as _gantt_date
+
+        t0 = min(c[1] for c in gantt_candidates)
+        t1 = max(c[2] for c in gantt_candidates)
+        gantt_range_start = _fmt_date(t0)
+        gantt_range_end = _fmt_date(t1)
+        d0 = t0.date() if hasattr(t0, "date") else t0
+        d1 = t1.date() if hasattr(t1, "date") else t1
+        # Axis: January of the earliest-start year → last deadline (so labels run JAN…last month with data)
+        axis_start = _gantt_date(d0.year, 1, 1)
+        span_days = max(1, (d1 - axis_start).days)
+        month_axis_multi_year = d1.year > axis_start.year
+        _mon_abbr = (
+            "",
+            "JAN",
+            "FEB",
+            "MAR",
+            "APR",
+            "MAY",
+            "JUN",
+            "JUL",
+            "AUG",
+            "SEP",
+            "OCT",
+            "NOV",
+            "DEC",
+        )
+        cur_m = axis_start
+        end_m = _gantt_date(d1.year, d1.month, 1)
+        while cur_m <= end_m:
+            try:
+                raw_days = (cur_m - axis_start).days
+                lp_raw = max(0.0, min(100.0, 100.0 * raw_days / float(span_days)))
+            except (TypeError, ValueError):
+                lp_raw = 0.0
+            lp = round(lp_raw, 2)
+            # If range crosses calendar years, put 'YY on every month so JAN '25 vs JAN '26 is never ambiguous.
+            if month_axis_multi_year:
+                label = f"{_mon_abbr[cur_m.month]} {cur_m.year % 100:02d}"
+            else:
+                label = _mon_abbr[cur_m.month]
+            gantt_month_ticks.append(
+                {"label": label, "left_pct": lp, "left_css": _gantt_css_num(lp_raw)}
+            )
+            if cur_m.month == 12:
+                cur_m = _gantt_date(cur_m.year + 1, 1, 1)
+            else:
+                cur_m = _gantt_date(cur_m.year, cur_m.month + 1, 1)
+        gantt_month_ticks.sort(key=lambda z: (z["left_pct"], z["label"]))
+        today = _gantt_date.today()
+        if axis_start <= today <= d1:
+            try:
+                now_raw = max(
+                    0.0,
+                    min(100.0, 100.0 * (today - axis_start).days / float(span_days)),
+                )
+                gantt_now_pct = round(now_raw, 2)
+                gantt_now_pct_css = _gantt_css_num(now_raw)
+            except (TypeError, ValueError):
+                gantt_now_pct = None
+                gantt_now_pct_css = None
+        for it, sd, ed in sorted(gantt_candidates, key=lambda c: c[1])[:12]:
+            sk = (it.get("register_status_effective") or it.get("register_status") or "").strip()
+            sdn = sd.date() if hasattr(sd, "date") else sd
+            edn = ed.date() if hasattr(ed, "date") else ed
+            dur = max(1, (edn - sdn).days)
+            left_pct_raw = max(
+                0.0,
+                min(100.0, 100.0 * (sdn - axis_start).days / float(span_days)),
+            )
+            width_pct_raw = max(
+                1.5, min(100.0 - left_pct_raw, 100.0 * dur / float(span_days))
+            )
+            prio = (it.get("register_priority_display") or "").strip()
+            bar_lbl = (it.get("register_badge_label") or "").strip()
+            if not bar_lbl:
+                bar_lbl = (it.get("register_status_display") or "").strip()
+            if len(bar_lbl) > 28:
+                bar_lbl = bar_lbl[:27] + "…"
+            gantt_projects.append(
+                {
+                    "name": _display_name(it),
+                    "log_id": (it.get("log_id") or "").strip(),
+                    "priority_display": prio,
+                    "start_display": _fmt_date(sd),
+                    "end_display": _fmt_date(ed),
+                    "left_pct": round(left_pct_raw, 2),
+                    "width_pct": round(width_pct_raw, 2),
+                    "left_css": _gantt_css_num(left_pct_raw),
+                    "width_css": _gantt_css_num(width_pct_raw),
+                    "tone": _gantt_status_tone(sk),
+                    "bar_label": bar_lbl,
+                }
+            )
+    executive_gantt = {
+        "projects": gantt_projects,
+        "range_start": gantt_range_start,
+        "range_end": gantt_range_end,
+        "month_ticks": gantt_month_ticks,
+        "now_pct": gantt_now_pct,
+        "month_axis_multi_year": month_axis_multi_year,
+        "month_tick_count": max(1, len(gantt_month_ticks)),
+    }
+    if gantt_now_pct_css is not None:
+        executive_gantt["now_pct_css"] = gantt_now_pct_css
+
+    # Budget vs EAC: EAC with BAC normalized to 1.0 per project (from TW EVM snapshot)
+    budget_labels = []
+    budget_values = []
+    for it in tw_items:
+        evm = it.get("evm") or {}
+        eac = evm.get("eac")
+        if eac is None:
+            continue
+        try:
+            ratio = float(eac)
+        except (TypeError, ValueError):
+            continue
+        ratio = round(min(2.5, max(0.0, ratio)), 3)
+        _bn = _display_name(it)
+        if len(_bn) > 44:
+            _bn = _bn[:43] + "…"
+        budget_labels.append(_bn)
+        budget_values.append(ratio)
+    _budget_order = sorted(range(len(budget_values)), key=lambda i: -budget_values[i])
+    budget_labels = [budget_labels[i] for i in _budget_order][:10]
+    budget_values = [budget_values[i] for i in _budget_order][:10]
+
+    # Risk heat map: 5×5 matrix (prob → columns, impact ↑ rows) + tier colors (UI matches PMO matrix)
+    prob_rank = {"High": 4.2, "Medium": 3.0, "Low": 1.8}
+    hm_tier = [
+        ["medium", "high", "high", "critical", "critical"],
+        ["low", "medium", "high", "high", "critical"],
+        ["low", "low", "medium", "high", "high"],
+        ["low", "low", "low", "medium", "high"],
+        ["low", "low", "low", "low", "medium"],
+    ]
+    hm_matrix = [
+        [{"tier": hm_tier[r][c], "items": []} for c in range(5)] for r in range(5)
+    ]
+
+    def _risk_cell_code(item):
+        lid = (item.get("log_id") or "").strip()
+        if lid:
+            return lid[:10]
+        oid = item.get("id")
+        return f"R-{int(oid):03d}" if oid is not None else "R-000"
+
+    for it in tw_items:
+        if (it.get("launch_status") or "").strip() == "done":
+            continue
+        risk = (it.get("risk") or "").strip()
+        px = prob_rank.get(risk, 2.6)
+        ri = int(it.get("raid_open_impact") or 0)
+        py = float(ri) if ri >= 2 else prob_rank.get(risk, 2.2)
+        col_idx = max(0, min(4, int(round(float(px))) - 1))
+        row_idx = max(0, min(4, 5 - int(round(float(py)))))
+        cell = hm_matrix[row_idx][col_idx]
+        if len(cell["items"]) < 3:
+            cell["items"].append(
+                {
+                    "code": _risk_cell_code(it),
+                    "title": _display_name(it),
+                }
+            )
+
+    has_risk_hm = any(
+        cell["items"] for row in hm_matrix for cell in row
+    )
+
+    # Strategic alignment: fixed four objectives; map portfolio labels into buckets
+    fixed_strategic = [
+        "Cost Optimization",
+        "Automation",
+        "Compliance",
+        "Digital Transformation",
+    ]
+    strategic_counts = {k: 0 for k in fixed_strategic}
+
+    def _strategic_bucket(raw):
+        n = (raw or "").strip().lower()
+        if not n:
+            return None
+        if "cost" in n or "optim" in n or "saving" in n or "reduce cost" in n:
+            return "Cost Optimization"
+        if "automat" in n or "robot" in n or "rpa" in n:
+            return "Automation"
+        if "compliance" in n or "regulatory" in n or "audit" in n or "governance" in n:
+            return "Compliance"
+        if "digital" in n or "transform" in n:
+            return "Digital Transformation"
+        if "wms" in n or "erp" in n or "warehouse" in n or "integration" in n:
+            return "Automation"
+        if "security" in n or "cyber" in n:
+            return "Compliance"
+        return None
+
+    for it in tw_items:
+        raw = (it.get("strategic_alignment_display") or "").strip()
+        b = _strategic_bucket(raw)
+        if b:
+            strategic_counts[b] += 1
+        else:
+            strategic_counts["Digital Transformation"] += 1
+
+    executive_charts = {
+        "status": {
+            "labels": [lbl for _, lbl in status_order],
+            "values": [status_counts[k] for k, _ in status_order],
+        },
+        "phase": {
+            "labels": [lbl for _, lbl in phase_order],
+            "values": [phase_counts[k] for k, _ in phase_order],
+        },
+        "category": {
+            "labels": [
+                k
+                for k, _ in sorted(
+                    category_counts.items(), key=lambda kv: (-kv[1], kv[0])
+                )
+            ][:8],
+            "values": [
+                v
+                for _, v in sorted(
+                    category_counts.items(), key=lambda kv: (-kv[1], kv[0])
+                )
+            ][:8],
+            "total": sum(category_counts.values()),
+        },
+        "budget_eac": {
+            "labels": budget_labels,
+            "values": budget_values,
+        },
+        "risk_heatmap": {
+            "matrix": hm_matrix,
+            "has_data": has_risk_hm,
+        },
+        "alignment": {
+            "labels": fixed_strategic,
+            "values": [strategic_counts[k] for k in fixed_strategic],
+        },
+    }
+    return {
+        "executive_charts": executive_charts,
+        "executive_top_projects": top_projects,
+        "executive_pmo_health": executive_pmo_health,
+        "executive_deadlines": deadline_rows,
+        "executive_gantt": executive_gantt,
+    }
+
+
+def get_executive_charts_fallback_payload():
+    """
+    Minimal executive_charts when TW payload build fails (template + json_script need keys).
+    """
+    hm_tier = [
+        ["medium", "high", "high", "critical", "critical"],
+        ["low", "medium", "high", "high", "critical"],
+        ["low", "low", "medium", "high", "high"],
+        ["low", "low", "low", "medium", "high"],
+        ["low", "low", "low", "low", "medium"],
+    ]
+    fixed = [
+        "Cost Optimization",
+        "Automation",
+        "Compliance",
+        "Digital Transformation",
+    ]
+    matrix = [[{"tier": hm_tier[r][c], "items": []} for c in range(5)] for r in range(5)]
+    return {
+        "status": {"labels": [], "values": []},
+        "phase": {"labels": [], "values": []},
+        "category": {"labels": [], "values": [], "total": 0},
+        "budget_eac": {"labels": [], "values": []},
+        "risk_heatmap": {"matrix": matrix, "has_data": False},
+        "alignment": {"labels": fixed, "values": [0, 0, 0, 0]},
+    }
+
+
 def get_warehouse_overview_list():
     """
     Returns a list of warehouses with business_systems, employee_summary, and phase_statuses
@@ -918,7 +1504,20 @@ def get_transformation_workspace(project_type=None):
                         "severity_code": (r.severity or "").strip(),
                         "owner_name": r.owner_name or "",
                         "status": r.get_status_display() if r.status else "",
+                        "status_code": (r.status or "").strip(),
                     }
+                )
+
+            _sev_rank_open = {"critical": 5, "high": 4, "medium": 3, "low": 2}
+            _raid_open_impact = 0
+            _open_raid_count = 0
+            for _r in raid_rows:
+                if (_r.get("status_code") or "").strip().lower() != "open":
+                    continue
+                _open_raid_count += 1
+                _sc = (_r.get("severity_code") or "").strip().lower()
+                _raid_open_impact = max(
+                    _raid_open_impact, _sev_rank_open.get(_sc, 0)
                 )
 
             pc = (getattr(obj, "project_code", "") or "").strip()
@@ -1123,6 +1722,9 @@ def get_transformation_workspace(project_type=None):
                     "launch_display": phase_label(obj.launch_status),
                     "remarks": getattr(obj, "remarks", "") or "",
                     "days_since_status_update": days_since_update,
+                    "evm": detail_payload.get("evm") or {},
+                    "open_raid_count": _open_raid_count,
+                    "raid_open_impact": _raid_open_impact,
                 }
             )
 

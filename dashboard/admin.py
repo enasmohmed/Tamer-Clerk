@@ -22,6 +22,7 @@ from .models import (
     Region,
     WarehouseMetric,
     DashboardTheme,
+    ExecutiveOverviewKpiCard,
     MeetingPoint,
     Recommendation,
     PortfolioRaidItem,
@@ -296,6 +297,14 @@ class DashboardThemeAdmin(admin.ModelAdmin):
         created_count, updated_count = DashboardTheme.initialize_defaults(reset_all=True)
         messages.success(request, f"Reset complete! Created: {created_count}, Updated: {updated_count} colors to new Green+Teal palette.")
         return redirect("admin:dashboard_dashboardtheme_changelist")
+
+
+@admin.register(ExecutiveOverviewKpiCard)
+class ExecutiveOverviewKpiCardAdmin(admin.ModelAdmin):
+    list_display = ("title", "key", "value_text", "accent", "is_active", "display_order")
+    list_editable = ("value_text", "accent", "is_active", "display_order")
+    search_fields = ("title", "key")
+    ordering = ("display_order", "id")
 
 
 @admin.register(MeetingPoint)

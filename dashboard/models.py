@@ -135,6 +135,44 @@ class DashboardTheme(models.Model):
         return created_count, updated_count
 
 
+# ─── Executive Overview (PMO) — KPI Cards (editable from Admin) ───
+EO_ACCENT_CHOICES = [
+    ("cyan", "Cyan"),
+    ("green", "Green"),
+    ("amber", "Amber"),
+    ("purple", "Purple"),
+    ("red", "Red"),
+]
+
+
+class ExecutiveOverviewKpiCard(models.Model):
+    """
+    Executive Overview top KPI cards (TOTAL PROJECTS, ON TRACK, ...).
+    Stored as static values for now; can be wired to computed metrics later.
+    """
+
+    key = models.SlugField(
+        max_length=80,
+        unique=True,
+        help_text="Unique key (e.g. total_projects, on_track, spi)",
+    )
+    title = models.CharField(max_length=120, help_text="Card title (upper label)")
+    value_text = models.CharField(max_length=40, default="—", help_text="Displayed value")
+    subtitle = models.CharField(max_length=140, blank=True, help_text="Small line under value")
+    footer = models.CharField(max_length=160, blank=True, help_text="Footer hint under the card")
+    accent = models.CharField(max_length=12, choices=EO_ACCENT_CHOICES, default="cyan")
+    display_order = models.PositiveSmallIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        verbose_name = "Executive KPI Card"
+        verbose_name_plural = "00 — Executive Overview — KPI Cards / كروت المؤشرات"
+        ordering = ["display_order", "id"]
+
+    def __str__(self):
+        return f"{self.title} ({self.key})"
+
+
 # ─── 1. Status (For Warehouse and Phases) ───
 class Status(models.Model):
     """General status with color (for warehouse or phase activity)."""

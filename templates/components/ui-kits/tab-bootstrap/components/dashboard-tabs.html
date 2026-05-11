@@ -3,6 +3,8 @@
 {# CSS Variables from Dashboard Theme - All tab colors customizable from Admin #}
 <style>
   :root {
+    /* Shared with Executive Overview + Transformation Workspace (PMO light theme) */
+    --pmo-font-stack: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Arabic", sans-serif;
     /* Tab strip: light surface — accents cyan/indigo (no green) */
     --tab-active-bg: {{ dashboard_theme.tab_active_bg|default:"#0ea5e9" }};
     --tab-active-text: {{ dashboard_theme.tab_active_text|default:"#ffffff" }};
@@ -15,8 +17,9 @@
 </style>
 
 <style>
-  /* Light tab strip — no dark bar */
+  /* Light tab strip — same font stack as PMO dashboards */
   #dashboard-tabs.nav-tabs {
+    font-family: var(--pmo-font-stack);
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
@@ -34,6 +37,8 @@
     margin: 0;
   }
   #dashboard-tabs button.nav-link {
+    font-family: var(--pmo-font-stack);
+    letter-spacing: 0.03em;
     background: #ffffff !important;
     color: #475569 !important;
     border: 1px solid #cbd5e1 !important;
@@ -77,6 +82,7 @@
 
   /* Transformation Workspace: خلفية فاتحة لـ #tab-content */
   #tab-content.card:has(.tw-pmo-theme) {
+    font-family: var(--pmo-font-stack);
     background-color: #f8fafc !important;
     background-image: none;
     border: 1px solid rgba(15, 23, 42, 0.12) !important;
@@ -378,14 +384,14 @@
             role="tablist"
           >
             <li class="nav-item" role="presentation">
-              <button type="button" class="nav-link {% if active_tab|default:'transformation workspace' == 'executive overview' %}active{% endif %}" data-tab="executive overview">Executive Overview dashboard</button>
+              <button type="button" class="nav-link {% if active_tab|default:'executive overview' == 'executive overview' %}active{% endif %}" data-tab="executive overview">Executive Overview</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button type="button" class="nav-link {% if active_tab|default:'transformation workspace' != 'executive overview' %}active{% endif %}" data-tab="transformation workspace">Transformation Workspace</button>
+              <button type="button" class="nav-link {% if active_tab|default:'executive overview' != 'executive overview' %}active{% endif %}" data-tab="transformation workspace">Transformation Workspace</button>
             </li>
           </ul>
           <div id="tab-content" class="card p-4 shadow-sm bg-white mt-3">
-            {% if active_tab|default:'transformation workspace' == "transformation workspace" or active_tab == "project portfolio" %}
+            {% if active_tab|default:'executive overview' == "transformation workspace" or active_tab == "project portfolio" %}
               {% include 'components/ui-kits/tab-bootstrap/components/transformation-workspace.html' with transformation_workspace=transformation_workspace %}
             {% else %}
               {% include 'components/ui-kits/tab-bootstrap/components/executive-overview.html' %}
@@ -528,10 +534,10 @@
     const csrftoken = document.querySelector(
       "[name=csrfmiddlewaretoken]",
     ).value;
-    let selectedTab = "{{ active_tab|default:'transformation workspace'|escapejs }}".toLowerCase().trim();
+    let selectedTab = "{{ active_tab|default:'executive overview'|escapejs }}".toLowerCase().trim();
     if (selectedTab === "project portfolio") selectedTab = "transformation workspace";
     if (selectedTab !== "executive overview" && selectedTab !== "transformation workspace") {
-      selectedTab = "transformation workspace";
+      selectedTab = "executive overview";
     }
     let selectedQuarter = "";
     const TAB_CACHE_PREFIX = "dashboard_tab_cache";
@@ -923,7 +929,7 @@
         $("#quarter-select").val("");
       }
       // نجيب اسم التاب الحالي
-      selectedTab = $(".nav-link.active").data("tab") || "transformation workspace";
+      selectedTab = $(".nav-link.active").data("tab") || "executive overview";
       loadTabData();
     });
 

@@ -1,42 +1,1616 @@
 {% load static %}
 <style>
-  .eo-wrap {
-    border-radius: 16px;
-    border: 1px solid {{ dashboard_theme.border_color|default:"#e2e8f0" }};
-    background: {{ dashboard_theme.bg_light|default:"#f8fafc" }};
-    padding: 1.5rem;
-    box-shadow: 0 6px 22px rgba(16, 24, 40, 0.06);
+  /* Executive Overview uses the same design language as Transformation Workspace */
+  :root {
+    /* Same UI font as Transformation Workspace + dashboard tabs (light bg, neon accents) */
+    --pmo-font-stack: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Arabic", sans-serif;
+    --pp-primary: {{ dashboard_theme.primary_color|default:"#0ea5e9" }};
+    --pp-secondary: {{ dashboard_theme.secondary_color|default:"#818cf8" }};
+    --pp-border: {{ dashboard_theme.border_color|default:"#e2e8f0" }};
+    --pp-muted: {{ dashboard_theme.text_muted|default:"#64748b" }};
+    --pp-text: {{ dashboard_theme.text_primary|default:"#1e293b" }};
+    --pp-bg: #ffffff;
+    --pp-soft: {{ dashboard_theme.bg_light|default:"#f1f5f9" }};
+    --pp-shadow: 0 10px 26px rgba(16, 24, 40, 0.08);
+    --pp-radius: 16px;
   }
-  .eo-title {
-    font-size: 1.15rem;
+
+  .tw-kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 1400px) { .tw-kpi-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 768px) { .tw-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 520px) { .tw-kpi-strip { grid-template-columns: 1fr; } }
+
+  .tw-kpi-card {
+    position: relative;
+    border-radius: var(--pp-radius);
+    padding: 16px 16px 14px;
+    min-height: 118px;
+    background: var(--pp-bg);
+    border: 1px solid var(--pp-border);
+    box-shadow: 0 6px 22px rgba(16, 24, 40, 0.07);
+    overflow: hidden;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  .tw-kpi-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 26px rgba(16, 24, 40, 0.1);
+    border-color: rgba(14, 165, 233, 0.22);
+  }
+  .tw-kpi-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 3px;
+    background: var(--tw-accent, var(--pp-secondary));
+    border-radius: var(--pp-radius) var(--pp-radius) 0 0;
+  }
+  .tw-kpi-card .tw-kpi-title {
+    font-size: 10px;
     font-weight: 800;
-    color: {{ dashboard_theme.text_primary|default:"#1e293b" }};
-    margin-bottom: 0.35rem;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+    color: var(--pp-muted);
+    margin: 0 0 8px;
+    line-height: 1.25;
+  }
+  .tw-kpi-card .tw-kpi-value {
+    font-size: 28px;
+    font-weight: 900;
+    line-height: 1.05;
+    color: var(--tw-accent, var(--pp-primary));
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .tw-kpi-card .tw-kpi-sub {
+    margin-top: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--pp-muted);
+  }
+  .tw-kpi-card .tw-kpi-foot {
+    margin-top: 12px;
+    font-size: 11px;
+    font-weight: 650;
+    line-height: 1.35;
+  }
+  .tw-foot-good { color: #0284c7; }
+  .tw-foot-bad { color: #dc2626; }
+  .tw-foot-neutral { color: var(--pp-muted); }
+  .tw-foot-warn { color: #c2410c; }
+
+  .pp-card {
+    border-radius: var(--pp-radius);
+    background: var(--pp-bg);
+    border: 1px solid var(--pp-border);
+    box-shadow: 0 6px 22px rgba(16, 24, 40, 0.07);
+    overflow: hidden;
+  }
+  .pp-card:hover { border-color: rgba(14, 165, 233, 0.2); }
+  .pp-card-header {
+    padding: 14px 16px;
+    background: #ffffff;
+    border-bottom: 1px solid var(--pp-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .pp-title {
+    margin: 0;
+    font-weight: 800;
+    font-size: 15px;
+    color: var(--pp-text);
+    letter-spacing: 0.2px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pp-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0369a1;
+    background: rgba(14, 165, 233, 0.08);
+    border: 1px solid rgba(14, 165, 233, 0.22);
+    white-space: nowrap;
+  }
+  .pp-body { padding: 12px 14px 14px; }
+
+  /* PMO skin — mirror Transformation Workspace: white cards, slate chrome, same neon tokens */
+  .tw-pmo-theme {
+    font-family: var(--pmo-font-stack);
+    --tw-bg-deep: #f1f5f9;
+    --tw-bg-card: #ffffff;
+    --tw-bg-elevated: #f8fafc;
+    --tw-line: rgba(15, 23, 42, 0.12);
+    --tw-text-hi: #0f172a;
+    --tw-text-lo: #475569;
+    --tw-neon-cyan: #0284c7;
+    --tw-neon-green: #059669;
+    --tw-neon-red: #dc2626;
+    --tw-neon-amber: #d97706;
+    --tw-neon-purple: #7c3aed;
+    background-color: var(--tw-bg-deep);
+    background-image: none;
+    padding: 16px 14px 18px;
+    margin-bottom: 0;
+    border-radius: 14px;
+    border: 1px solid var(--tw-line);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .tw-pmo-theme .tw-kpi-strip {
+    flex-shrink: 0;
+  }
+  .tw-pmo-theme .tw-kpi-card {
+    background: var(--tw-bg-card);
+    border-color: var(--tw-line);
+    box-shadow: 0 4px 18px rgba(15, 23, 42, 0.08);
+  }
+  .tw-pmo-theme .tw-kpi-card:hover {
+    border-color: rgba(2, 132, 199, 0.35);
+    box-shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+  }
+  .tw-pmo-theme .tw-kpi-card .tw-kpi-title {
+    color: var(--tw-text-lo);
+  }
+  .tw-pmo-theme .tw-kpi-card .tw-kpi-sub,
+  .tw-pmo-theme .tw-kpi-card .tw-kpi-foot {
+    color: var(--tw-text-lo);
+  }
+  .tw-pmo-theme .tw-kpi-card .tw-kpi-value {
+    text-shadow: none;
+  }
+  .tw-pmo-theme .tw-foot-good { color: var(--tw-neon-green); }
+  .tw-pmo-theme .tw-foot-bad { color: var(--tw-neon-red); }
+  .tw-pmo-theme .tw-foot-warn { color: var(--tw-neon-amber); }
+  .tw-pmo-theme .tw-foot-neutral { color: var(--tw-text-lo); }
+
+  .tw-pmo-theme .pp-card {
+    background: var(--tw-bg-card);
+    border-color: var(--tw-line);
+    box-shadow: 0 4px 22px rgba(15, 23, 42, 0.08);
+  }
+  .tw-pmo-theme .pp-card:hover {
+    border-color: rgba(2, 132, 199, 0.28);
+  }
+  .tw-pmo-theme .pp-card-header {
+    background: var(--tw-bg-elevated) !important;
+    border-bottom-color: var(--tw-line) !important;
+  }
+  .tw-pmo-theme .pp-title {
+    color: var(--tw-text-hi) !important;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+  }
+  .tw-pmo-theme .pp-pill {
+    color: var(--tw-neon-cyan);
+    background: rgba(2, 132, 199, 0.1);
+    border-color: rgba(2, 132, 199, 0.35);
+    font-family: var(--pmo-font-stack);
+    letter-spacing: 0.04em;
+  }
+
+  .eo-topbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+  .eo-topbar h2 {
+    margin: 0;
+    font-family: var(--pmo-font-stack);
+    font-size: 17px;
+    font-weight: 950;
+    color: var(--tw-text-hi);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+  .eo-sub {
+    margin-top: 4px;
+    font-family: var(--pmo-font-stack);
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--tw-text-lo);
     letter-spacing: 0.02em;
   }
-  .eo-lead {
-    color: {{ dashboard_theme.text_muted|default:"#64748b" }};
-    font-size: 0.95rem;
-    margin-bottom: 1.25rem;
-    max-width: 720px;
-    line-height: 1.55;
+  .eo-badges {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: flex-end;
   }
-  .eo-placeholder {
+  .eo-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--tw-line);
+    background: #ffffff;
+    color: var(--tw-text-hi);
+    font-size: 12px;
+    font-weight: 800;
+    white-space: nowrap;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  }
+  .eo-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    display: inline-block;
+    background: var(--tw-neon-cyan);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+  }
+  .eo-dot.green { background: var(--tw-neon-green); box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.15); }
+
+  .eo-badge.eo-badge--active-projects {
+    align-items: center;
+  }
+  .eo-active-projects-inner {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: baseline;
+    flex-wrap: nowrap;
+    gap: 8px;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+  .eo-active-projects-count {
+    font-size: 15px;
+    font-weight: 950;
+    font-variant-numeric: tabular-nums;
+    color: var(--tw-neon-cyan);
+    letter-spacing: 0.02em;
+    line-height: 1;
+  }
+  .eo-active-projects-label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--tw-text-lo);
+    line-height: 1;
+  }
+  .eo-local-clock {
+    font-variant-numeric: tabular-nums;
+    font-family: var(--pmo-font-stack);
+    margin-left: 4px;
+  }
+
+  .eo-grid-2 {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+    gap: 18px;
+    align-items: start;
+  }
+  /* Executive row: stretch columns so the Gantt card can grow and remove dead whitespace */
+  .eo-grid-2.eo-exec-after-charts {
+    align-items: stretch;
+  }
+  .eo-exec-after-charts .eo-stack-col {
+    min-height: 0;
+    height: 100%;
+  }
+  .eo-exec-after-charts .eo-gantt-flex-grow {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  .eo-exec-after-charts .eo-gantt-flex-grow .pp-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .eo-exec-after-charts .eo-gantt-flex-grow .eo-gantt {
+    flex: 1 1 auto;
+    min-height: 100px;
+  }
+  @media (max-width: 1200px) { .eo-grid-2 { grid-template-columns: 1fr; } }
+
+  .eo-row-3 {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+  }
+  /* Bottom row: two wide cards (Budget + Alignment) */
+  .eo-row-3.eo-row-3-bottom-2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  /* Extra horizontal space between bottom charts */
+  .eo-row-3.eo-row-3-compact {
+    column-gap: 28px;
+    row-gap: 20px;
+  }
+  /* صف الشارتات الثلاثة: نفس ارتفاع الكارت (stretch) */
+  .eo-row-3.eo-row-3-charts-top {
+    align-items: stretch;
+    width: 100%;
+  }
+  .eo-row-3.eo-row-3-charts-top .pp-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+  }
+  .eo-row-3.eo-row-3-charts-top .pp-card-header {
+    flex-shrink: 0;
+  }
+  .eo-row-3.eo-row-3-charts-top .pp-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+  /*
+   * Row 3 — Budget / Alignment: one shared body height.
+   *   --eo-r3-body-h → height of the white content area under each card header (both cards).
+   * Budget chart max height follows --eo-r3-body-h in JS (see renderHorizontalBars + eo-row-3-budget).
+   */
+  .eo-row-3-compact {
+    --eo-r3-body-h: 292px;
+  }
+  .eo-row-3-compact .pp-card .pp-body {
+    padding: 6px 8px 8px;
+  }
+  .eo-row-3-compact.eo-row-3-charts-top .pp-body {
+    flex: 1 1 auto;
+    min-height: var(--eo-r3-body-h);
+    max-height: var(--eo-r3-body-h);
+    overflow: hidden;
+  }
+  .eo-row-3-compact .pp-body > .eo-chart {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .eo-row-3-compact .eo-chart.tall,
+  .eo-row-3-compact .eo-chart.eo-chart-compact:not(.eo-auto) {
+    height: 100%;
+    min-height: 0;
+    max-height: none;
+    flex: 1 1 auto;
+  }
+  .eo-row-3-compact .eo-chart.eo-auto {
+    min-height: 0;
+    flex: 1 1 auto;
+    max-height: 100%;
+  }
+  .eo-stack-col {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+  }
+  @media (max-width: 1200px) { .eo-row-3 { grid-template-columns: 1fr; } }
+
+  .eo-skel {
     border-radius: 14px;
-    border: 2px dashed rgba(13, 148, 136, 0.35);
-    background: #fff;
-    padding: 2rem;
+    border: 1px dashed rgba(2, 132, 199, 0.35);
+    background: rgba(255, 255, 255, 0.7);
+    min-height: 180px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tw-text-lo);
+    font-weight: 750;
     text-align: center;
-    color: {{ dashboard_theme.text_muted|default:"#64748b" }};
+    padding: 14px;
+  }
+  .eo-skel.tall { min-height: 260px; }
+
+  .eo-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 10px;
+  }
+  .eo-list li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    background: #ffffff;
+  }
+  .eo-list li.eo-li-prog {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .eo-li-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .eo-li-head .eo-li-title {
+    flex: 1;
+    min-width: 0;
+  }
+  .eo-li-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .eo-li-bar {
+    flex: 1;
+    min-width: 0;
+    height: 8px;
+    border-radius: 999px;
+    background: rgba(226, 232, 240, 0.95);
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    overflow: hidden;
+  }
+  .eo-li-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    max-width: 100%;
+    transition: width 0.35s ease;
+  }
+  .eo-li-bar-fill--good {
+    background: linear-gradient(90deg, #047857, var(--tw-neon-green, #059669));
+  }
+  .eo-li-bar-fill--warn {
+    background: linear-gradient(90deg, #b45309, var(--tw-neon-amber, #d97706));
+  }
+  .eo-li-bar-fill--bad {
+    background: linear-gradient(90deg, #b91c1c, var(--tw-neon-red, #dc2626));
+  }
+  .eo-li-bar-fill--neutral {
+    background: linear-gradient(90deg, #0369a1, var(--tw-neon-cyan, #0284c7));
+  }
+  .eo-li-pct {
+    font-size: 11px;
+    font-weight: 900;
+    min-width: 2.75rem;
+    text-align: right;
+    color: var(--tw-text-hi);
+    font-variant-numeric: tabular-nums;
+  }
+  .eo-list .eo-li-title {
+    font-weight: 900;
+    font-size: 12px;
+    color: var(--tw-text-hi);
+    line-height: 1.25;
+  }
+  .eo-list .eo-li-sub {
+    font-weight: 700;
+    font-size: 11px;
+    color: var(--tw-text-lo);
+    margin-top: 2px;
+  }
+  .eo-pill {
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 900;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .eo-pill.good { background: rgba(5, 150, 105, 0.12); color: var(--tw-neon-green); border-color: rgba(5, 150, 105, 0.35); }
+  .eo-pill.warn { background: rgba(217, 119, 6, 0.12); color: var(--tw-neon-amber); border-color: rgba(217, 119, 6, 0.35); }
+  .eo-pill.bad { background: rgba(220, 38, 38, 0.10); color: var(--tw-neon-red); border-color: rgba(220, 38, 38, 0.28); }
+
+  .eo-chart {
+    position: relative;
+    height: 210px;
+  }
+  /* Smaller chart area: Project Status, PMBOK Phase, By Category */
+  .eo-chart.eo-chart-compact {
+    height: 140px;
+  }
+  .eo-chart.eo-auto.eo-chart-compact {
+    height: auto;
+    min-height: 96px;
+    max-height: 200px;
+  }
+  .eo-chart.tall {
+    height: 260px;
+  }
+  .eo-chart canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  .eo-chart.eo-auto:not(.eo-chart-compact) {
+    height: auto;
+    min-height: 160px;
+  }
+  .eo-category-total {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--tw-text-lo);
+    margin-bottom: 4px;
+  }
+  .eo-category-total strong {
+    color: var(--tw-text-hi);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* PMO Health mini cards */
+  .eo-pmo-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .eo-pmo-card {
+    border-radius: 12px;
+    border: 1px solid rgba(15, 23, 42, 0.10);
+    background: #ffffff;
+    padding: 10px 10px 8px;
+    min-height: 0;
+  }
+  .eo-pmo-card .eo-pmo-name {
+    font-size: 11px;
+    font-weight: 900;
+    color: var(--tw-text-hi);
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .eo-pmo-card .eo-pmo-code {
+    font-size: 10px;
+    font-weight: 750;
+    color: var(--tw-text-lo);
+    margin-top: 2px;
+  }
+  .eo-pmo-card .eo-pmo-score {
+    font-size: 18px;
+    font-weight: 900;
+    margin-top: 6px;
+    font-variant-numeric: tabular-nums;
+  }
+  .eo-pmo-card .eo-pmo-score.tone-good { color: var(--tw-neon-green); }
+  .eo-pmo-card .eo-pmo-score.tone-warn { color: var(--tw-neon-amber); }
+  .eo-pmo-card .eo-pmo-score.tone-bad { color: var(--tw-neon-red); }
+  .eo-pmo-card .eo-pmo-bar {
+    margin-top: 8px;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(226, 232, 240, 0.95);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    overflow: hidden;
+  }
+  .eo-pmo-card .eo-pmo-bar > span {
+    display: block;
+    height: 100%;
+    border-radius: 999px;
+    max-width: 100%;
+  }
+  .eo-pmo-empty {
+    font-size: 12px;
     font-weight: 650;
+    color: var(--tw-text-lo);
+    text-align: center;
+    padding: 14px 8px;
+  }
+
+  /* Portfolio Gantt — light “control room” strip (reference layout, not dark theme) */
+  .eo-gantt-card .pp-body {
+    padding-top: 4px;
+  }
+  .eo-gantt-header-range {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    max-width: 58%;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .eo-gantt-surface {
+    /* Horizontal inset for timeline math: keeps month labels readable at 0% / 100% without --start/--end hacks */
+    --eo-tl-pad: 26px;
+    /* Min px per month slot so "MON YY" labels do not overlap when the card is narrow */
+    --eo-month-n: 1;
+    --eo-month-slot-min: 58px;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    background: linear-gradient(180deg, #eef2f7 0%, #f8fafc 55%, #ffffff 100%);
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 12px;
+    padding: 10px 12px 12px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+  }
+  .eo-gantt-surface:has(.eo-gantt-month-axis--compact) {
+    --eo-month-slot-min: 52px;
+  }
+  .eo-gantt-track.eo-gantt-month-axis,
+  .eo-gantt-track.eo-gantt-track--bars {
+    min-width: calc(2 * var(--eo-tl-pad) + var(--eo-month-n, 1) * var(--eo-month-slot-min, 58px));
+  }
+  .eo-gantt {
+    font-size: 11px;
+  }
+  .eo-gantt-row {
+    display: grid;
+    grid-template-columns: minmax(140px, 1.05fr) minmax(0, 2.35fr);
+    gap: 12px 14px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  @media (max-width: 768px) {
+    .eo-gantt-row {
+      grid-template-columns: 1fr;
+    }
+  }
+  .eo-gantt-meta {
+    min-width: 0;
+  }
+  .eo-gantt-meta .eo-gantt-name {
+    font-weight: 950;
+    font-size: 12px;
+    color: var(--tw-text-hi);
+    line-height: 1.25;
+    letter-spacing: 0.01em;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .eo-gantt-meta .eo-gantt-code {
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+    margin-top: 4px;
+    line-height: 1.35;
+  }
+  .eo-gantt-meta .eo-gantt-dates {
+    font-size: 10px;
+    font-weight: 650;
+    color: #475569;
+    margin-top: 5px;
+    line-height: 1.35;
+  }
+  .eo-gantt-track {
+    position: relative;
+    border-radius: 8px;
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+  .eo-gantt-vgrid {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 0;
+    border-left: 1px solid rgba(15, 23, 42, 0.08);
+    transform: translateX(-0.5px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .eo-gantt-now {
+    position: absolute;
+    top: -2px;
+    bottom: -2px;
+    width: 0;
+    border-left: 2px dashed #ef4444;
+    transform: translateX(-1px);
+    z-index: 5;
+    pointer-events: none;
+  }
+  .eo-gantt-month-axis {
+    min-height: 34px;
+    height: 34px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    overflow: hidden;
+  }
+  .eo-gantt-month-axis .eo-gantt-month-tick {
+    z-index: 3;
+  }
+  .eo-gantt-month-axis .eo-gantt-now {
+    z-index: 2;
+  }
+  .eo-gantt-month-tick {
+    position: absolute;
+    bottom: 7px;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: #334155;
+    white-space: nowrap;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+  /* Must come after .eo-gantt-month-tick: higher specificity used to win — was forcing tiny 8px labels */
+  .eo-gantt-month-axis--compact {
+    min-height: 38px;
+    height: 38px;
+  }
+  .eo-gantt-month-axis--compact .eo-gantt-month-tick {
+    font-size: 11px;
+    font-weight: 850;
+    letter-spacing: 0.03em;
+    bottom: 8px;
+  }
+  .eo-gantt-track.eo-gantt-track--bars {
+    height: 30px;
+    background: #e2e8f0;
+    border: 1px solid rgba(15, 23, 42, 0.14);
+    overflow: hidden;
+    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.65);
+  }
+  .eo-gantt-bar {
+    position: absolute;
+    top: 5px;
+    height: 20px;
+    border-radius: 7px;
+    min-width: 6px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 7px;
+    box-sizing: border-box;
+  }
+  .eo-gantt-bar-label {
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.96);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.1;
+    max-width: 100%;
+  }
+  .eo-gantt-bar.tone-good { background: linear-gradient(90deg, #047857, var(--tw-neon-green)); }
+  .eo-gantt-bar.tone-warn { background: linear-gradient(90deg, #b45309, var(--tw-neon-amber)); }
+  .eo-gantt-bar.tone-bad { background: linear-gradient(90deg, #b91c1c, var(--tw-neon-red)); }
+  .eo-gantt-bar.tone-neutral { background: linear-gradient(90deg, #0369a1, var(--tw-neon-cyan)); }
+  .eo-gantt-empty {
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--tw-text-lo);
+    text-align: center;
+    padding: 16px 10px;
+  }
+  .eo-gantt-row.eo-gantt-months {
+    margin-bottom: 8px;
+  }
+  .eo-gantt-meta.eo-gantt-months-spacer {
+    min-height: 34px;
   }
 </style>
-<div class="eo-wrap">
-  <h2 class="eo-title">Executive Overview dashboard</h2>
-  <p class="eo-lead">
-    High-level KPIs and portfolio summary for leadership. Connect widgets or charts here when ready.
-  </p>
-  <div class="eo-placeholder">
-    Content area — customize from Admin or extend this template as needed.
+
+<section class="tw-pmo-theme" aria-label="Executive Overview dashboard">
+  {{ executive_charts|json_script:"eo-chart-data" }}
+  <div class="eo-topbar">
+    <div>
+      <h2>PMO Analytics Dashboard</h2>
+      <div class="eo-sub">Executive Overview</div>
+    </div>
+    <div class="eo-badges">
+      <span class="eo-badge" title="Charts and KPIs reflect the latest portfolio data loaded from your workspace (same source as Transformation Workspace).">
+        <span class="eo-dot green"></span>LIVE DATA
+      </span>
+      <span class="eo-badge eo-badge--active-projects" title="Count of projects currently treated as active in the portfolio (Transformation Workspace metrics).">
+        <span class="eo-dot"></span>
+        <span class="eo-active-projects-inner">
+          <span class="eo-active-projects-count">{{ transformation_workspace.metrics.active_projects|default:0 }}</span>
+          <span class="eo-active-projects-label">ACTIVE PROJECTS</span>
+        </span>
+      </span>
+      <span
+        class="eo-badge"
+        id="eo-local-time-badge"
+        title="الوقت من ساعة جهازك حسب المنطقة الزمنية في إعدادات نظام التشغيل أو المتصفح (ليس وقت السيرفر). Same as your laptop clock / OS timezone."
+      >
+        LOCAL TIME<span id="eo-local-clock" class="eo-local-clock">--:--:-- --</span>
+      </span>
+    </div>
   </div>
-</div>
+
+  <!-- KPI strip -->
+  <div class="tw-kpi-strip">
+    {% for k in executive_kpis %}
+      <div
+        class="tw-kpi-card"
+        style="
+          --tw-accent:
+            {% if k.accent == 'green' %}var(--tw-neon-green){% elif k.accent == 'amber' %}var(--tw-neon-amber){% elif k.accent == 'purple' %}var(--tw-neon-purple){% elif k.accent == 'red' %}var(--tw-neon-red){% else %}var(--tw-neon-cyan){% endif %};
+        "
+      >
+        <div class="tw-kpi-title">{{ k.title }}</div>
+        <div class="tw-kpi-value">{{ k.value_text|default:"—" }}</div>
+        {% if k.subtitle %}<div class="tw-kpi-sub">{{ k.subtitle }}</div>{% endif %}
+        {% if k.footer %}
+          <div class="tw-kpi-foot tw-foot-neutral">{{ k.footer }}</div>
+        {% endif %}
+      </div>
+    {% endfor %}
+  </div>
+
+  <!-- Row 1: three chart cards — full width, equal height -->
+  <div class="eo-row-3 eo-row-3-charts-top">
+    <article class="pp-card">
+      <header class="pp-card-header">
+        <h3 class="pp-title">Project Status</h3>
+        <span class="pp-pill">Distribution</span>
+      </header>
+      <div class="pp-body">
+        <div class="eo-chart eo-chart-compact"><canvas id="eo-status-donut" aria-label="Project status donut"></canvas></div>
+      </div>
+    </article>
+
+    <article class="pp-card">
+      <header class="pp-card-header">
+        <h3 class="pp-title">PMBOK Phase</h3>
+        <span class="pp-pill">By phase</span>
+      </header>
+      <div class="pp-body">
+        <div class="eo-chart eo-chart-compact"><canvas id="eo-phase-donut" aria-label="PMBOK phase donut"></canvas></div>
+      </div>
+    </article>
+
+    <article class="pp-card">
+      <header class="pp-card-header">
+        <h3 class="pp-title">By Category</h3>
+        <span class="pp-pill">Project types</span>
+      </header>
+      <div class="pp-body">
+        {% if executive_charts.category %}
+          <div class="eo-category-total">Total projects: <strong>{{ executive_charts.category.total|default:0 }}</strong></div>
+        {% endif %}
+        <div class="eo-chart eo-auto eo-chart-compact"><canvas id="eo-category-bars" aria-label="Category horizontal bars"></canvas></div>
+      </div>
+    </article>
+  </div>
+
+  <!-- Row 2: left = Project Progress + Portfolio Gantt (stacked); right = SPI + PMO + Deadline -->
+  <div class="eo-grid-2 eo-exec-after-charts" style="margin-top: 18px;">
+    <div class="eo-stack-col">
+      <article class="pp-card">
+        <header class="pp-card-header">
+          <h3 class="pp-title">Project Progress</h3>
+          <span class="pp-pill">Top initiatives</span>
+        </header>
+        <div class="pp-body">
+          <ul class="eo-list">
+            {% for p in executive_top_projects %}
+              <li class="eo-li-prog">
+                <div class="eo-li-head">
+                  <div class="eo-li-title">{{ p.name }}</div>
+                  <span class="eo-pill {% if p.status_key == 'on_track' %}good{% elif p.status_key == 'at_risk' %}warn{% elif p.status_key == 'delayed' or p.status_key == 'blocked' %}bad{% else %}warn{% endif %}">
+                    {{ p.status_display|default:"—" }}
+                  </span>
+                </div>
+                <div class="eo-li-bar-row">
+                  <div class="eo-li-bar" aria-hidden="true">
+                    <span
+                      class="{% if p.status_key == 'on_track' %}eo-li-bar-fill--good{% elif p.status_key == 'at_risk' %}eo-li-bar-fill--warn{% elif p.status_key == 'delayed' or p.status_key == 'blocked' %}eo-li-bar-fill--bad{% else %}eo-li-bar-fill--neutral{% endif %}"
+                      style="width: {% if p.progress_pct > 100 %}100{% elif p.progress_pct < 0 %}0{% else %}{{ p.progress_pct }}{% endif %}%;"
+                    ></span>
+                  </div>
+                  <span class="eo-li-pct">{{ p.progress_pct }}%</span>
+                </div>
+              </li>
+            {% empty %}
+              <li>
+                <div>
+                  <div class="eo-li-title">No projects yet</div>
+                  <div class="eo-li-sub">Add projects in Admin → Transformation Workspace</div>
+                </div>
+                <span class="eo-pill warn">—</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </article>
+
+      <article class="pp-card eo-gantt-flex-grow eo-gantt-card">
+        <header class="pp-card-header">
+          <h3 class="pp-title">Portfolio Gantt</h3>
+          {% if executive_gantt.range_start and executive_gantt.range_end %}
+            <span class="pp-pill eo-gantt-header-range">{{ executive_gantt.range_start }} → {{ executive_gantt.range_end }}</span>
+          {% else %}
+            <span class="pp-pill">Timeline</span>
+          {% endif %}
+        </header>
+        <div class="pp-body">
+          {% if executive_gantt.projects %}
+            <div
+              class="eo-gantt eo-gantt-surface"
+              style="--eo-month-n: {{ executive_gantt.month_tick_count|default:1 }};"
+            >
+              {% if executive_gantt.month_ticks %}
+                <div class="eo-gantt-row eo-gantt-months">
+                  <div class="eo-gantt-meta eo-gantt-months-spacer" aria-hidden="true"></div>
+                  <div class="eo-gantt-track eo-gantt-month-axis{% if executive_gantt.month_axis_multi_year|default:False %} eo-gantt-month-axis--compact{% endif %}" dir="ltr" aria-hidden="true">
+                    {% for tick in executive_gantt.month_ticks %}
+                      <span class="eo-gantt-vgrid" style="left: calc(var(--eo-tl-pad) + (100% - 2 * var(--eo-tl-pad)) * {{ tick.left_css|default:tick.left_pct }} / 100);"></span>
+                    {% endfor %}
+                    {% for tick in executive_gantt.month_ticks %}
+                      <span
+                        class="eo-gantt-month-tick"
+                        style="left: calc(var(--eo-tl-pad) + (100% - 2 * var(--eo-tl-pad)) * {{ tick.left_css|default:tick.left_pct }} / 100);"
+                      >{{ tick.label }}</span>
+                    {% endfor %}
+                    {% if executive_gantt.now_pct is not None %}
+                      <span class="eo-gantt-now" style="left: calc(var(--eo-tl-pad) + (100% - 2 * var(--eo-tl-pad)) * {{ executive_gantt.now_pct_css|default:executive_gantt.now_pct }} / 100);" title="Today (portfolio range)"></span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endif %}
+              {% for g in executive_gantt.projects %}
+                <div class="eo-gantt-row">
+                  <div class="eo-gantt-meta">
+                    <div class="eo-gantt-name">{{ g.name }}</div>
+                    {% if g.log_id or g.priority_display %}
+                      <div class="eo-gantt-code">
+                        {% if g.log_id %}{{ g.log_id }}{% endif %}
+                        {% if g.log_id and g.priority_display %} · {% endif %}
+                        {{ g.priority_display }}
+                      </div>
+                    {% endif %}
+                    <div class="eo-gantt-dates">{{ g.start_display }} – {{ g.end_display }}</div>
+                  </div>
+                  <div class="eo-gantt-track eo-gantt-track--bars" dir="ltr" aria-hidden="true">
+                    {% for tick in executive_gantt.month_ticks %}
+                      <span class="eo-gantt-vgrid" style="left: calc(var(--eo-tl-pad) + (100% - 2 * var(--eo-tl-pad)) * {{ tick.left_css|default:tick.left_pct }} / 100);"></span>
+                    {% endfor %}
+                    <div
+                      class="eo-gantt-bar tone-{{ g.tone }}"
+                      style="left: calc(var(--eo-tl-pad) + (100% - 2 * var(--eo-tl-pad)) * {{ g.left_css|default:g.left_pct }} / 100); width: calc((100% - 2 * var(--eo-tl-pad)) * {{ g.width_css|default:g.width_pct }} / 100);"
+                      title="{{ g.start_display }} → {{ g.end_display }}"
+                    >
+                      {% if g.bar_label %}<span class="eo-gantt-bar-label">{{ g.bar_label }}</span>{% endif %}
+                    </div>
+                    {% if executive_gantt.now_pct is not None %}
+                      <span class="eo-gantt-now" style="left: calc(var(--eo-tl-pad) + (100% - 2 * var(--eo-tl-pad)) * {{ executive_gantt.now_pct_css|default:executive_gantt.now_pct }} / 100);" title="Today (portfolio range)"></span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="eo-gantt-empty">No timeline data yet — set start and end dates on each project in Admin.</div>
+          {% endif %}
+        </div>
+      </article>
+    </div>
+
+    <div class="eo-stack-col">
+      <article class="pp-card">
+        <header class="pp-card-header">
+          <h3 class="pp-title">SPI &amp; CPI Trend</h3>
+          <span class="pp-pill">6‑month view</span>
+        </header>
+        <div class="pp-body">
+          <div class="eo-chart tall"><canvas id="eo-spi-cpi-trend" aria-label="SPI and CPI trend"></canvas></div>
+        </div>
+      </article>
+
+      <article class="pp-card">
+        <header class="pp-card-header">
+          <h3 class="pp-title">PMO Health</h3>
+          <span class="pp-pill">Score / project</span>
+        </header>
+        <div class="pp-body">
+          {% if executive_pmo_health %}
+            <div class="eo-pmo-grid">
+              {% for h in executive_pmo_health %}
+                <div class="eo-pmo-card">
+                  <div class="eo-pmo-name">{{ h.name }}</div>
+                  {% if h.log_id %}<div class="eo-pmo-code">{{ h.log_id }}</div>{% endif %}
+                  <div class="eo-pmo-score tone-{{ h.tone }}">{{ h.pmo_score_pct }}%</div>
+                  <div class="eo-pmo-bar" aria-hidden="true">
+                    <span
+                      class="{% if h.tone == 'good' %}eo-li-bar-fill--good{% elif h.tone == 'bad' %}eo-li-bar-fill--bad{% else %}eo-li-bar-fill--warn{% endif %}"
+                      style="width: {% if h.pmo_score_pct > 100 %}100{% elif h.pmo_score_pct < 0 %}0{% else %}{{ h.pmo_score_pct }}{% endif %}%;"
+                    ></span>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="eo-pmo-empty">No projects to show PMO scores yet.</div>
+          {% endif %}
+        </div>
+      </article>
+
+      <article class="pp-card">
+        <header class="pp-card-header">
+          <h3 class="pp-title">Deadline Watch</h3>
+          <span class="pp-pill">Days remaining</span>
+        </header>
+        <div class="pp-body">
+          <ul class="eo-list">
+            {% for d in executive_deadlines %}
+              <li class="eo-li-prog">
+                <div class="eo-li-head">
+                  <div>
+                    <div class="eo-li-title">{{ d.name }}</div>
+                    {% if d.log_id %}<div class="eo-li-sub">{{ d.log_id }}</div>{% endif %}
+                    <div class="eo-li-sub">Due: {{ d.due_display }}</div>
+                  </div>
+                  <span class="eo-pill {% if d.urgency == 'good' %}good{% elif d.urgency == 'bad' %}bad{% else %}warn{% endif %}">{{ d.days_label }}</span>
+                </div>
+              </li>
+            {% empty %}
+              <li>
+                <div>
+                  <div class="eo-li-title">No deadlines</div>
+                  <div class="eo-li-sub">Set end dates on projects in Admin → Transformation Workspace</div>
+                </div>
+                <span class="eo-pill warn">—</span>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </article>
+    </div>
+  </div>
+
+  <!-- Row 3: Budget + Strategic Alignment (compact row — same body height) -->
+  <div class="eo-row-3 eo-row-3-charts-top eo-row-3-compact eo-row-3-bottom-2" style="margin-top: 14px;">
+    <article class="pp-card">
+      <header class="pp-card-header">
+        <h3 class="pp-title">Budget vs EAC</h3>
+        <span class="pp-pill">Per project</span>
+      </header>
+      <div class="pp-body">
+        <div class="eo-chart tall eo-auto eo-budget-tall eo-row-3-budget"><canvas id="eo-budget-eac" aria-label="Budget vs EAC bar chart"></canvas></div>
+      </div>
+    </article>
+    <article class="pp-card">
+      <header class="pp-card-header">
+        <h3 class="pp-title">Strategic Alignment</h3>
+        <span class="pp-pill">By objective</span>
+      </header>
+      <div class="pp-body">
+        <div class="eo-chart eo-chart-compact"><canvas id="eo-alignment-donut" aria-label="Strategic alignment donut"></canvas></div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<script>
+  (function () {
+    // Center text inside charts (doughnut + others)
+    const eoCenterTextPlugin = {
+      id: "eoCenterText",
+      /** Draw after built-ins so center text stays visible on top. */
+      order: 999,
+      afterDraw(chart, args, pluginOptions) {
+        const opts =
+          pluginOptions !== undefined && pluginOptions !== null
+            ? pluginOptions
+            : chart?.options?.plugins?.eoCenterText;
+        if (!opts || opts.display === false) return;
+
+        const ctx = chart.ctx;
+        const area = chart.chartArea;
+        if (!ctx || !area) return;
+
+        let total = 0;
+        try {
+          const ds0 = chart.data?.datasets?.[0];
+          const vals = (ds0?.data || []).map((v) => Number(v) || 0);
+          total = vals.reduce((a, b) => a + b, 0);
+        } catch (e) {}
+
+        const text = (opts.text ?? total ?? "").toString();
+        const sub = (opts.subtext ?? "").toString();
+        const color = opts.color || "#0f172a";
+        const subColor = opts.subColor || "rgba(71, 85, 105, 0.9)";
+
+        const x = (area.left + area.right) / 2;
+        const y = (area.top + area.bottom) / 2;
+
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        const mainPx = opts.mainFontPx || 22;
+        const subPx = opts.subFontPx || 10;
+        ctx.fillStyle = color;
+        ctx.font = `900 ${mainPx}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+        ctx.fillText(text, x, sub ? y - 4 : y);
+
+        if (sub) {
+          ctx.fillStyle = subColor;
+          ctx.font = `800 ${subPx}px system-ui, -apple-system, Segoe UI, Roboto, Arial`;
+          try {
+            ctx.letterSpacing = "0.12em";
+          } catch (eLs) {}
+          ctx.fillText(sub.toUpperCase(), x, y + 12);
+          try {
+            ctx.letterSpacing = "0px";
+          } catch (eLs2) {}
+        }
+
+        ctx.restore();
+      },
+    };
+
+    function ensureChartStore() {
+      if (!window.chartInstances) window.chartInstances = {};
+    }
+
+    function destroyIfExists(id) {
+      ensureChartStore();
+      const existing = window.chartInstances[id];
+      if (existing && typeof existing.destroy === "function") {
+        existing.destroy();
+      }
+      delete window.chartInstances[id];
+    }
+
+    function pickThemeColors(root) {
+      const styles = getComputedStyle(root);
+      return {
+        text: styles.getPropertyValue("--tw-text-hi").trim() || "#0f172a",
+        muted: styles.getPropertyValue("--tw-text-lo").trim() || "#475569",
+        line: styles.getPropertyValue("--tw-line").trim() || "rgba(15, 23, 42, 0.12)",
+        cyan: styles.getPropertyValue("--tw-neon-cyan").trim() || "#0284c7",
+        green: styles.getPropertyValue("--tw-neon-green").trim() || "#059669",
+        amber: styles.getPropertyValue("--tw-neon-amber").trim() || "#d97706",
+        red: styles.getPropertyValue("--tw-neon-red").trim() || "#dc2626",
+        purple: styles.getPropertyValue("--tw-neon-purple").trim() || "#7c3aed",
+      };
+    }
+
+    function renderDoughnut(canvas, colors, labels, values, palette, centerOpts) {
+      if (!canvas || !window.Chart) return;
+      const id = canvas.id;
+      destroyIfExists(id);
+      const ctx = canvas.getContext("2d");
+      const compact = !!(canvas.parentElement && canvas.parentElement.classList.contains("eo-chart-compact"));
+      const centerText = {
+        display: !(centerOpts && centerOpts.display === false),
+        subtext: centerOpts && Object.prototype.hasOwnProperty.call(centerOpts, "subtext")
+          ? centerOpts.subtext
+          : "Total",
+        color: colors.text,
+        subColor: colors.muted,
+        mainFontPx: compact ? 17 : 22,
+        subFontPx: compact ? 9 : 10,
+      };
+      if (centerOpts && Object.prototype.hasOwnProperty.call(centerOpts, "text")) {
+        centerText.text = centerOpts.text;
+      }
+      window.chartInstances[id] = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels,
+          datasets: [
+            {
+              data: values,
+              backgroundColor: palette,
+              borderColor: "rgba(255,255,255,0.95)",
+              borderWidth: 2,
+              hoverOffset: 6,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          cutout: compact ? "64%" : "68%",
+          plugins: {
+            eoCenterText: centerText,
+            legend: {
+              position: "right",
+              labels: {
+                color: colors.muted,
+                boxWidth: compact ? 8 : 10,
+                boxHeight: compact ? 8 : 10,
+                usePointStyle: true,
+                font: { size: compact ? 9 : 11 },
+              },
+            },
+            tooltip: { enabled: true },
+          },
+        },
+      });
+    }
+
+    function eoRow3BudgetMaxPx(wrap) {
+      try {
+        const r3 = wrap && wrap.closest ? wrap.closest(".eo-row-3-compact") : null;
+        if (!r3) return null;
+        const raw = getComputedStyle(r3).getPropertyValue("--eo-r3-body-h").trim();
+        const n = parseFloat(raw);
+        return Number.isFinite(n) ? Math.round(n - 8) : null;
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function renderHorizontalBars(canvas, colors, labels, values, barColorOrPalette) {
+      if (!canvas || !window.Chart) return;
+      const id = canvas.id;
+      destroyIfExists(id);
+      const ctx = canvas.getContext("2d");
+      const wrap = canvas.closest(".eo-chart");
+      const isR3Budget = !!(wrap && wrap.classList.contains("eo-row-3-budget"));
+      // Auto height based on rows (By Category) — compact row when .eo-chart-compact
+      try {
+        if (wrap && wrap.classList.contains("eo-auto")) {
+          const rows = Math.max(1, (labels || []).length);
+          const compact = wrap.classList.contains("eo-chart-compact");
+          let maxH = compact ? 200 : 320;
+          let base = compact ? 34 : 56;
+          let perRow = compact ? 22 : 34;
+          if (wrap.classList.contains("eo-budget-tall")) {
+            maxH = 520;
+            base = 40;
+            perRow = 28;
+          }
+          if (wrap.classList.contains("eo-row-3-budget")) {
+            const cap = eoRow3BudgetMaxPx(wrap);
+            maxH = cap != null ? cap : 260;
+            base = 28;
+            perRow = 18;
+          }
+          wrap.style.height = `${Math.min(maxH, base + rows * perRow)}px`;
+        }
+      } catch (e) {}
+
+      const yTicks = { color: colors.text };
+      if (isR3Budget) {
+        yTicks.font = { size: 7 };
+        yTicks.autoSkip = false;
+        yTicks.callback = function (_val, index) {
+          const lbl = labels[index];
+          return lbl == null ? "" : String(lbl);
+        };
+      }
+
+      const barOpts = {
+        responsive: true,
+        maintainAspectRatio: false,
+        indexAxis: "y",
+        plugins: {
+          eoCenterText: { display: false },
+          legend: { display: false },
+          tooltip: {
+            enabled: true,
+            callbacks: {
+              title(tItems) {
+                const i = tItems[0]?.dataIndex;
+                return i != null && labels[i] != null ? String(labels[i]) : "";
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            ticks: { color: colors.muted },
+            grid: { color: "rgba(15,23,42,0.06)" },
+            border: { color: colors.line },
+          },
+          y: {
+            ticks: yTicks,
+            grid: { display: false },
+            border: { color: colors.line },
+            afterFit(scale) {
+              if (!isR3Budget) return;
+              try {
+                const longest = (labels || []).reduce(
+                  (m, s) => Math.max(m, String(s).length),
+                  0,
+                );
+                const w = Math.min(300, Math.max(130, Math.round(longest * 4.5)));
+                if (typeof scale.width === "number") {
+                  scale.width = Math.max(scale.width, w);
+                }
+              } catch (e) {}
+            },
+          },
+        },
+      };
+      if (isR3Budget) {
+        barOpts.layout = { padding: { left: 0, right: 4, top: 2, bottom: 4 } };
+      }
+
+      const barBg = Array.isArray(barColorOrPalette)
+        ? labels.map((_, i) => barColorOrPalette[i % barColorOrPalette.length])
+        : barColorOrPalette;
+
+      window.chartInstances[id] = new Chart(ctx, {
+        type: "bar",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Projects",
+              data: values,
+              backgroundColor: barBg,
+              borderRadius: 8,
+              barThickness: canvas.closest(".eo-chart-compact") ? 11 : 16,
+            },
+          ],
+        },
+        options: barOpts,
+      });
+    }
+
+    function renderLine(canvas, colors, labels, series) {
+      if (!canvas || !window.Chart) return;
+      const id = canvas.id;
+      destroyIfExists(id);
+      const ctx = canvas.getContext("2d");
+      window.chartInstances[id] = new Chart(ctx, {
+        type: "line",
+        data: { labels, datasets: series },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: "bottom", labels: { color: colors.muted } },
+            tooltip: { enabled: true },
+          },
+          scales: {
+            x: {
+              ticks: { color: colors.muted },
+              grid: { display: false },
+              border: { color: colors.line },
+            },
+            y: {
+              ticks: { color: colors.muted },
+              grid: { color: "rgba(15,23,42,0.06)" },
+              border: { color: colors.line },
+            },
+          },
+        },
+      });
+    }
+
+    function initExecutiveOverviewCharts(container) {
+      if (window.Chart && typeof window.Chart.register === "function") {
+        if (!window.__eoCenterTextPluginRegistered) {
+          try {
+            window.Chart.register(eoCenterTextPlugin);
+            window.__eoCenterTextPluginRegistered = true;
+          } catch (eReg) {
+            console.warn("eoCenterText plugin register", eReg);
+          }
+        }
+      }
+      const host = (typeof container === "string")
+        ? document.querySelector(container)
+        : container;
+      if (!host) return;
+      const root = host.closest(".tw-pmo-theme") || host.querySelector(".tw-pmo-theme") || host;
+      const colors = pickThemeColors(root);
+
+      // Real data from backend (fallbacks to demo if missing)
+      let payload = null;
+      try {
+        const el = document.getElementById("eo-chart-data");
+        payload = el ? JSON.parse(el.textContent || "{}") : null;
+      } catch (e) {}
+      const statusPayload = payload?.status;
+      const phasePayload = payload?.phase;
+      const categoryPayload = payload?.category;
+      const budgetPayload = payload?.budget_eac;
+      const alignmentPayload = payload?.alignment;
+
+      const statusLabels = statusPayload?.labels?.length
+        ? statusPayload.labels
+        : ["On Track", "At Risk", "Delayed", "Blocked"];
+      const statusValues = statusPayload?.values?.length
+        ? statusPayload.values
+        : [6, 2, 1, 1];
+      const statusSum = statusValues.reduce(
+        (a, b) => a + (Number(b) || 0),
+        0,
+      );
+      const statusPalette =
+        statusLabels.length >= 5
+          ? [colors.green, colors.amber, colors.red, colors.purple, colors.cyan]
+          : [colors.green, colors.amber, colors.red, colors.purple];
+      renderDoughnut(
+        host.querySelector("#eo-status-donut"),
+        colors,
+        statusLabels,
+        statusValues,
+        statusPalette,
+        { subtext: "Projects", text: String(statusSum) },
+      );
+
+      const phaseLabels = phasePayload?.labels?.length
+        ? phasePayload.labels
+        : ["Initiating", "Planning", "Executing", "Monitoring", "Closing"];
+      const phaseValues = phasePayload?.values?.length
+        ? phasePayload.values
+        : [1, 2, 2, 1, 0];
+      const phaseSum = phaseValues.reduce(
+        (a, b) => a + (Number(b) || 0),
+        0,
+      );
+      renderDoughnut(
+        host.querySelector("#eo-phase-donut"),
+        colors,
+        phaseLabels,
+        phaseValues,
+        [colors.purple, colors.cyan, colors.green, colors.amber, "rgba(15,23,42,0.18)"],
+        { subtext: "Projects", text: String(phaseSum) },
+      );
+
+      const catBarPalette = [
+        "rgba(2, 132, 199, 0.88)",
+        "rgba(5, 150, 105, 0.88)",
+        "rgba(217, 119, 6, 0.88)",
+        "rgba(124, 58, 237, 0.88)",
+        "rgba(220, 38, 38, 0.78)",
+        "rgba(2, 132, 199, 0.72)",
+        "rgba(5, 150, 105, 0.72)",
+        "rgba(217, 119, 6, 0.72)",
+      ];
+      renderHorizontalBars(
+        host.querySelector("#eo-category-bars"),
+        colors,
+        categoryPayload?.labels?.length ? categoryPayload.labels : ["Automation", "Digital Transformation", "WMS / ERP", "Transportation", "Infrastructure"],
+        categoryPayload?.values?.length ? categoryPayload.values : [2, 1, 1, 1, 1],
+        catBarPalette,
+      );
+
+      renderLine(
+        host.querySelector("#eo-spi-cpi-trend"),
+        colors,
+        ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+        [
+          {
+            label: "SPI",
+            data: [0.88, 0.91, 0.93, 0.92, 0.94, 0.95],
+            borderColor: colors.cyan,
+            backgroundColor: "rgba(2,132,199,0.15)",
+            tension: 0.35,
+            fill: true,
+            pointRadius: 3,
+          },
+          {
+            label: "CPI",
+            data: [0.82, 0.84, 0.86, 0.85, 0.87, 0.89],
+            borderColor: colors.green,
+            backgroundColor: "rgba(5,150,105,0.10)",
+            tension: 0.35,
+            fill: true,
+            pointRadius: 3,
+          },
+        ],
+      );
+
+      const budLabs = budgetPayload?.labels?.length ? budgetPayload.labels : ["No project data"];
+      const budVals = budgetPayload?.values?.length ? budgetPayload.values : [1];
+      const budgetBarPalette = [
+        "rgba(2, 132, 199, 0.82)",
+        "rgba(5, 150, 105, 0.82)",
+        "rgba(217, 119, 6, 0.82)",
+        "rgba(124, 58, 237, 0.82)",
+        "rgba(220, 38, 38, 0.76)",
+      ];
+      const budgetBg = budLabs[0] === "No project data"
+        ? "rgba(148, 163, 184, 0.55)"
+        : budLabs.map((_, i) => budgetBarPalette[i % budgetBarPalette.length]);
+      renderHorizontalBars(
+        host.querySelector("#eo-budget-eac"),
+        colors,
+        budLabs,
+        budVals,
+        budgetBg,
+      );
+
+      const ALIGN_LABELS = [
+        "Cost Optimization",
+        "Automation",
+        "Compliance",
+        "Digital Transformation",
+      ];
+      let alVals = Array.isArray(alignmentPayload?.values) ? alignmentPayload.values : [];
+      if (alVals.length !== 4) {
+        alVals = [0, 0, 0, 0];
+      }
+      alVals = alVals.map((v) => Number(v) || 0);
+      const goalsSum = alVals.reduce((a, b) => a + b, 0);
+      const alignPalette = [colors.green, colors.cyan, colors.amber, colors.purple];
+      renderDoughnut(
+        host.querySelector("#eo-alignment-donut"),
+        colors,
+        ALIGN_LABELS,
+        alVals,
+        alignPalette,
+        { subtext: "Goals", text: String(goalsSum) },
+      );
+
+      document.dispatchEvent(new Event("chart:rendered"));
+    }
+
+    window.initExecutiveOverviewCharts = initExecutiveOverviewCharts;
+
+    function boot() {
+      const tabContent = document.getElementById("tab-content") || document;
+      initExecutiveOverviewCharts(tabContent);
+    }
+
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", boot);
+    } else {
+      boot();
+    }
+
+    (function startEoLocalClock() {
+      if (window.__eoLocalClockTimerId) {
+        clearInterval(window.__eoLocalClockTimerId);
+        window.__eoLocalClockTimerId = null;
+      }
+      /** Laptop / OS local timezone: do not pass timeZone — Intl uses system default. */
+      function eoFormatLocalTime(date) {
+        const locale =
+          (typeof navigator !== "undefined" &&
+            navigator.languages &&
+            navigator.languages[0]) ||
+          (typeof navigator !== "undefined" && navigator.language) ||
+          undefined;
+        try {
+          return new Intl.DateTimeFormat(locale, {
+            hour: "numeric",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true,
+          }).format(date);
+        } catch (e) {
+          return date.toLocaleTimeString(locale, {
+            hour12: true,
+            hour: "numeric",
+            minute: "2-digit",
+            second: "2-digit",
+          });
+        }
+      }
+      let tzTitleSet = false;
+      function tick() {
+        const el = document.getElementById("eo-local-clock");
+        if (!el) return;
+        const now = new Date();
+        el.textContent = eoFormatLocalTime(now);
+        if (!tzTitleSet) {
+          tzTitleSet = true;
+          const badge = document.getElementById("eo-local-time-badge");
+          if (badge) {
+            try {
+              const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "";
+              const base = badge.getAttribute("title") || "";
+              if (tz) badge.setAttribute("title", base + " (" + tz + ")");
+            } catch (e2) {}
+          }
+        }
+      }
+      tick();
+      window.__eoLocalClockTimerId = setInterval(tick, 1000);
+    })();
+  })();
+</script>

@@ -1843,9 +1843,28 @@ class UploadExcelViewRoche(View):
                 )
                 return JsonResponse({"detail_html": recommendation_html}, safe=False)
             if selected_tab == "executive overview":
+                # Reuse Transformation Workspace metrics to fill SPI/CPI and counts
+                tw = context_helpers.get_transformation_workspace(
+                    project_type=request.GET.get("project_type") or None
+                )
+                tw_metrics = (tw or {}).get("metrics") or {}
+                tw_items = (tw or {}).get("items") or []
+                eo_payload = context_helpers.get_executive_overview_tw_payload(tw_items)
                 html = render_to_string(
                     "components/ui-kits/tab-bootstrap/components/executive-overview.html",
-                    {"dashboard_theme": context_helpers.get_dashboard_theme_dict()},
+                    {
+                        "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
+                        "transformation_workspace": tw,
+                        "executive_kpis": context_helpers.get_executive_overview_kpi_cards(
+                            project_type=request.GET.get("project_type") or None,
+                            workspace_metrics=tw_metrics,
+                        ),
+                        "executive_top_projects": eo_payload["executive_top_projects"],
+                        "executive_charts": eo_payload["executive_charts"],
+                        "executive_pmo_health": eo_payload["executive_pmo_health"],
+                        "executive_deadlines": eo_payload["executive_deadlines"],
+                        "executive_gantt": eo_payload["executive_gantt"],
+                    },
                     request=request,
                 )
                 return JsonResponse({"detail_html": html}, safe=False)
@@ -1903,11 +1922,22 @@ class UploadExcelViewRoche(View):
         # --------------------------
         if getattr(self, "USE_WAREHOUSE_TAB_ONLY", False):
             meeting_points = MeetingPoint.objects.all().order_by("is_done", "-created_at")
+            _pt_wh = request.GET.get("project_type") or None
+            _tab_q = (request.GET.get("tab") or "").strip().lower()
+            _active_wh = (
+                "transformation workspace"
+                if _tab_q in ("transformation workspace", "project portfolio")
+                else "executive overview"
+            )
+            transformation_workspace = context_helpers.get_transformation_workspace(
+                project_type=_pt_wh
+            )
+            _tw_metrics_wh = (transformation_workspace or {}).get("metrics") or {}
             render_context = {
                 "data_is_uploaded": True,
                 "months": [],
                 "excel_tabs": [],
-                "active_tab": "transformation workspace",
+                "active_tab": _active_wh,
                 "tab_summaries": [],
                 "form": ExcelUploadForm(),
                 "meeting_points": meeting_points,
@@ -1924,13 +1954,55 @@ class UploadExcelViewRoche(View):
                 "progress_status_rows": context_helpers.get_progress_status_list(),
                 "potential_challenges_rows": context_helpers.get_potential_challenges_list(),
                 "project_tracker_items": context_helpers.get_project_tracker_list(
-                    project_type=request.GET.get("project_type") or None
+                    project_type=_pt_wh
                 ),
-                "transformation_workspace": context_helpers.get_transformation_workspace(
-                    project_type=request.GET.get("project_type") or None
-                ),
+                "transformation_workspace": transformation_workspace,
                 "clerk_details": context_helpers.get_clerk_details_list(),
             }
+            try:
+                tw_items_wh = (transformation_workspace or {}).get("items") or []
+                eo_payload_wh = context_helpers.get_executive_overview_tw_payload(
+                    tw_items_wh
+                )
+                render_context["executive_kpis"] = (
+                    context_helpers.get_executive_overview_kpi_cards(
+                        project_type=_pt_wh,
+                        workspace_metrics=_tw_metrics_wh,
+                    )
+                )
+                render_context["executive_top_projects"] = eo_payload_wh[
+                    "executive_top_projects"
+                ]
+                render_context["executive_charts"] = eo_payload_wh["executive_charts"]
+                render_context["executive_pmo_health"] = eo_payload_wh[
+                    "executive_pmo_health"
+                ]
+                render_context["executive_deadlines"] = eo_payload_wh[
+                    "executive_deadlines"
+                ]
+                render_context["executive_gantt"] = eo_payload_wh["executive_gantt"]
+            except Exception:
+                render_context["executive_kpis"] = (
+                    context_helpers.get_executive_overview_kpi_cards(
+                        project_type=_pt_wh,
+                        workspace_metrics=_tw_metrics_wh,
+                    )
+                )
+                render_context["executive_top_projects"] = []
+                render_context["executive_charts"] = (
+                    context_helpers.get_executive_charts_fallback_payload()
+                )
+                render_context["executive_pmo_health"] = []
+                render_context["executive_deadlines"] = []
+                render_context["executive_gantt"] = {
+                    "projects": [],
+                    "range_start": "",
+                    "range_end": "",
+                    "month_ticks": [],
+                    "now_pct": None,
+                    "month_axis_multi_year": False,
+                    "month_tick_count": 1,
+                }
             return render(request, self.template_name, render_context)
 
         # --------------------------
@@ -1950,10 +2022,10 @@ class UploadExcelViewRoche(View):
         # --------------------------
         # Read request parameters
         # --------------------------
-        selected_tab = (request.GET.get("tab") or "").strip().lower() or "transformation workspace"
+        selected_tab = (request.GET.get("tab") or "").strip().lower() or "executive overview"
         _allowed_main_tabs = {"executive overview", "transformation workspace", "project portfolio"}
         if selected_tab not in _allowed_main_tabs:
-            selected_tab = "transformation workspace"
+            selected_tab = "executive overview"
         selected_month = request.GET.get("month", "").strip()
         selected_quarter = request.GET.get("quarter", "").strip()
         action = request.GET.get("action", "").lower()
@@ -2321,7 +2393,7 @@ class UploadExcelViewRoche(View):
             "data_is_uploaded": data_is_uploaded,
             "months": all_months,
             "excel_tabs": excel_tabs,
-            "active_tab": selected_tab or "transformation workspace",
+            "active_tab": selected_tab or "executive overview",
             "body_extra_class": "tab-ideas-overview" if selected_tab_normalized == "project tracker" else "",
             "tab_summaries": [],
             "form": ExcelUploadForm(),
@@ -2333,6 +2405,14 @@ class UploadExcelViewRoche(View):
             "warehouse_overview": warehouse_overview,
             "clerk_interview_rows": clerk_interview_rows,
             "dashboard_theme": dashboard_theme,
+            "executive_kpis": context_helpers.get_executive_overview_kpi_cards(
+                project_type=request.GET.get("project_type") or None,
+                workspace_metrics=(
+                    (context_helpers.get_transformation_workspace(
+                        project_type=request.GET.get("project_type") or None
+                    ) or {}).get("metrics") or {}
+                ),
+            ),
             "recommendations": context_helpers.get_recommendations_list(),
             "weekly_tracker_rows": context_helpers.get_weekly_project_tracker_list(),
             "progress_status_rows": context_helpers.get_progress_status_list(),
@@ -2345,6 +2425,31 @@ class UploadExcelViewRoche(View):
             ),
             "clerk_details": context_helpers.get_clerk_details_list(),
         }
+        # Executive Overview: charts + top projects from Transformation Workspace items
+        try:
+            tw_items = (render_context.get("transformation_workspace") or {}).get("items") or []
+            eo_payload = context_helpers.get_executive_overview_tw_payload(tw_items)
+            render_context["executive_top_projects"] = eo_payload["executive_top_projects"]
+            render_context["executive_charts"] = eo_payload["executive_charts"]
+            render_context["executive_pmo_health"] = eo_payload["executive_pmo_health"]
+            render_context["executive_deadlines"] = eo_payload["executive_deadlines"]
+            render_context["executive_gantt"] = eo_payload["executive_gantt"]
+        except Exception:
+            render_context["executive_top_projects"] = []
+            render_context["executive_charts"] = (
+                context_helpers.get_executive_charts_fallback_payload()
+            )
+            render_context["executive_pmo_health"] = []
+            render_context["executive_deadlines"] = []
+            render_context["executive_gantt"] = {
+                "projects": [],
+                "range_start": "",
+                "range_end": "",
+                "month_ticks": [],
+                "now_pct": None,
+                "month_axis_multi_year": False,
+                "month_tick_count": 1,
+            }
         if (selected_tab or "").lower() == "dashboard":
             try:
                 dashboard_ctx = self._get_dashboard_include_context(request)

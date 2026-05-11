@@ -1,6 +1,7 @@
 {% load static %}
 <style>
   :root {
+    --pmo-font-stack: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans Arabic", sans-serif;
     --pp-primary: {{ dashboard_theme.primary_color|default:"#0ea5e9" }};
     --pp-secondary: {{ dashboard_theme.secondary_color|default:"#818cf8" }};
     --pp-border: {{ dashboard_theme.border_color|default:"#e2e8f0" }};
@@ -888,8 +889,9 @@
     border: 1px solid rgba(99, 102, 241, 0.35);
   }
 
-  /* PMO skin: خلفية فاتحة + حدود كما هي نسبيًا + نص داكن */
+  /* PMO skin: خلفية فاتحة + حدود كما هي نسبيًا + نص داكن (نفس خط/ألوان Executive Overview) */
   .tw-pmo-theme {
+    font-family: var(--pmo-font-stack);
     --tw-bg-deep: #f1f5f9;
     --tw-bg-card: #ffffff;
     --tw-bg-elevated: #f8fafc;
@@ -961,11 +963,17 @@
   }
   .tw-pmo-theme .pp-title {
     color: var(--tw-text-hi) !important;
+    font-size: 13px;
+    font-weight: 900;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
   }
   .tw-pmo-theme .pp-pill {
     color: var(--tw-neon-cyan);
     background: rgba(2, 132, 199, 0.1);
     border-color: rgba(2, 132, 199, 0.35);
+    font-family: var(--pmo-font-stack);
+    letter-spacing: 0.04em;
   }
 
   .tw-pmo-theme .tw-reg-table-wrap {
@@ -2418,9 +2426,20 @@
 (function() {
   var addBtn = document.getElementById("ppAddProjectBtn");
   var modalEl = document.getElementById("ppAddProjectModal");
-  var modal = (modalEl && window.bootstrap) ? new bootstrap.Modal(modalEl) : null;
-  if (addBtn && modal) {
-    addBtn.addEventListener("click", function() { modal.show(); });
+  var modal = null;
+
+  // Bootstrap bundle is loaded later in the page; create the instance lazily on click.
+  function getModalInstance() {
+    if (!modalEl || !window.bootstrap || !bootstrap.Modal) return null;
+    modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    return modal;
+  }
+
+  if (addBtn) {
+    addBtn.addEventListener("click", function() {
+      var m = getModalInstance();
+      if (m) m.show();
+    });
   }
 
   function hardCleanupModalState() {
@@ -2438,9 +2457,12 @@
   }
 
   var cancelBtn = document.getElementById("ppCancelAddProjectBtn");
-  if (cancelBtn && modal) {
+  if (cancelBtn) {
     cancelBtn.addEventListener("click", function() {
-      try { modal.hide(); } catch(e) {}
+      try {
+        var m = getModalInstance();
+        if (m) m.hide();
+      } catch(e) {}
       setTimeout(hardCleanupModalState, 50);
     });
   }
