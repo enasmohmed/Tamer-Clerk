@@ -1,0 +1,518 @@
+{% load static %}
+<style>
+  .aq-command {
+    --aq-bg: #f8fafc;
+    --aq-surface: #ffffff;
+    --aq-border: #e2e8f0;
+    --aq-text: #0f172a;
+    --aq-muted: #64748b;
+    --aq-accent: #d97706;
+    --aq-green: #15803d;
+    --aq-blue: #0369a1;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color: var(--aq-text);
+    background: linear-gradient(180deg, #ffffff 0%, var(--aq-bg) 100%);
+    border-radius: 16px;
+    padding: 1.25rem 1.25rem 1.5rem;
+    border: 1px solid var(--aq-border);
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+  }
+  .aq-command .aq-title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.35rem;
+  }
+  .aq-command .aq-h1 {
+    margin: 0;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    font-size: 1rem;
+    color: #b45309;
+  }
+  .aq-command .aq-stats {
+    font-size: 0.8rem;
+    color: var(--aq-muted);
+  }
+  .aq-command .aq-stats strong { color: #0369a1; }
+  .aq-command .aq-lead {
+    font-size: 0.82rem;
+    color: #475569;
+    margin-bottom: 1rem;
+    max-width: 52rem;
+    line-height: 1.45;
+  }
+  .aq-command .aq-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    border: 1px solid transparent;
+  }
+  .aq-command .tw-st-ontrack { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
+  .aq-command .tw-st-atrisk { background: #fef9c3; color: #a16207; border-color: #fde047; }
+  .aq-command .tw-st-delayed { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+  .aq-command .tw-st-blocked { background: #ede9fe; color: #5b21b6; border-color: #c4b5fd; }
+  .aq-command .tw-st-approved { background: #dcfce7; color: #166534; border-color: #86efac; }
+  .aq-command .tw-st-none { background: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+  .aq-command .tw-pmbok-init { background: #eef2ff; color: #3730a3; border-color: #a5b4fc; }
+  .aq-command .tw-pmbok-exec { background: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+  .aq-command .tw-pmbok-mon { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
+  .aq-command .tw-pmbok-close { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+  .aq-command .tw-pmbok-plan { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+  .aq-command .aq-pri-critical { background: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+  .aq-command .aq-pri-high { background: #ffedd5; color: #9a3412; border-color: #fdba74; }
+  .aq-command .aq-pri-medium { background: #fef9c3; color: #854d0e; border-color: #fde047; }
+  .aq-command .aq-pri-low { background: #dcfce7; color: #166534; border-color: #86efac; }
+  .aq-command .aq-type-idea { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
+  .aq-command .aq-type-automation { background: #ede9fe; color: #5b21b6; border-color: #c4b5fd; }
+  .aq-command .aq-type-other { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+  .aq-command .aq-pill-pending {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+    font-size: 0.62rem;
+  }
+
+  .aq-command .aq-card {
+    background: var(--aq-surface);
+    border: 1px solid var(--aq-border);
+    border-radius: 14px;
+    margin-bottom: 1rem;
+    overflow: visible;
+    border-left: 4px solid #f59e0b;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+  }
+  .aq-command .aq-card-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 1rem 1.1rem 0.5rem;
+    align-items: flex-start;
+  }
+  .aq-command .aq-logid { font-size: 0.72rem; color: var(--aq-muted); letter-spacing: 0.06em; }
+  .aq-command .aq-proj-title {
+    margin: 0.15rem 0 0;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.25;
+  }
+  .aq-command .aq-meta { font-size: 0.78rem; color: #64748b; margin-top: 0.35rem; }
+  .aq-command .aq-badges { display: flex; flex-wrap: wrap; gap: 0.4rem; padding: 0 1.1rem 0.75rem; }
+  .aq-command .aq-card-body { padding: 0 1.1rem 1rem; }
+  .aq-command .aq-section-label {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+  }
+  .aq-command .aq-section-text { font-size: 0.82rem; color: #475569; line-height: 1.45; margin-bottom: 0.75rem; }
+  .aq-command .aq-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  @media (max-width: 720px) {
+    .aq-command .aq-metrics { grid-template-columns: 1fr; }
+  }
+  .aq-command .aq-metric {
+    background: #f8fafc;
+    border: 1px solid var(--aq-border);
+    border-radius: 10px;
+    padding: 0.5rem 0.65rem;
+  }
+  .aq-command .aq-metric .lbl { font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; color: #64748b; }
+  .aq-command .aq-metric .val { font-size: 0.88rem; font-weight: 800; color: var(--aq-blue); margin-top: 0.15rem; word-break: break-word; }
+  .aq-command .aq-metric.aq-m-progress .val { color: var(--aq-green); }
+  .aq-command .aq-metric.aq-m-deadline .val { color: #047857; }
+  .aq-command .aq-deadline-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    background: #f1f5f9;
+    border: 1px solid var(--aq-border);
+    border-radius: 10px;
+    padding: 0.55rem 0.65rem;
+    margin-bottom: 0.65rem;
+  }
+  .aq-command .aq-deadline-bar-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .aq-command .aq-deadline-bar .aq-dl-label { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.08em; color: #64748b; }
+  .aq-command .aq-deadline-bar .aq-dl-date { font-weight: 800; color: #0f172a; }
+  .aq-command .aq-deadline-inline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+  }
+  .aq-command .aq-deadline-inline .aq-dl-change-lbl {
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #64748b;
+    white-space: nowrap;
+  }
+  .aq-command .aq-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0 1.1rem 1rem;
+    align-items: center;
+  }
+  .aq-command .btn-aq-approve {
+    background: linear-gradient(135deg, #16a34a, #22c55e);
+    border: none;
+    color: #fff;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    padding: 0.45rem 1rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+  }
+  .aq-command .btn-aq-approve:disabled { opacity: 0.55; }
+  .aq-command .btn-aq-ghost {
+    background: #fff;
+    border: 1px solid #cbd5e1;
+    color: #334155;
+    font-weight: 700;
+    font-size: 0.78rem;
+    border-radius: 8px;
+    padding: 0.4rem 0.85rem;
+  }
+  .aq-command .btn-aq-ghost:hover {
+    border-color: #0ea5e9;
+    color: #0369a1;
+    background: #f0f9ff;
+  }
+  .aq-command .aq-empty {
+    text-align: center;
+    color: #64748b;
+    padding: 2.5rem 1rem;
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    background: #f8fafc;
+  }
+  #aqDetailModal .modal-content {
+    background: #ffffff;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+  }
+  #aqDetailModal .modal-header { border-bottom-color: #e2e8f0; }
+  #aqDetailModal .btn-close { opacity: 0.55; }
+  #aqDetailModal .aq-d-block { margin-bottom: 1rem; }
+  #aqDetailModal .aq-d-h {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    color: #64748b;
+    margin-bottom: 0.25rem;
+  }
+  #aqDetailModal .aq-d-body {
+    font-size: 0.88rem;
+    line-height: 1.45;
+    color: #334155;
+    white-space: pre-wrap;
+  }
+  #aqDetailModal .table { font-size: 0.8rem; color: #0f172a; }
+  #aqDetailModal .table thead th { color: #64748b; border-color: #e2e8f0; }
+  #aqDetailModal .table td { border-color: #e2e8f0; }
+</style>
+
+<div class="tw-pmo-theme aq-command pp-wrap" id="aq-approval-root" data-aq-set-deadline-url="{% url 'dashboard:project_portfolio_approval_set_deadline' %}">
+  {{ transformation_workspace.pending_queue_details|json_script:"aq-pending-details-data" }}
+
+  <div class="aq-title-row">
+    <h2 class="aq-h1">+ APPROVAL QUEUE</h2>
+    <div class="aq-stats">
+      <strong>{{ transformation_workspace.pending_queue_items|length }}</strong> pending
+      · <strong>{{ transformation_workspace.approval_queue_approved_count }}</strong> approved (register)
+    </div>
+  </div>
+  <p class="aq-lead mb-0">
+    Review team submissions before they appear in the <strong style="color:#b45309;">Project Register</strong>.
+    You can set the <strong>deadline before approving</strong>: use the date field in the deadline row, then <strong>Save</strong> — no approval required first.
+    Open <strong>full details</strong> when you need more context, then use <strong>Approve for register</strong> when ready.
+  </p>
+
+  {% for p in transformation_workspace.pending_queue_items %}
+  <article class="aq-card" data-project-id="{{ p.id }}" data-deadline-iso="{{ p.deadline_iso }}">
+    <div class="aq-card-head">
+      <div>
+        <div class="aq-logid">{{ p.log_id }}</div>
+        <h3 class="aq-proj-title">{{ p.name }}</h3>
+        <div class="aq-meta">{{ p.meta_line }}</div>
+      </div>
+      <div class="d-flex flex-column align-items-end gap-1">
+        <span class="aq-pill aq-pill-pending">Pending approval</span>
+      </div>
+    </div>
+    <div class="aq-badges">
+      <span class="aq-pill {{ p.register_badge_class }}">{{ p.register_badge_label }}</span>
+      {% if p.priority_display %}
+      <span class="aq-pill {{ p.priority_badge_class }}">{{ p.priority_display }}</span>
+      {% endif %}
+      <span class="aq-pill {{ p.pmbok_badge_class }}">{{ p.pmbok_label }}</span>
+      {% if p.project_type == "automation" %}
+      <span class="aq-pill aq-type-automation">{{ p.project_type_display }}</span>
+      {% elif p.project_type == "idea" %}
+      <span class="aq-pill aq-type-idea">{{ p.project_type_display }}</span>
+      {% else %}
+      <span class="aq-pill aq-type-other">{{ p.project_type_display }}</span>
+      {% endif %}
+    </div>
+    <div class="aq-card-body">
+      {% if p.objective_preview %}
+      <div class="aq-section-label">OBJECTIVE</div>
+      <div class="aq-section-text">{{ p.objective_preview }}</div>
+      {% endif %}
+      <div class="aq-metrics">
+        <div class="aq-metric">
+          <div class="lbl">KPI / SUCCESS</div>
+          <div class="val">{% if p.kpi_preview %}{{ p.kpi_preview }}{% else %}—{% endif %}</div>
+        </div>
+        <div class="aq-metric aq-m-progress">
+          <div class="lbl">PROGRESS</div>
+          <div class="val">{{ p.progress_pct }}%</div>
+        </div>
+        <div class="aq-metric aq-m-deadline">
+          <div class="lbl">DEADLINE</div>
+          <div class="val aq-deadline-display">{{ p.deadline_display }}</div>
+        </div>
+      </div>
+      {% if p.scope_in_preview or p.scope_out_preview %}
+      <div class="row g-2 small">
+        {% if p.scope_in_preview %}
+        <div class="col-md-6">
+          <div class="aq-section-label">IN SCOPE</div>
+          <div class="aq-section-text">{{ p.scope_in_preview }}</div>
+        </div>
+        {% endif %}
+        {% if p.scope_out_preview %}
+        <div class="col-md-6">
+          <div class="aq-section-label">OUT OF SCOPE</div>
+          <div class="aq-section-text">{{ p.scope_out_preview }}</div>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+      <div class="aq-deadline-bar" data-aq-dl-bar>
+        <div class="aq-deadline-bar-row">
+          <div>
+            <span class="aq-dl-label">DEADLINE (current)</span>
+            <div><span class="aq-dl-date aq-deadline-display">{{ p.deadline_display }}</span></div>
+          </div>
+          <div class="aq-deadline-inline">
+            <span class="aq-dl-change-lbl">NEW DATE</span>
+            <input type="date" class="form-control form-control-sm aq-dl-input" style="max-width:11rem;background:#fff;border-color:#cbd5e1;color:#0f172a;" value="{{ p.deadline_iso }}" aria-label="Planned deadline" />
+            <button type="button" class="btn btn-sm btn-success aq-dl-save">Save</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary aq-dl-reset">Reset</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="aq-actions">
+      <button type="button" class="btn btn-aq-approve pmo-approve-btn" data-project-id="{{ p.id }}">✓ Approve for register</button>
+      <button type="button" class="btn btn-aq-ghost aq-open-details" data-project-id="{{ p.id }}">Full details</button>
+      <span class="small" style="color:#64748b;">Submitted {{ p.created_display }}</span>
+    </div>
+  </article>
+  {% empty %}
+  <div class="aq-empty">No projects waiting for approval.</div>
+  {% endfor %}
+</div>
+
+<div class="modal fade" id="aqDetailModal" tabindex="-1" aria-labelledby="aqDetailModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="aqDetailModalLabel">Project details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="aqDetailModalBody"></div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <button type="button" class="btn btn-success fw-bold" id="aqDetailModalApprove">Approve for register</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  function getCsrf() {
+    var el = document.querySelector("[name=csrfmiddlewaretoken]");
+    return el ? el.value : "";
+  }
+  var detailsEl = document.getElementById("aq-pending-details-data");
+  var pendingDetails = {};
+  try {
+    pendingDetails = detailsEl && detailsEl.textContent
+      ? JSON.parse(detailsEl.textContent)
+      : {};
+  } catch (e) { pendingDetails = {}; }
+
+  function esc(s) {
+    var d = document.createElement("div");
+    d.textContent = s == null ? "" : String(s);
+    return d.innerHTML;
+  }
+  function block(title, body) {
+    if (!body || !String(body).trim()) return "";
+    return (
+      '<div class="aq-d-block"><div class="aq-d-h">' + esc(title) + "</div>" +
+      '<div class="aq-d-body">' + esc(body).replace(/\n/g, "<br>") + "</div></div>"
+    );
+  }
+  function tableBlock(title, rows, cols) {
+    if (!rows || !rows.length) return "";
+    var h = '<div class="aq-d-block"><div class="aq-d-h">' + esc(title) + '</div><div class="table-responsive"><table class="table table-sm"><thead><tr>';
+    cols.forEach(function(c) { h += "<th>" + esc(c) + "</th>"; });
+    h += "</tr></thead><tbody>";
+    rows.forEach(function(r) {
+      h += "<tr>";
+      cols.forEach(function(key) { h += "<td>" + esc(r[key] != null ? r[key] : "") + "</td>"; });
+      h += "</tr>";
+    });
+    h += "</tbody></table></div></div>";
+    return h;
+  }
+
+  function fillModal(pid) {
+    var d = pendingDetails[String(pid)] || {};
+    var summ = d.summary || {};
+    var gov = d.gov || {};
+    var evm = d.evm || {};
+    var biz = d.biz || {};
+    var html = "";
+    html += block("Objective / Statement of Work", d.objective_sow);
+    html += block("KPI / Success criteria", d.kpi_success_criteria);
+    html += block("In scope", d.scope_in);
+    html += block("Out of scope", d.scope_out);
+    html += block("Deliverables", d.scope_deliverables);
+    html += block("Dependencies", d.scope_dependencies);
+    html += tableBlock("Process steps", d.process_steps || [], ["description", "deadline", "owner_name"]);
+    html += tableBlock("RAID items", d.raid_items || [], ["category", "title", "severity", "status", "owner_name"]);
+    html += block("Governance — stakeholders", gov.stakeholders);
+    html += block("Governance — operational impact", gov.operational_impact);
+    html += block("Governance — assumptions & constraints", gov.assumptions_constraints);
+    html += block("Submitted by / Reviewed by", [gov.submitted_by, gov.reviewed_by].filter(Boolean).join(" · "));
+    html += block("Gov approval status", gov.approval_status);
+    if (biz && (biz.headcount_impact || biz.sla_improvement || biz.cost_reduction_pct_display)) {
+      html += block("Business impact", [
+        biz.cost_reduction_pct_display ? "Cost reduction %: " + biz.cost_reduction_pct_display : "",
+        biz.headcount_impact ? "Headcount: " + biz.headcount_impact : "",
+        biz.sla_improvement ? "SLA: " + biz.sla_improvement : "",
+      ].filter(Boolean).join("\n"));
+    }
+    html += block("Summary", [
+      summ.log_id ? "ID: " + summ.log_id : "",
+      summ.category_display ? "Category: " + summ.category_display : "",
+      summ.alignment_display ? "Alignment: " + summ.alignment_display : "",
+      summ.priority_display ? "Priority: " + summ.priority_display : "",
+      summ.start_date_display ? "Start: " + summ.start_date_display : "",
+      summ.last_update_display ? "Last update: " + summ.last_update_display : "",
+    ].filter(Boolean).join("\n"));
+    html += block("EVM (snapshot)", [
+      "SPI " + (evm.spi != null ? evm.spi : "—"),
+      "CPI " + (evm.cpi != null ? evm.cpi : "—"),
+      "PV / EV / AC " + [evm.pv, evm.ev, evm.ac].join(" · "),
+    ].join("\n"));
+    html += block("Internal remarks", d.remarks);
+    var body = document.getElementById("aqDetailModalBody");
+    if (body) body.innerHTML = html || "<p class='text-muted'>No extra details.</p>";
+    var appr = document.getElementById("aqDetailModalApprove");
+    if (appr) {
+      appr.dataset.projectId = String(pid);
+      appr.onclick = function() {
+        var id = appr.dataset.projectId;
+        if (!id) return;
+        doApprove(id, appr);
+      };
+    }
+    var title = document.getElementById("aqDetailModalLabel");
+    if (title) title.textContent = summ.log_id ? ("Details — " + summ.log_id) : "Project details";
+  }
+
+  function doApprove(projectId, btn) {
+    if (!projectId || (btn && btn.disabled)) return;
+    if (btn) btn.disabled = true;
+    var fd = new FormData();
+    fd.append("project_id", projectId);
+    fd.append("csrfmiddlewaretoken", getCsrf());
+    try {
+      var ptUrl = new URLSearchParams(window.location.search).get("project_type") || "";
+      if (ptUrl) fd.append("project_type", ptUrl);
+    } catch (ePt) {}
+    fetch("{% url 'dashboard:project_portfolio_approve' %}", {
+      method: "POST",
+      headers: { "X-CSRFToken": getCsrf(), "X-Requested-With": "XMLHttpRequest" },
+      body: fd
+    }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
+      .then(function(x) {
+        if (!x.ok || !x.d || x.d.ok === false) {
+          alert((x.d && x.d.message) || "Approve failed.");
+          if (btn) btn.disabled = false;
+          return;
+        }
+        var modalEl = document.getElementById("aqDetailModal");
+        if (modalEl && window.bootstrap && bootstrap.Modal) {
+          var inst = bootstrap.Modal.getInstance(modalEl);
+          if (inst) inst.hide();
+        }
+        if (typeof x.d.pending_queue_count === "number" && typeof window.__pmoSetApprovalQueueBadgeCount === "function") {
+          window.__pmoSetApprovalQueueBadgeCount(x.d.pending_queue_count);
+        }
+        if (typeof window.loadTabData === "function") window.loadTabData();
+      })
+      .catch(function() {
+        alert("Network error.");
+        if (btn) btn.disabled = false;
+      });
+  }
+
+  document.querySelectorAll("#aq-approval-root .pmo-approve-btn").forEach(function(btn) {
+    btn.addEventListener("click", function() {
+      doApprove(btn.getAttribute("data-project-id"), btn);
+    });
+  });
+
+  function openDetailModal(pid) {
+    if (!pid) return;
+    fillModal(pid);
+    var el = document.getElementById("aqDetailModal");
+    if (el && window.bootstrap && bootstrap.Modal) {
+      bootstrap.Modal.getOrCreateInstance(el).show();
+    }
+  }
+
+  document.querySelectorAll("#aq-approval-root .aq-open-details").forEach(function(btn) {
+    btn.addEventListener("click", function(e) {
+      e.stopPropagation();
+      openDetailModal(btn.getAttribute("data-project-id"));
+    });
+  });
+
+  document.querySelectorAll("#aq-approval-root .aq-card").forEach(function(card) {
+    card.addEventListener("click", function(e) {
+      if (e.target.closest("button") || e.target.closest("input") || e.target.closest("label")) return;
+      openDetailModal(card.getAttribute("data-project-id"));
+    });
+  });
+})();
+</script>

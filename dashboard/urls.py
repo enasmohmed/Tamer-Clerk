@@ -12,10 +12,19 @@ app_name = "dashboard"
 
 urlpatterns = [
     path("", UploadExcelViewRoche.as_view(), name="upload_excel"),
+    path("portal/", views.pmo_portal_login_view, name="pmo_portal_login"),
+    path("portal/logout/", views.pmo_portal_logout_view, name="pmo_portal_logout"),
     path("meeting-points-unlock/", meeting_points_unlock, name="meeting_points_unlock"),
     # dashboard/urls.py
     path('quarter-ajax/', UploadExcelViewRoche.as_view(), name='quarter_ajax'),
     path("project-portfolio/add-project/", views.project_portfolio_add_project, name="project_portfolio_add_project"),
+    path("project-portfolio/approve/", views.project_portfolio_approve, name="project_portfolio_approve"),
+    path(
+        "project-portfolio/approval-deadline/",
+        views.project_portfolio_approval_set_deadline,
+        name="project_portfolio_approval_set_deadline",
+    ),
+    path("project-portfolio/update/", views.project_portfolio_update_project, name="project_portfolio_update_project"),
 
 
 

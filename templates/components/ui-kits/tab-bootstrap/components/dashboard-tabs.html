@@ -377,7 +377,34 @@
 <!--            </div>-->
 <!--          </div>-->
           <div id="filter-message"></div>
-          <!-- Main dashboard tabs (Executive Overview + Transformation Workspace only) -->
+          {% if pmo_role|default:'' %}
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 mb-1">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+              <span class="d-inline-flex align-items-center gap-2 fw-bold small mb-0" style="letter-spacing:0.06em;color:#64748b;">
+                <span style="font-size:1.2rem;line-height:1;" aria-hidden="true">👋</span>
+                <span>HELLO</span>
+              </span>
+              {% if pmo_is_manager|default:False %}
+              <span class="d-inline-flex align-items-center gap-2 fw-bold small mb-0" style="letter-spacing:0.06em;color:#9a3412;">
+                <span style="font-size:1.2rem;line-height:1;" aria-hidden="true">👑</span>
+                <span>MANAGER ACCESS</span>
+              </span>
+              {% else %}
+              <span class="d-inline-flex align-items-center gap-2 fw-bold small mb-0" style="letter-spacing:0.06em;color:#0369a1;">
+                <span style="font-size:1.2rem;line-height:1;" aria-hidden="true">👤</span>
+                <span>TEAM VIEW — READ ONLY</span>
+              </span>
+              {% endif %}
+            </div>
+            <a href="{% url 'dashboard:pmo_portal_logout' %}" class="btn btn-sm btn-outline-danger ms-auto d-inline-flex align-items-center gap-1">
+              <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+              <span>Logout</span>
+            </a>
+          </div>
+          <div id="twPmoFeedbackToast" class="alert alert-info border-0 shadow d-none" role="status" aria-live="polite"
+               style="position:fixed;top:72px;right:16px;z-index:1080;max-width:min(420px,calc(100vw - 32px));font-weight:650;line-height:1.4;margin:0;"></div>
+          {% endif %}
+          <!-- Main dashboard tabs -->
           <ul
             class="nav nav-tabs mt-4 justify-content-start"
             id="dashboard-tabs"
@@ -387,12 +414,26 @@
               <button type="button" class="nav-link {% if active_tab|default:'executive overview' == 'executive overview' %}active{% endif %}" data-tab="executive overview">Executive Overview</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button type="button" class="nav-link {% if active_tab|default:'executive overview' != 'executive overview' %}active{% endif %}" data-tab="transformation workspace">Transformation Workspace</button>
+              <button type="button" class="nav-link {% if active_tab|default:'executive overview' == 'transformation workspace' or active_tab == 'project portfolio' %}active{% endif %}" data-tab="transformation workspace">Transformation Workspace</button>
             </li>
+            {% if pmo_is_manager|default:False %}
+            <li class="nav-item" role="presentation">
+              <button type="button" class="nav-link {% if active_tab|default:'executive overview' == 'approval queue' %}active{% endif %}" data-tab="approval queue">
+                Approval Queue
+                {% with n=transformation_workspace.pending_queue_items|length %}
+                {% if n %}
+                <span class="badge bg-warning text-dark ms-1">{{ n }}</span>
+                {% endif %}
+                {% endwith %}
+              </button>
+            </li>
+            {% endif %}
           </ul>
           <div id="tab-content" class="card p-4 shadow-sm bg-white mt-3">
             {% if active_tab|default:'executive overview' == "transformation workspace" or active_tab == "project portfolio" %}
               {% include 'components/ui-kits/tab-bootstrap/components/transformation-workspace.html' with transformation_workspace=transformation_workspace %}
+            {% elif active_tab == "approval queue" and pmo_is_manager|default:False %}
+              {% include 'components/ui-kits/tab-bootstrap/components/pmo-approval-queue.html' with transformation_workspace=transformation_workspace %}
             {% else %}
               {% include 'components/ui-kits/tab-bootstrap/components/executive-overview.html' %}
             {% endif %}
@@ -531,14 +572,124 @@
   $(document).ready(function () {
     console.log("🚀 Page is ready");
 
-    const csrftoken = document.querySelector(
-      "[name=csrfmiddlewaretoken]",
-    ).value;
+    const _csrfEl = document.querySelector("[name=csrfmiddlewaretoken]");
+    const csrftoken = _csrfEl ? _csrfEl.value : "";
+
+    /* Approval Queue: حفظ الموعد — مستمع موكّل على document لأن محتوى التاب يُحقن بـ AJAX وقد لا تُنفَّذ سكربتات الـ fragment بشكل موثوق */
+    $(document).on("click", "#tab-content #aq-approval-root .aq-dl-save", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const btn = this;
+      const card = btn.closest(".aq-card");
+      const root = document.getElementById("aq-approval-root");
+      const url = root && root.getAttribute("data-aq-set-deadline-url");
+      if (!card || !url) return;
+      const pid = card.getAttribute("data-project-id");
+      const input = card.querySelector(".aq-dl-input");
+      if (!pid || !input) return;
+      const v = (input.value || "").trim();
+      if (!v) {
+        alert("Pick a date first.");
+        return;
+      }
+      btn.disabled = true;
+      const fd = new FormData();
+      fd.append("project_id", pid);
+      fd.append("planned_deadline", v);
+      fd.append("csrfmiddlewaretoken", csrftoken);
+      fetch(url, {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": csrftoken,
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: fd,
+      })
+        .then((r) => r.json().then((d) => ({ ok: r.ok, d })))
+        .then((x) => {
+          btn.disabled = false;
+          if (!x.ok || !x.d || x.d.ok === false) {
+            alert((x.d && x.d.message) || "Could not update deadline.");
+            return;
+          }
+          card.querySelectorAll(".aq-deadline-display").forEach(function (el) {
+            el.textContent = x.d.deadline_display || el.textContent;
+          });
+          card.setAttribute("data-deadline-iso", x.d.deadline_iso || "");
+          if (x.d.deadline_iso) input.value = x.d.deadline_iso;
+        })
+        .catch(function () {
+          btn.disabled = false;
+          alert("Network error.");
+        });
+    });
+    $(document).on("click", "#tab-content #aq-approval-root .aq-dl-reset", function (ev) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const card = this.closest(".aq-card");
+      if (!card) return;
+      const input = card.querySelector(".aq-dl-input");
+      const iso = (card.getAttribute("data-deadline-iso") || "").trim();
+      if (input) input.value = iso;
+    });
+
     let selectedTab = "{{ active_tab|default:'executive overview'|escapejs }}".toLowerCase().trim();
     if (selectedTab === "project portfolio") selectedTab = "transformation workspace";
-    if (selectedTab !== "executive overview" && selectedTab !== "transformation workspace") {
+    const pmoIsManager = "{{ pmo_is_manager|default:False|yesno:'true,false'|escapejs }}" === "true";
+    if (selectedTab === "approval queue" && !pmoIsManager) {
       selectedTab = "executive overview";
     }
+    const allowedTabs = ["executive overview", "transformation workspace"];
+    if (pmoIsManager) allowedTabs.push("approval queue");
+    if (!allowedTabs.includes(selectedTab)) {
+      selectedTab = "executive overview";
+    }
+    try {
+      var _pmoTabParam = (
+        new URLSearchParams(window.location.search).get("tab") || ""
+      )
+        .trim()
+        .toLowerCase();
+      if (_pmoTabParam === "project portfolio") {
+        _pmoTabParam = "transformation workspace";
+      }
+      if (_pmoTabParam === "approval queue" && !pmoIsManager) {
+        _pmoTabParam = "executive overview";
+      }
+      if (_pmoTabParam && allowedTabs.includes(_pmoTabParam)) {
+        selectedTab = _pmoTabParam;
+      }
+    } catch (_eTabUrl) {}
+
+    window.__pmoSetApprovalQueueBadgeCount = function (n) {
+      if (!pmoIsManager) return;
+      var count = parseInt(n, 10);
+      if (isNaN(count) || count < 0) count = 0;
+      var $btn = null;
+      $("#dashboard-tabs button.nav-link").each(function () {
+        var dt = ($(this).data("tab") || "").toString().toLowerCase().trim();
+        if (dt === "approval queue") {
+          $btn = $(this);
+          return false;
+        }
+      });
+      if (!$btn || !$btn.length) return;
+      var $badge = $btn.find(".badge");
+      if (count < 1) {
+        $badge.remove();
+        return;
+      }
+      if ($badge.length) {
+        $badge.text(String(count));
+      } else {
+        $btn.append(
+          '<span class="badge bg-warning text-dark ms-1">' +
+            String(count) +
+            "</span>",
+        );
+      }
+    };
+
     let selectedQuarter = "";
     const TAB_CACHE_PREFIX = "dashboard_tab_cache";
     const TAB_CACHE_VERSION = "v7_table_style"; // زيدي الرقم عند تحديث شكل الجداول
@@ -584,7 +735,21 @@
     }
 
     $("#dashboard-tabs button.nav-link").removeClass("active");
-    $("#dashboard-tabs button[data-tab='" + selectedTab + "']").addClass("active");
+    $("#dashboard-tabs button.nav-link").each(function () {
+      var dt = ($(this).data("tab") || "").toString().toLowerCase().trim();
+      if (dt === (selectedTab || "").toLowerCase().trim()) {
+        $(this).addClass("active");
+      }
+    });
+    if ($("#dashboard-tabs button.nav-link.active").length === 0) {
+      selectedTab = "executive overview";
+      $("#dashboard-tabs button.nav-link").each(function () {
+        var dt = ($(this).data("tab") || "").toString().toLowerCase().trim();
+        if (dt === "executive overview") {
+          $(this).addClass("active");
+        }
+      });
+    }
     $("#cards-section").hide();
 
     // 🔹 دالة عرض الكروت (Overview)
@@ -786,6 +951,14 @@
         attachInnerTabListeners(document.getElementById("tab-content"));
         queueInitialChartRefresh(document.getElementById("tab-content"));
         initInboundShipmentsDataTable(document.getElementById("tab-content"));
+        if (
+          selectedTab &&
+          selectedTab.toLowerCase() === "approval queue" &&
+          typeof data.pending_queue_count === "number" &&
+          typeof window.__pmoSetApprovalQueueBadgeCount === "function"
+        ) {
+          window.__pmoSetApprovalQueueBadgeCount(data.pending_queue_count);
+        }
         if (selectedTab && selectedTab.toLowerCase() === "dashboard") {
           setTimeout(function () {
             if (window.initInboundPendingDonut) {
@@ -853,6 +1026,14 @@
         var pt = new URLSearchParams(window.location.search).get("project_type") || "";
         if (pt) ajaxData.project_type = pt;
       }
+      if (
+        selectedTab &&
+        (selectedTab.toLowerCase() === "transformation workspace" ||
+          selectedTab.toLowerCase() === "approval queue")
+      ) {
+        var ptAq = new URLSearchParams(window.location.search).get("project_type") || "";
+        if (ptAq) ajaxData.project_type = ptAq;
+      }
       $.ajax({
         url: "{% url 'dashboard:upload_excel' %}",
         method: "GET",
@@ -891,6 +1072,23 @@
 
     window.loadTabData = loadTabData;
     window.reinitializeScripts = reinitializeScripts;
+
+    window.__pmoSelectDashboardTab = function (tabName) {
+      var t = (tabName || "").toLowerCase().trim();
+      if (t === "project portfolio") t = "transformation workspace";
+      if (t === "approval queue" && !pmoIsManager) return;
+      if (!allowedTabs.includes(t)) return;
+      selectedTab = t;
+      $("#dashboard-tabs button").removeClass("active");
+      $("#dashboard-tabs button").each(function () {
+        var dt = ($(this).data("tab") || "").toString().toLowerCase();
+        if (dt === t) $(this).addClass("active");
+      });
+      updateBodyTabClass();
+      $("#tab-content").empty();
+      $("#cards-section").empty().hide();
+      loadTabData();
+    };
 
     // تحديث كلاس body للتاب Ideas & Automation (إزالة margin-left للهيدر)
     function updateBodyTabClass() {
@@ -933,8 +1131,12 @@
       loadTabData();
     });
 
-    // Initial load: Executive Overview & Transformation Workspace are server-rendered — skip AJAX
-    if (selectedTab !== "executive overview" && selectedTab !== "transformation workspace") {
+    // Initial load: main PMO tabs are server-rendered — skip AJAX
+    const skipInitialAjax =
+      selectedTab === "executive overview" ||
+      selectedTab === "transformation workspace" ||
+      (selectedTab === "approval queue" && pmoIsManager);
+    if (!skipInitialAjax) {
       loadTabData();
     }
 

@@ -47,6 +47,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "dashboard.middleware.PmoPortalGateMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -161,3 +162,7 @@ CACHES = {
 
 # كلمة مرور تاب Meeting Points & Actions (يمكن تغييرها من متغير البيئة)
 MEETING_POINTS_TAB_PASSWORD = os.environ.get("MEETING_POINTS_TAB_PASSWORD", "tamer2025")
+
+# PMO portal (Team / Manager) — غيّر القيم في الإنتاج عبر متغيرات البيئة
+PMO_TEAM_PASSWORD = os.environ.get("PMO_TEAM_PASSWORD", "team1234")
+PMO_MANAGER_PASSWORD = os.environ.get("PMO_MANAGER_PASSWORD", "manager1234")

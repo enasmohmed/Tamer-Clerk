@@ -991,7 +991,7 @@ def get_project_tracker_list(project_type=None):
                 "remarks": getattr(obj, "remarks", "") or "",
             }
 
-        base_qs = ProjectTrackerItem.objects.all()
+        base_qs = ProjectTrackerItem.objects.filter(pmo_register_published=True)
         if project_type and project_type in ("idea", "automation"):
             base_qs = base_qs.filter(project_type=project_type)
 
@@ -1159,6 +1159,7 @@ def get_transformation_workspace(project_type=None):
             ProjectProcessStep,
             ProjectTrackerItem,
             WorkspaceDepartment,
+            WorkspacePortfolioActivity,
             WorkspaceProjectCategory,
             WorkspaceStrategicAlignment,
         )
@@ -1180,7 +1181,8 @@ def get_transformation_workspace(project_type=None):
         ).all()
         if project_type and project_type in ("idea", "automation"):
             qs = qs.filter(project_type=project_type)
-        qs = qs.order_by("-created_at", "-id")
+        qs_all = qs.order_by("-created_at", "-id")
+        qs = qs_all.filter(pmo_register_published=True)
 
         project_details_map = {}
 
@@ -1373,6 +1375,243 @@ def get_transformation_workspace(project_type=None):
             "Launch": ("EXECUTING", "tw-pmbok-exec"),
             "Completed": ("CLOSING", "tw-pmbok-close"),
         }
+
+        PRIORITY_BADGE_CLASS = {
+            "critical": "aq-pri-critical",
+            "high": "aq-pri-high",
+            "medium": "aq-pri-medium",
+            "low": "aq-pri-low",
+        }
+
+        def build_pending_approval_entry(obj):
+            """Rich card + detail payload for manager Approval Queue (unpublished items)."""
+            tday = date.today()
+            prog_pct = calc_progress(obj)
+            planned_pct = planned_progress_pct(obj, tday)
+            spi_p = None
+            if planned_pct is not None and planned_pct > 1e-6:
+                spi_p = min(2.0, max(0.0, float(prog_pct) / float(planned_pct)))
+            ph = getattr(obj, "planned_hours", None)
+            ah = getattr(obj, "actual_hours", None)
+            cpi_p = None
+            try:
+                if ph is not None and ah is not None and float(ah) > 0:
+                    cpi_p = min(2.0, max(0.0, float(ph) / float(ah)))
+                elif planned_pct is not None and planned_pct > 1e-6:
+                    cpi_p = min(2.0, max(0.0, float(prog_pct) / float(planned_pct)))
+            except (TypeError, ValueError, ZeroDivisionError):
+                cpi_p = spi_p
+
+            dept_label = "—"
+            if getattr(obj, "department_ref_id", None) and obj.department_ref:
+                dept_label = obj.department_ref.name
+            elif getattr(obj, "department", None):
+                dept_label = (obj.department or "").strip() or "—"
+
+            lead = (getattr(obj, "project_lead", "") or "").strip()
+            rp = (getattr(obj, "register_priority", "") or "").strip()
+            rs_reg = (getattr(obj, "register_status", "") or "").strip()
+            rp_disp = obj.get_register_priority_display() if rp else ""
+            rs_disp = obj.get_register_status_display() if rs_reg else ""
+            rs_eff = rs_reg
+            if not rs_eff:
+                if obj.end_date and obj.end_date < tday:
+                    rs_eff = "delayed"
+                elif spi_p is not None and spi_p < 0.85:
+                    rs_eff = "at_risk"
+                elif risk_level(obj) == "High":
+                    rs_eff = "at_risk"
+                else:
+                    rs_eff = "on_track"
+
+            cat_disp = ""
+            if getattr(obj, "register_category_id", None) and obj.register_category:
+                cat_disp = obj.register_category.name
+            align_disp = ""
+            if getattr(obj, "strategic_alignment_ref_id", None) and obj.strategic_alignment_ref:
+                align_disp = obj.strategic_alignment_ref.name
+
+            proc_steps = []
+            for s in obj.process_steps.all():
+                proc_steps.append(
+                    {
+                        "description": s.description or "",
+                        "deadline": s.step_deadline.strftime("%b %d, %Y")
+                        if s.step_deadline
+                        else "",
+                        "owner_name": s.owner_name or "",
+                    }
+                )
+            raid_cat_abbr = {"risk": "R", "issue": "I", "dependency": "D", "assumption": "A"}
+            raid_rows = []
+            for r in obj.raid_items.all():
+                raid_rows.append(
+                    {
+                        "category": r.get_category_display() if r.category else "",
+                        "category_abbr": raid_cat_abbr.get(r.category or "", "?"),
+                        "title": r.title or "",
+                        "severity": r.get_severity_display() if r.severity else "",
+                        "owner_name": r.owner_name or "",
+                        "status": r.get_status_display() if r.status else "",
+                    }
+                )
+
+            pc = (getattr(obj, "project_code", "") or "").strip()
+            log_id = pc if pc else f"LOG-{obj.id:03d}"
+            pt_disp = (
+                obj.get_project_type_display()
+                if getattr(obj, "project_type", None)
+                else ""
+            )
+            subtitle_parts = []
+            if cat_disp:
+                subtitle_parts.append(cat_disp)
+            if pt_disp:
+                subtitle_parts.append(pt_disp)
+            if not subtitle_parts and dept_label and dept_label != "—":
+                subtitle_parts.append(dept_label)
+            subtitle_line = " · ".join(subtitle_parts) if subtitle_parts else "—"
+
+            phase_nm = current_phase(obj)
+            pmbok_label, pmbok_badge_class = PMBOK_PHASE_BADGE.get(
+                phase_nm, ("PLANNING", "tw-pmbok-plan")
+            )
+            reg_badge_label, reg_badge_class = REGISTER_STATUS_BADGE.get(
+                rs_eff,
+                ((rs_disp.upper() if rs_disp else "—"), "tw-st-none"),
+            )
+            if rs_eff not in REGISTER_STATUS_BADGE and rs_disp:
+                reg_badge_label = rs_disp.upper()
+
+            planned_single = 0.0
+            if obj.start_date and obj.end_date and obj.end_date > obj.start_date:
+                _dur = (obj.end_date - obj.start_date).days
+                _el = (tday - obj.start_date).days
+                planned_single = max(0.0, min(1.0, _el / float(_dur)))
+            earned_single = prog_pct / 100.0
+            penalty_single = 0.0
+            if obj.end_date and obj.end_date < tday:
+                penalty_single += 0.25
+            if "stuck" in [
+                (obj.brainstorming_status or "").strip(),
+                (obj.execution_status or "").strip(),
+                (getattr(obj, "test_deadline_status", "") or "").strip(),
+                (obj.launch_status or "").strip(),
+            ]:
+                penalty_single += 0.20
+            ac_single = planned_single * (1.0 + penalty_single)
+            spi_u = spi_p if spi_p is not None else (
+                earned_single / planned_single if planned_single > 1e-6 else 0.0
+            )
+            cpi_u = cpi_p if cpi_p is not None else (
+                earned_single / ac_single if ac_single > 1e-6 else 0.0
+            )
+            spi_u = max(0.0, min(2.0, float(spi_u)))
+            cpi_u = max(0.0, min(2.0, float(cpi_u)))
+            cv_u = earned_single - ac_single
+            eac_u = (1.0 / cpi_u) if cpi_u > 1e-6 else 0.0
+
+            lu_dt = getattr(obj, "last_status_update", None)
+            days_since_update = None
+            if lu_dt:
+                days_since_update = (tday - lu_dt).days
+            _gov_appr = (getattr(obj, "gov_approval_status", "") or "").strip()
+
+            remarks_txt = (getattr(obj, "remarks", "") or "").strip()
+            budget_line = remark_field(remarks_txt, "budget (usd):") or ""
+
+            detail_payload = {
+                "objective_sow": getattr(obj, "objective_sow", "") or "",
+                "kpi_success_criteria": getattr(obj, "kpi_success_criteria", "") or "",
+                "scope_in": getattr(obj, "scope_in", "") or "",
+                "scope_out": getattr(obj, "scope_out", "") or "",
+                "scope_deliverables": getattr(obj, "scope_deliverables", "") or "",
+                "scope_dependencies": getattr(obj, "scope_dependencies", "") or "",
+                "process_steps": proc_steps,
+                "raid_items": raid_rows,
+                "gov": {
+                    "submitted_by": getattr(obj, "gov_submitted_by", "") or "",
+                    "reviewed_by": getattr(obj, "gov_reviewed_by", "") or "",
+                    "approval_status": obj.get_gov_approval_status_display()
+                    if _gov_appr
+                    else "",
+                    "stakeholders": getattr(obj, "gov_stakeholders", "") or "",
+                    "operational_impact": getattr(obj, "gov_operational_impact", "") or "",
+                    "assumptions_constraints": getattr(obj, "gov_assumptions_constraints", "")
+                    or "",
+                },
+                "evm": {
+                    "pv": round(planned_single, 3),
+                    "ev": round(earned_single, 3),
+                    "ac": round(ac_single, 3),
+                    "cv": round(cv_u, 3),
+                    "spi": round(spi_u, 2),
+                    "cpi": round(cpi_u, 2),
+                    "eac": round(eac_u, 2),
+                },
+                "summary": {
+                    "log_id": log_id,
+                    "pmbok_label": pmbok_label,
+                    "register_badge_label": reg_badge_label,
+                    "priority_display": rp_disp,
+                    "category_display": cat_disp,
+                    "alignment_display": align_disp,
+                    "last_update_display": lu_dt.strftime("%b %d, %Y") if lu_dt else "",
+                    "days_since_update": days_since_update,
+                    "start_date_display": obj.start_date.strftime("%b %d, %Y")
+                    if getattr(obj, "start_date", None)
+                    else "",
+                },
+                "remarks": remarks_txt,
+                "company": (getattr(obj, "company", "") or "").strip(),
+            }
+            enrich_detail_from_remarks(obj, detail_payload)
+
+            def _clip(s, n):
+                t = (s or "").strip()
+                return t if len(t) <= n else t[: n - 1].rstrip() + "…"
+
+            meta_bits = []
+            if cat_disp:
+                meta_bits.append(cat_disp)
+            if dept_label and dept_label != "—":
+                meta_bits.append(dept_label)
+            meta_bits.append("PM: " + (lead or "—"))
+            if budget_line:
+                meta_bits.append(budget_line)
+            meta_line = " · ".join(meta_bits)
+
+            card = {
+                "id": obj.id,
+                "name": obj.description or "—",
+                "log_id": log_id,
+                "project_lead": lead or "—",
+                "company": (getattr(obj, "company", "") or "").strip(),
+                "progress_pct": prog_pct,
+                "deadline_display": obj.end_date.strftime("%b %d, %Y")
+                if obj.end_date
+                else "—",
+                "deadline_iso": obj.end_date.isoformat() if obj.end_date else "",
+                "created_display": obj.created_at.strftime("%b %d, %Y")
+                if getattr(obj, "created_at", None)
+                else "—",
+                "subtitle_line": subtitle_line,
+                "meta_line": meta_line,
+                "register_badge_label": reg_badge_label,
+                "register_badge_class": reg_badge_class,
+                "pmbok_label": pmbok_label,
+                "pmbok_badge_class": pmbok_badge_class,
+                "priority_display": rp_disp,
+                "priority_badge_class": PRIORITY_BADGE_CLASS.get(rp, "aq-pri-medium"),
+                "project_type": (obj.project_type or "").strip(),
+                "project_type_display": pt_disp or "—",
+                "objective_preview": _clip(detail_payload.get("objective_sow", ""), 220),
+                "kpi_preview": _clip(detail_payload.get("kpi_success_criteria", ""), 160),
+                "scope_in_preview": _clip(detail_payload.get("scope_in", ""), 140),
+                "scope_out_preview": _clip(detail_payload.get("scope_out", ""), 140),
+                "detail": detail_payload,
+            }
+            return card
 
         items = []
         today = date.today()
@@ -1649,6 +1888,37 @@ def get_transformation_workspace(project_type=None):
                     if getattr(obj, "actual_hours", None) is not None
                     else "",
                 },
+                "form_edit": {
+                    "project_name": (obj.description or "").strip(),
+                    "project_code": (obj.project_code or "").strip(),
+                    "person_name": (obj.person_name or "").strip(),
+                    "department_id": getattr(obj, "department_ref_id", None),
+                    "category_id": getattr(obj, "register_category_id", None),
+                    "strategic_alignment_id": getattr(obj, "strategic_alignment_ref_id", None),
+                    "register_priority": rp,
+                    "register_status": rs_reg,
+                    "start_date_iso": obj.start_date.isoformat()
+                    if obj.start_date
+                    else "",
+                    "headcount_impact": (getattr(obj, "headcount_impact", "") or "").strip(),
+                    "sla_improvement": (getattr(obj, "sla_improvement", "") or "").strip(),
+                    "cost_reduction_pct": str(obj.cost_reduction_pct)
+                    if getattr(obj, "cost_reduction_pct", None) is not None
+                    else "",
+                    "planned_hours": str(obj.planned_hours)
+                    if getattr(obj, "planned_hours", None) is not None
+                    else "",
+                    "actual_hours": str(obj.actual_hours)
+                    if getattr(obj, "actual_hours", None) is not None
+                    else "",
+                    "gov_submitted_by": getattr(obj, "gov_submitted_by", "") or "",
+                    "gov_reviewed_by": getattr(obj, "gov_reviewed_by", "") or "",
+                    "gov_approval_status": _gov_appr,
+                    "gov_stakeholders": getattr(obj, "gov_stakeholders", "") or "",
+                    "gov_operational_impact": getattr(obj, "gov_operational_impact", "") or "",
+                    "gov_assumptions_constraints": getattr(obj, "gov_assumptions_constraints", "")
+                    or "",
+                },
             }
             enrich_detail_from_remarks(obj, detail_payload)
             project_details_map[str(obj.id)] = detail_payload
@@ -1760,12 +2030,14 @@ def get_transformation_workspace(project_type=None):
 
         avg_pmo = int(round(sum(pmo_scores) / len(pmo_scores))) if pmo_scores else 0
 
-        open_raid = PortfolioRaidItem.objects.filter(status="open").exclude(
-            project__launch_status="done"
-        ).count()
+        open_raid = PortfolioRaidItem.objects.filter(
+            status="open",
+            project__pmo_register_published=True,
+        ).exclude(project__launch_status="done").count()
         critical_raid = PortfolioRaidItem.objects.filter(
             status="open",
             severity="critical",
+            project__pmo_register_published=True,
         ).exclude(project__launch_status="done").count()
 
         spi_footer = (
@@ -1928,7 +2200,10 @@ def get_transformation_workspace(project_type=None):
                 )
 
         for raid in (
-            PortfolioRaidItem.objects.filter(status="open")
+            PortfolioRaidItem.objects.filter(
+                status="open",
+                project__pmo_register_published=True,
+            )
             .exclude(project__launch_status="done")
             .select_related("project")
             .order_by("project_id", "-severity", "id")[:22]
@@ -1941,14 +2216,49 @@ def get_transformation_workspace(project_type=None):
             ctx = f"{lid} {(proj.description or '')[:36]}"
             _push_alert(rk, msg, ctx, "RAID", f"raid_open_{raid.id}")
 
-        _alert_rank = {"crit": 0, "warn": 1, "info": 2}
+        tracked_ids = list(qs_all.values_list("id", flat=True))
+        if tracked_ids:
+            for act in (
+                WorkspacePortfolioActivity.objects.filter(project_id__in=tracked_ids)
+                .select_related("project")
+                .order_by("-created_at")[:15]
+            ):
+                p = act.project
+                lid = (getattr(p, "project_code", "") or "").strip() or f"LOG-{p.id:03d}"
+                ctx = f"{lid} {(p.description or '')[:36]}"
+                _push_alert(
+                    "act",
+                    act.message,
+                    ctx,
+                    "Activity",
+                    f"actlog_{act.id}",
+                )
+
+        _alert_rank = {"act": -1, "crit": 0, "warn": 1, "info": 2}
         active_alerts.sort(
             key=lambda a: (_alert_rank.get(a.get("kind"), 5), a.get("context") or "")
         )
         active_alerts = active_alerts[:30]
 
+        pending_queue_items = []
+        pending_queue_details = {}
+        approval_queue_approved_count = qs_all.filter(
+            pmo_register_published=True
+        ).count()
+
+        for obj in qs_all.filter(pmo_register_published=False).order_by(
+            "-created_at", "-id"
+        ):
+            card = build_pending_approval_entry(obj)
+            detail = card.pop("detail", {})
+            pending_queue_details[str(obj.id)] = detail
+            pending_queue_items.append(card)
+
         return {
             "items": items,
+            "pending_queue_items": pending_queue_items,
+            "pending_queue_details": pending_queue_details,
+            "approval_queue_approved_count": approval_queue_approved_count,
             "current_project_type": project_type or "",
             "metrics": metrics,
             "earned_value": earned_value,
@@ -1959,6 +2269,9 @@ def get_transformation_workspace(project_type=None):
     except Exception:
         return {
             "items": [],
+            "pending_queue_items": [],
+            "pending_queue_details": {},
+            "approval_queue_approved_count": 0,
             "current_project_type": "",
             "register_lookups": {
                 "departments": [],

@@ -11,6 +11,8 @@ import numpy as np
 from django.conf import settings
 from django.contrib import messages
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
+from urllib.parse import urlencode
 from django.http import JsonResponse, HttpResponse
 from django.views import View
 from .forms import ExcelUploadForm
@@ -30,6 +32,7 @@ from django.utils.text import slugify
 
 from .models import MeetingPoint
 from . import context_helpers
+from . import pmo_session
 from django.views.decorators.http import require_POST
 from django.utils.dateparse import parse_date
 
@@ -87,6 +90,8 @@ def project_portfolio_add_project(request):
 
         register_status = _s("register_status")
         if register_status not in ("on_track", "at_risk", "delayed", "blocked", "approved"):
+            register_status = ""
+        if pmo_session.is_pmo_team(request) and register_status == "approved":
             register_status = ""
 
         category_id = _pid("category_id")
@@ -217,6 +222,15 @@ def project_portfolio_add_project(request):
         remarks = "\n".join(lines).strip()
 
         today = datetime.date.today()
+        # المدير: يُضاف المشروع مباشرة للسجل. التيم: ينتظر موافقة المدير (pmo_register_published=False).
+        if pmo_session.is_pmo_manager(request):
+            published_to_register = True
+        elif pmo_session.is_pmo_team(request):
+            published_to_register = False
+            gov_approval_status = "pending"
+        else:
+            published_to_register = True
+
         obj = ProjectTrackerItem.objects.create(
             description=description,
             project_code=project_code,
@@ -253,6 +267,7 @@ def project_portfolio_add_project(request):
             launch_status=launch_status,
             remarks=remarks,
             last_status_update=today,
+            pmo_register_published=published_to_register,
         )
 
         proc_desc = request.POST.getlist("process_description")
@@ -303,7 +318,21 @@ def project_portfolio_add_project(request):
                 display_order=idx,
             )
 
-        return JsonResponse({"ok": True, "id": obj.id})
+        if pmo_session.get_pmo_role(request):
+            from .models import WorkspacePortfolioActivity
+
+            WorkspacePortfolioActivity.objects.create(
+                project=obj,
+                message=f'Project "{description[:100]}" created · by {pmo_session.pmo_actor_label(request)}',
+            )
+
+        return JsonResponse(
+            {
+                "ok": True,
+                "id": obj.id,
+                "pending_manager_approval": not published_to_register,
+            }
+        )
     except Exception as e:
         return JsonResponse({"ok": False, "message": str(e)}, status=500)
 
@@ -1891,12 +1920,70 @@ class UploadExcelViewRoche(View):
                     {
                         "transformation_workspace": transformation_workspace,
                         "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
+                        **pmo_session.pmo_template_context(request),
                     },
                     request=request,
                 )
                 return JsonResponse({"detail_html": html}, safe=False)
+            if selected_tab == "approval queue":
+                if not pmo_session.is_pmo_manager(request):
+                    return JsonResponse(
+                        {
+                            "detail_html": "<p class='text-danger text-center p-4'>Manager access only.</p>"
+                        },
+                        safe=False,
+                    )
+                project_type_filter = request.GET.get("project_type", "").strip().lower()
+                if project_type_filter not in ("idea", "automation"):
+                    project_type_filter = None
+                transformation_workspace = context_helpers.get_transformation_workspace(
+                    project_type=project_type_filter
+                )
+                html = render_to_string(
+                    "components/ui-kits/tab-bootstrap/components/pmo-approval-queue.html",
+                    {
+                        "transformation_workspace": transformation_workspace,
+                        "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
+                        **pmo_session.pmo_template_context(request),
+                    },
+                    request=request,
+                )
+                pending_n = len(
+                    (transformation_workspace or {}).get("pending_queue_items") or []
+                )
+                return JsonResponse(
+                    {"detail_html": html, "pending_queue_count": pending_n},
+                    safe=False,
+                )
             if selected_tab == "clerk details":
                 return self.clerk_details_tab(request)
+            # وضع PMO (WAREHOUSE فقط): أي XHR بدون تاب مطابق كان يسقط هنا ويعيد صفحة HTML كاملة
+            # فيكسر jQuery (يتوقع JSON). الافتراضي: Executive Overview كـ JSON.
+            if getattr(self, "USE_WAREHOUSE_TAB_ONLY", False):
+                tw = context_helpers.get_transformation_workspace(
+                    project_type=request.GET.get("project_type") or None
+                )
+                tw_metrics = (tw or {}).get("metrics") or {}
+                tw_items = (tw or {}).get("items") or []
+                eo_payload = context_helpers.get_executive_overview_tw_payload(tw_items)
+                html = render_to_string(
+                    "components/ui-kits/tab-bootstrap/components/executive-overview.html",
+                    {
+                        "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
+                        "transformation_workspace": tw,
+                        "executive_kpis": context_helpers.get_executive_overview_kpi_cards(
+                            project_type=request.GET.get("project_type") or None,
+                            workspace_metrics=tw_metrics,
+                        ),
+                        "executive_top_projects": eo_payload["executive_top_projects"],
+                        "executive_charts": eo_payload["executive_charts"],
+                        "executive_pmo_health": eo_payload["executive_pmo_health"],
+                        "executive_deadlines": eo_payload["executive_deadlines"],
+                        "executive_gantt": eo_payload["executive_gantt"],
+                    },
+                    request=request,
+                )
+                return JsonResponse({"detail_html": html}, safe=False)
 
         # فلتر Meeting Points: طلب بـ status فقط (بدون tab) — نرجع JSON حتى بدون هيدر AJAX
         if request.GET.get("status") and not request.GET.get("tab"):
@@ -1924,11 +2011,14 @@ class UploadExcelViewRoche(View):
             meeting_points = MeetingPoint.objects.all().order_by("is_done", "-created_at")
             _pt_wh = request.GET.get("project_type") or None
             _tab_q = (request.GET.get("tab") or "").strip().lower()
-            _active_wh = (
-                "transformation workspace"
-                if _tab_q in ("transformation workspace", "project portfolio")
-                else "executive overview"
-            )
+            if _tab_q == "approval queue" and not pmo_session.is_pmo_manager(request):
+                _tab_q = "executive overview"
+            if _tab_q in ("transformation workspace", "project portfolio"):
+                _active_wh = "transformation workspace"
+            elif _tab_q == "approval queue" and pmo_session.is_pmo_manager(request):
+                _active_wh = "approval queue"
+            else:
+                _active_wh = "executive overview"
             transformation_workspace = context_helpers.get_transformation_workspace(
                 project_type=_pt_wh
             )
@@ -1959,6 +2049,7 @@ class UploadExcelViewRoche(View):
                 "transformation_workspace": transformation_workspace,
                 "clerk_details": context_helpers.get_clerk_details_list(),
             }
+            render_context.update(pmo_session.pmo_template_context(request))
             try:
                 tw_items_wh = (transformation_workspace or {}).get("items") or []
                 eo_payload_wh = context_helpers.get_executive_overview_tw_payload(
@@ -2016,7 +2107,13 @@ class UploadExcelViewRoche(View):
         if not data_is_uploaded:
             form = ExcelUploadForm()
             return render(
-                request, self.template_name, {"form": form, "data_is_uploaded": False}
+                request,
+                self.template_name,
+                {
+                    "form": form,
+                    "data_is_uploaded": False,
+                    **pmo_session.pmo_template_context(request),
+                },
             )
 
         # --------------------------
@@ -2024,6 +2121,8 @@ class UploadExcelViewRoche(View):
         # --------------------------
         selected_tab = (request.GET.get("tab") or "").strip().lower() or "executive overview"
         _allowed_main_tabs = {"executive overview", "transformation workspace", "project portfolio"}
+        if pmo_session.is_pmo_manager(request):
+            _allowed_main_tabs.add("approval queue")
         if selected_tab not in _allowed_main_tabs:
             selected_tab = "executive overview"
         selected_month = request.GET.get("month", "").strip()
@@ -2425,6 +2524,7 @@ class UploadExcelViewRoche(View):
             ),
             "clerk_details": context_helpers.get_clerk_details_list(),
         }
+        render_context.update(pmo_session.pmo_template_context(request))
         # Executive Overview: charts + top projects from Transformation Workspace items
         try:
             tw_items = (render_context.get("transformation_workspace") or {}).get("items") or []
@@ -2486,7 +2586,13 @@ class UploadExcelViewRoche(View):
                     {"error": "⚠️ Please select an Excel file."}, status=400
                 )
             return render(
-                request, self.template_name, {"form": form, "data_is_uploaded": False}
+                request,
+                self.template_name,
+                {
+                    "form": form,
+                    "data_is_uploaded": False,
+                    **pmo_session.pmo_template_context(request),
+                },
             )
 
         # ✅ حفظ الملف (يدعم .xlsx و .xlsm مثل all sheet.xlsm)
@@ -8050,3 +8156,399 @@ class DoneMeetingPointView(View):
         point.is_done = not point.is_done
         point.save()
         return JsonResponse({"is_done": point.is_done})
+
+
+def _pmo_portal_landing_url():
+    """After PMO login (team or manager), always open the dashboard on Executive Overview."""
+    return reverse("dashboard:upload_excel") + "?" + urlencode({"tab": "executive overview"})
+
+
+def pmo_portal_login_view(request):
+    landing = _pmo_portal_landing_url()
+    if pmo_session.get_pmo_role(request):
+        return redirect(landing)
+    if request.method == "POST":
+        role = (request.POST.get("role") or "").strip().lower()
+        password = (request.POST.get("password") or "").strip()
+        team_ok = role == pmo_session.ROLE_TEAM and password == getattr(
+            settings, "PMO_TEAM_PASSWORD", "team123"
+        )
+        mgr_ok = role == pmo_session.ROLE_MANAGER and password == getattr(
+            settings, "PMO_MANAGER_PASSWORD", "manager123"
+        )
+        if team_ok or mgr_ok:
+            pmo_session.set_pmo_session(request, role)
+            return redirect(landing)
+        messages.error(request, "Invalid password or role.")
+    return render(request, "dashboard/pmo_portal_login.html", {"next_url": landing})
+
+
+def pmo_portal_logout_view(request):
+    pmo_session.clear_pmo_session(request)
+    return redirect("dashboard:pmo_portal_login")
+
+
+@require_POST
+def project_portfolio_approve(request):
+    if not pmo_session.is_pmo_manager(request):
+        return JsonResponse({"ok": False, "message": "Managers only."}, status=403)
+    try:
+        from .models import ProjectTrackerItem
+
+        pid_raw = (request.POST.get("project_id") or "").strip()
+        if not pid_raw:
+            return JsonResponse({"ok": False, "message": "project_id required."}, status=400)
+        obj = get_object_or_404(ProjectTrackerItem, pk=int(pid_raw))
+    except ValueError:
+        return JsonResponse({"ok": False, "message": "Invalid project id."}, status=400)
+
+    obj.pmo_register_published = True
+    if not (getattr(obj, "gov_approval_status", None) or "").strip():
+        obj.gov_approval_status = "approved"
+    obj.save()
+
+    pt = (request.POST.get("project_type") or "").strip().lower()
+    pending_qs = ProjectTrackerItem.objects.filter(pmo_register_published=False)
+    if pt in ("idea", "automation"):
+        pending_qs = pending_qs.filter(project_type=pt)
+    pending_left = pending_qs.count()
+    return JsonResponse({"ok": True, "pending_queue_count": pending_left})
+
+
+@require_POST
+def project_portfolio_approval_set_deadline(request):
+    """
+    Manager only: change planned deadline for a project still awaiting register approval.
+    """
+    if not pmo_session.is_pmo_manager(request):
+        return JsonResponse({"ok": False, "message": "Managers only."}, status=403)
+    try:
+        from .models import ProjectTrackerItem
+
+        pid_raw = (request.POST.get("project_id") or "").strip()
+        dl_raw = (request.POST.get("planned_deadline") or "").strip()
+        if not pid_raw:
+            return JsonResponse({"ok": False, "message": "project_id required."}, status=400)
+        if not dl_raw:
+            return JsonResponse({"ok": False, "message": "planned_deadline required."}, status=400)
+        obj = get_object_or_404(ProjectTrackerItem, pk=int(pid_raw))
+    except ValueError:
+        return JsonResponse({"ok": False, "message": "Invalid project id."}, status=400)
+
+    if obj.pmo_register_published:
+        return JsonResponse(
+            {"ok": False, "message": "Project is already approved to the register."},
+            status=400,
+        )
+    dl = parse_date(dl_raw)
+    if not dl:
+        return JsonResponse({"ok": False, "message": "Invalid date."}, status=400)
+    obj.end_date = dl
+    obj.save(update_fields=["end_date"])
+    from .models import WorkspacePortfolioActivity
+
+    WorkspacePortfolioActivity.objects.create(
+        project=obj,
+        message=(
+            f"Deadline set to {dl.strftime('%b %d, %Y')} (pending approval) · by "
+            f"{pmo_session.pmo_actor_label(request)}"
+        ),
+    )
+    return JsonResponse(
+        {
+            "ok": True,
+            "deadline_display": dl.strftime("%b %d, %Y"),
+            "deadline_iso": dl.isoformat(),
+        }
+    )
+
+
+@require_POST
+def project_portfolio_update_project(request):
+    """
+    PATCH-style update from Transformation Workspace editor.
+    Team may edit all structured fields except deadline (end_date); managers may also change deadline.
+    """
+    if not (pmo_session.is_pmo_manager(request) or pmo_session.is_pmo_team(request)):
+        return JsonResponse({"ok": False, "message": "Forbidden."}, status=403)
+    try:
+        from decimal import Decimal, InvalidOperation
+
+        from .models import (
+            ProjectTrackerItem,
+            WorkspaceDepartment,
+            WorkspaceProjectCategory,
+            WorkspaceStrategicAlignment,
+        )
+
+        def _s(key, default=""):
+            return (request.POST.get(key) or default).strip()
+
+        def _pid(key):
+            raw = (request.POST.get(key) or "").strip()
+            if not raw:
+                return None
+            try:
+                return int(raw)
+            except ValueError:
+                return None
+
+        pid_raw = _s("project_id")
+        if not pid_raw:
+            return JsonResponse({"ok": False, "message": "project_id required."}, status=400)
+        try:
+            obj = get_object_or_404(ProjectTrackerItem, pk=int(pid_raw))
+        except ValueError:
+            return JsonResponse({"ok": False, "message": "Invalid project id."}, status=400)
+
+        snap = {
+            "description": obj.description or "",
+            "project_code": obj.project_code or "",
+            "project_lead": obj.project_lead or "",
+            "person_name": obj.person_name or "",
+            "company": obj.company or "",
+            "department": obj.department or "",
+            "department_ref_id": obj.department_ref_id,
+            "register_priority": obj.register_priority or "",
+            "register_status": obj.register_status or "",
+            "register_category_id": obj.register_category_id,
+            "strategic_alignment_ref_id": obj.strategic_alignment_ref_id,
+            "objective_sow": obj.objective_sow or "",
+            "kpi_success_criteria": obj.kpi_success_criteria or "",
+            "cost_reduction_pct": obj.cost_reduction_pct,
+            "headcount_impact": obj.headcount_impact or "",
+            "sla_improvement": obj.sla_improvement or "",
+            "scope_in": obj.scope_in or "",
+            "scope_out": obj.scope_out or "",
+            "scope_deliverables": obj.scope_deliverables or "",
+            "scope_dependencies": obj.scope_dependencies or "",
+            "gov_submitted_by": obj.gov_submitted_by or "",
+            "gov_reviewed_by": obj.gov_reviewed_by or "",
+            "gov_approval_status": obj.gov_approval_status or "",
+            "gov_stakeholders": obj.gov_stakeholders or "",
+            "gov_operational_impact": obj.gov_operational_impact or "",
+            "gov_assumptions_constraints": obj.gov_assumptions_constraints or "",
+            "project_type": obj.project_type or "",
+            "planned_hours": obj.planned_hours,
+            "actual_hours": obj.actual_hours,
+            "start_date": obj.start_date,
+            "end_date": obj.end_date,
+        }
+
+        description = _s("project_name")
+        if not description:
+            return JsonResponse({"ok": False, "message": "Project name is required."}, status=400)
+
+        company_name = _s("company")
+        project_code = _s("project_code")
+        project_lead = _s("project_lead")
+        project_secondary = _s("person_name") or _s("project_secondary")
+
+        dept_id = _pid("department_id")
+        department_ref = None
+        department_text = ""
+        if dept_id:
+            department_ref = WorkspaceDepartment.objects.filter(pk=dept_id, is_active=True).first()
+            if department_ref:
+                department_text = department_ref.name
+
+        register_priority = _s("register_priority")
+        if register_priority not in ("critical", "high", "medium", "low"):
+            register_priority = ""
+
+        register_status = _s("register_status")
+        if register_status not in ("on_track", "at_risk", "delayed", "blocked", "approved"):
+            register_status = ""
+        if pmo_session.is_pmo_team(request) and register_status == "approved":
+            register_status = ""
+
+        category_id = _pid("category_id")
+        register_category = None
+        if category_id:
+            register_category = WorkspaceProjectCategory.objects.filter(
+                pk=category_id, is_active=True
+            ).first()
+
+        alignment_id = _pid("strategic_alignment_id")
+        strategic_alignment_ref = None
+        if alignment_id:
+            strategic_alignment_ref = WorkspaceStrategicAlignment.objects.filter(
+                pk=alignment_id, is_active=True
+            ).first()
+
+        objective_sow = _s("objective_sow")
+        kpi_success_criteria = _s("kpi_success_criteria")
+
+        cost_reduction_pct = None
+        cr_raw = _s("cost_reduction_pct")
+        if cr_raw:
+            try:
+                cost_reduction_pct = Decimal(cr_raw.replace(",", "."))
+            except (InvalidOperation, ValueError):
+                cost_reduction_pct = None
+
+        headcount_impact = _s("headcount_impact")
+        sla_improvement = _s("sla_improvement")
+
+        scope_in = _s("scope_in")
+        scope_out = _s("scope_out")
+        scope_deliverables = _s("scope_deliverables")
+        scope_dependencies = _s("scope_dependencies")
+
+        gov_submitted_by = _s("gov_submitted_by")
+        gov_reviewed_by = _s("gov_reviewed_by")
+        gov_approval_status = _s("gov_approval_status")
+        if gov_approval_status not in ("", "pending", "approved", "rejected", "in_review"):
+            gov_approval_status = ""
+        gov_stakeholders = _s("gov_stakeholders")
+        gov_operational_impact = _s("gov_operational_impact")
+        gov_assumptions_constraints = _s("gov_assumptions_constraints")
+
+        planned_hours = None
+        ph_raw = _s("planned_hours")
+        if ph_raw:
+            try:
+                planned_hours = Decimal(ph_raw.replace(",", "."))
+            except (InvalidOperation, ValueError):
+                planned_hours = None
+
+        actual_hours = None
+        ah_raw = _s("actual_hours")
+        if ah_raw:
+            try:
+                actual_hours = Decimal(ah_raw.replace(",", "."))
+            except (InvalidOperation, ValueError):
+                actual_hours = None
+
+        st_raw = _s("start_date")
+        if st_raw:
+            st = parse_date(st_raw)
+            if st:
+                obj.start_date = st
+
+        if pmo_session.is_pmo_manager(request):
+            dl_raw = _s("planned_deadline")
+            if dl_raw:
+                dl = parse_date(dl_raw)
+                if dl:
+                    obj.end_date = dl
+
+        project_type = obj.project_type or "idea"
+        if register_category and "automation" in (register_category.name or "").lower():
+            project_type = "automation"
+        elif register_category:
+            project_type = "idea"
+
+        obj.description = description
+        obj.project_code = project_code
+        obj.project_lead = project_lead
+        obj.person_name = project_secondary
+        obj.company = company_name
+        obj.department = department_text
+        obj.department_ref = department_ref
+        obj.register_priority = register_priority
+        obj.register_status = register_status
+        obj.register_category = register_category
+        obj.strategic_alignment_ref = strategic_alignment_ref
+        obj.objective_sow = objective_sow
+        obj.kpi_success_criteria = kpi_success_criteria
+        obj.cost_reduction_pct = cost_reduction_pct
+        obj.headcount_impact = headcount_impact
+        obj.sla_improvement = sla_improvement
+        if any(
+            k in request.POST
+            for k in ("scope_in", "scope_out", "scope_deliverables", "scope_dependencies")
+        ):
+            obj.scope_in = scope_in
+            obj.scope_out = scope_out
+            obj.scope_deliverables = scope_deliverables
+            obj.scope_dependencies = scope_dependencies
+        obj.gov_submitted_by = gov_submitted_by
+        obj.gov_reviewed_by = gov_reviewed_by
+        obj.gov_approval_status = gov_approval_status
+        obj.gov_stakeholders = gov_stakeholders
+        obj.gov_operational_impact = gov_operational_impact
+        obj.gov_assumptions_constraints = gov_assumptions_constraints
+        obj.project_type = project_type
+        obj.planned_hours = planned_hours
+        obj.actual_hours = actual_hours
+        obj.last_status_update = date.today()
+
+        def _fmt_d(d):
+            return d.strftime("%b %d, %Y") if d else "—"
+
+        parts = []
+        if (obj.description or "") != snap["description"]:
+            parts.append("Project name updated")
+        if (obj.project_code or "") != snap["project_code"]:
+            parts.append("Project code updated")
+        if (obj.project_lead or "") != snap["project_lead"]:
+            parts.append("Project lead updated")
+        if (obj.person_name or "") != snap["person_name"]:
+            parts.append("Secondary contact updated")
+        if (obj.company or "") != snap["company"]:
+            parts.append("Business / company updated")
+        if (obj.department or "") != snap["department"] or obj.department_ref_id != snap[
+            "department_ref_id"
+        ]:
+            parts.append("Department updated")
+        if (obj.register_priority or "") != snap["register_priority"]:
+            parts.append("Priority updated")
+        if (obj.register_status or "") != snap["register_status"]:
+            parts.append("Register status updated")
+        if obj.register_category_id != snap["register_category_id"]:
+            parts.append("Category updated")
+        if obj.strategic_alignment_ref_id != snap["strategic_alignment_ref_id"]:
+            parts.append("Strategic alignment updated")
+        if (obj.objective_sow or "") != snap["objective_sow"]:
+            parts.append("Objective / SoW updated")
+        if (obj.kpi_success_criteria or "") != snap["kpi_success_criteria"]:
+            parts.append("KPI / success criteria updated")
+        if obj.cost_reduction_pct != snap["cost_reduction_pct"]:
+            parts.append("Cost reduction % updated")
+        if (obj.headcount_impact or "") != snap["headcount_impact"]:
+            parts.append("Headcount impact updated")
+        if (obj.sla_improvement or "") != snap["sla_improvement"]:
+            parts.append("SLA improvement updated")
+        if (obj.scope_in or "") != snap["scope_in"]:
+            parts.append("Scope (in) updated")
+        if (obj.scope_out or "") != snap["scope_out"]:
+            parts.append("Scope (out) updated")
+        if (obj.scope_deliverables or "") != snap["scope_deliverables"]:
+            parts.append("Deliverables updated")
+        if (obj.scope_dependencies or "") != snap["scope_dependencies"]:
+            parts.append("Dependencies updated")
+        if (obj.gov_submitted_by or "") != snap["gov_submitted_by"]:
+            parts.append("Governance: submitted by updated")
+        if (obj.gov_reviewed_by or "") != snap["gov_reviewed_by"]:
+            parts.append("Governance: reviewed by updated")
+        if (obj.gov_approval_status or "") != snap["gov_approval_status"]:
+            parts.append("Governance: approval status updated")
+        if (obj.gov_stakeholders or "") != snap["gov_stakeholders"]:
+            parts.append("Governance: stakeholders updated")
+        if (obj.gov_operational_impact or "") != snap["gov_operational_impact"]:
+            parts.append("Governance: operational impact updated")
+        if (obj.gov_assumptions_constraints or "") != snap["gov_assumptions_constraints"]:
+            parts.append("Governance: assumptions/constraints updated")
+        if (obj.project_type or "") != snap["project_type"]:
+            parts.append("Project type updated")
+        if obj.planned_hours != snap["planned_hours"]:
+            parts.append("Planned hours updated")
+        if obj.actual_hours != snap["actual_hours"]:
+            parts.append("Actual hours updated")
+        if obj.start_date != snap["start_date"]:
+            parts.append(f"Start date → {_fmt_d(obj.start_date)}")
+        if obj.end_date != snap["end_date"]:
+            parts.append(f"Deadline → {_fmt_d(obj.end_date)}")
+
+        obj.save()
+        if parts and pmo_session.get_pmo_role(request):
+            from .models import WorkspacePortfolioActivity
+
+            msg = "; ".join(parts) + " · by " + pmo_session.pmo_actor_label(request)
+            if len(msg) > 420:
+                msg = msg[:417] + "..."
+            WorkspacePortfolioActivity.objects.create(project=obj, message=msg)
+        return JsonResponse({"ok": True})
+    except Exception as e:
+        return JsonResponse({"ok": False, "message": str(e)}, status=500)

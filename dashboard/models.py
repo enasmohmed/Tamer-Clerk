@@ -736,6 +736,11 @@ class ProjectTrackerItem(models.Model):
         default=False,
         help_text="يُحدَّث تلقائياً عند الحفظ: True عندما register_status = Approved",
     )
+    pmo_register_published = models.BooleanField(
+        default=True,
+        db_index=True,
+        help_text="يظهر في Project Register والمقاييس بعد موافقة المدير. التيم: False حتى الموافقة.",
+    )
     register_category = models.ForeignKey(
         WorkspaceProjectCategory,
         null=True,
@@ -967,6 +972,28 @@ class PortfolioRaidItem(models.Model):
 
     def __str__(self):
         return f"{self.title[:60]} ({self.get_status_display()})"
+
+
+class WorkspacePortfolioActivity(models.Model):
+    """
+    Audit line for Transformation Workspace — shown under Active Alerts (who changed what).
+    """
+
+    project = models.ForeignKey(
+        ProjectTrackerItem,
+        on_delete=models.CASCADE,
+        related_name="workspace_activities",
+    )
+    message = models.CharField(max_length=420)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+        verbose_name = "Portfolio activity (TW alerts)"
+        verbose_name_plural = "Portfolio activities (TW alerts)"
+
+    def __str__(self):
+        return self.message[:100]
 
 
 class TransformationWorkspaceProject(ProjectTrackerItem):

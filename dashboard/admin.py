@@ -612,15 +612,15 @@ class TransformationWorkspaceProjectAdmin(admin.ModelAdmin):
                     "cost_reduction_pct",
                     "headcount_impact",
                     "sla_improvement",
+                    "scope_in",
+                    "scope_out",
+                    "scope_deliverables",
+                    "scope_dependencies",
                 )
             },
         ),
         (
-            "03 — Scope definition",
-            {"fields": ("scope_in", "scope_out", "scope_deliverables", "scope_dependencies")},
-        ),
-        (
-            "06 — Governance & approvals",
+            "03 — Governance & approvals",
             {
                 "fields": (
                     "gov_submitted_by",
