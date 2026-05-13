@@ -2016,13 +2016,15 @@
                       </div>
                       <div class="col-md-4">
                         <label class="form-label small text-muted mb-0">Start date</label>
-                        <input type="date" class="form-control form-control-sm" id="twEditStartDate" />
+                        <input type="date" class="form-control form-control-sm" id="twEditStartDate" {% if pmo_is_team|default:False %}disabled title="Only a PMO manager can change the start date"{% elif pmo_is_manager|default:False %}disabled title="Use Edit project to set start and end dates"{% endif %} />
                       </div>
                       <div class="col-md-6">
                         <label class="form-label small text-muted mb-0">Planned deadline {% if pmo_is_team|default:False %}(manager only){% endif %}</label>
-                        <input type="date" class="form-control form-control-sm" id="twEditDeadline" {% if pmo_is_team|default:False %}disabled title="Only a manager can change the project deadline"{% endif %} />
+                        <input type="date" class="form-control form-control-sm" id="twEditDeadline" {% if pmo_is_team|default:False %}disabled title="Only a PMO manager can change the project deadline"{% elif pmo_is_manager|default:False %}disabled title="Use Edit project to set start and end dates"{% endif %} />
                         {% if pmo_is_team|default:False %}
-                        <div class="form-text">Deadline is set by a manager; all other fields stay editable.</div>
+                        <div class="form-text">After the project is registered, only a manager can change start date and deadline; other fields stay editable.</div>
+                        {% elif pmo_is_manager|default:False %}
+                        <div class="form-text">Managers set start and end dates from the project edit dialog.</div>
                         {% endif %}
                       </div>
                       <div class="col-md-6">
@@ -2353,15 +2355,23 @@
           <div class="row g-3 mt-2">
             <div class="col-md-4">
               <label class="form-label pp-muted">Start date</label>
-              <input name="start_date" type="date" class="form-control"
+              <input name="start_date" id="ppInputStartDate" type="date" class="form-control"
                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
             </div>
             <div class="col-md-4">
               <label class="form-label pp-muted">Planned deadline *</label>
               <input name="planned_deadline" id="ppInputPlannedDeadline" type="date" class="form-control"
                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+              {% if pmo_is_team|default:False %}
+              <p class="form-text mb-0" id="ppTeamScheduleCreateHint" style="font-size:11px;color:rgba(226,232,240,0.65);">
+                Set start and deadline when registering; after that, only a PMO manager can change these dates.
+              </p>
+              {% endif %}
               <p class="form-text d-none mb-0" id="ppDeadlineTeamReadonlyHint" style="font-size:11px;color:rgba(226,232,240,0.65);">
-                Deadline is read-only for your role; other fields can be updated.
+                Start date and planned deadline are read-only for your role; other fields can be updated.
+              </p>
+              <p class="form-text d-none mb-0" id="ppManagerDeadlineOnlyHint" style="font-size:11px;color:rgba(226,232,240,0.65);">
+                As PMO manager you can change the start date and planned deadline here; other fields stay with the team.
               </p>
             </div>
             <div class="col-md-4">
@@ -2635,6 +2645,7 @@
     var titleEl = document.getElementById("ppAddProjectModalTitle");
     var subBtn = document.getElementById("ppSubmitProjectBtn");
     var dl = document.getElementById("ppInputPlannedDeadline");
+    var sd = document.getElementById("ppInputStartDate");
     var hint = document.getElementById("ppDeadlineTeamReadonlyHint");
     if (hint) hint.classList.add("d-none");
     if (form && typeof form.reset === "function") form.reset();
@@ -2644,10 +2655,18 @@
       dl.removeAttribute("readonly");
       dl.removeAttribute("title");
     }
+    if (sd) {
+      sd.disabled = false;
+      sd.removeAttribute("readonly");
+      sd.removeAttribute("title");
+    }
+    var teamCreateHint = document.getElementById("ppTeamScheduleCreateHint");
+    if (teamCreateHint) teamCreateHint.classList.remove("d-none");
     if (titleEl) titleEl.textContent = "REGISTER NEW PROJECT";
     if (subBtn) subBtn.textContent = "Register Project";
     ppResetRepeatTableRows("ppProcessRows", "pp-process-row", false);
     ppResetRepeatTableRows("ppRaidRows", "pp-raid-row", true);
+    setPpAddFormManagerDatesOnlyLocked(false);
   }
 
   function openPpAddProjectModalForEdit(row) {
@@ -2656,6 +2675,8 @@
     if (!form) return;
     resetPpProjectFormForAdd();
     window.__ppFormIsEdit = true;
+    var teamCreateHint = document.getElementById("ppTeamScheduleCreateHint");
+    if (teamCreateHint) teamCreateHint.classList.add("d-none");
 
     var rid = row.dataset.id;
     var det = detailMap[String(rid)] || detailMap[rid] || {};
@@ -2712,15 +2733,44 @@
     if (subBtn) subBtn.textContent = "Save changes";
 
     var dl = document.getElementById("ppInputPlannedDeadline");
+    var sd = document.getElementById("ppInputStartDate");
     var hint = document.getElementById("ppDeadlineTeamReadonlyHint");
-    if (dl && window.__PMO_IS_TEAM) {
-      dl.disabled = true;
-      dl.setAttribute("title", "Only a manager can change the deadline");
-      if (hint) hint.classList.remove("d-none");
-    } else if (dl) {
-      dl.disabled = false;
-      dl.removeAttribute("title");
+    if (window.__PMO_IS_MANAGER) {
+      setPpAddFormManagerDatesOnlyLocked(true);
       if (hint) hint.classList.add("d-none");
+      if (dl) {
+        dl.readOnly = false;
+        dl.disabled = false;
+        dl.removeAttribute("title");
+      }
+      if (sd) {
+        sd.readOnly = false;
+        sd.disabled = false;
+        sd.removeAttribute("title");
+      }
+    } else {
+      setPpAddFormManagerDatesOnlyLocked(false);
+      if (window.__PMO_IS_TEAM) {
+        if (dl) {
+          dl.disabled = true;
+          dl.setAttribute("title", "Only a PMO manager can change the deadline");
+        }
+        if (sd) {
+          sd.disabled = true;
+          sd.setAttribute("title", "Only a PMO manager can change the start date");
+        }
+        if (hint) hint.classList.remove("d-none");
+      } else {
+        if (dl) {
+          dl.disabled = false;
+          dl.removeAttribute("title");
+        }
+        if (sd) {
+          sd.disabled = false;
+          sd.removeAttribute("title");
+        }
+        if (hint) hint.classList.add("d-none");
+      }
     }
 
     var m = getModalInstance();
@@ -2766,6 +2816,47 @@
   function getCsrfToken() {
     var el = document.querySelector("[name=csrfmiddlewaretoken]");
     return el ? el.value : "";
+  }
+
+  function setPpAddFormManagerDatesOnlyLocked(locked) {
+    var form = document.getElementById("ppAddProjectForm");
+    var mgrHint = document.getElementById("ppManagerDeadlineOnlyHint");
+    if (mgrHint) mgrHint.classList.toggle("d-none", !locked);
+    if (!form) return;
+    form.setAttribute("data-pp-manager-dates-only", locked ? "1" : "");
+    form.querySelectorAll("input, select, textarea").forEach(function(el) {
+      var nm = el.name || "";
+      var id = el.id || "";
+      if (nm === "csrfmiddlewaretoken") return;
+      if (el.type === "hidden") return;
+      var isScheduleDate =
+        nm === "planned_deadline" ||
+        id === "ppInputPlannedDeadline" ||
+        nm === "start_date" ||
+        id === "ppInputStartDate";
+      if (!locked) {
+        el.readOnly = false;
+        el.disabled = false;
+        return;
+      }
+      if (isScheduleDate) {
+        el.readOnly = false;
+        el.disabled = false;
+        return;
+      }
+      if (el.tagName === "SELECT") el.disabled = true;
+      else {
+        el.readOnly = true;
+        el.disabled = false;
+      }
+    });
+    form.querySelectorAll(".pp-remove-process, .pp-remove-raid").forEach(function(b) {
+      b.disabled = !!locked;
+    });
+    var addProc = document.getElementById("ppAddProcessRow");
+    var addRaid = document.getElementById("ppAddRaidRow");
+    if (addProc) addProc.disabled = !!locked;
+    if (addRaid) addRaid.disabled = !!locked;
   }
 
   var submitBtn = document.getElementById("ppSubmitProjectBtn");

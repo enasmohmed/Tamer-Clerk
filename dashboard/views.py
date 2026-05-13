@@ -222,14 +222,8 @@ def project_portfolio_add_project(request):
         remarks = "\n".join(lines).strip()
 
         today = datetime.date.today()
-        # المدير: يُضاف المشروع مباشرة للسجل. التيم: ينتظر موافقة المدير (pmo_register_published=False).
-        if pmo_session.is_pmo_manager(request):
-            published_to_register = True
-        elif pmo_session.is_pmo_team(request):
-            published_to_register = False
-            gov_approval_status = "pending"
-        else:
-            published_to_register = True
+        # مدير PMO أو عضو التيم: يُنشر المشروع في السجل فوراً دون انتظار موافقة منفصلة.
+        published_to_register = True
 
         obj = ProjectTrackerItem.objects.create(
             description=description,
@@ -8218,7 +8212,7 @@ def project_portfolio_approve(request):
 @require_POST
 def project_portfolio_approval_set_deadline(request):
     """
-    Manager only: change planned deadline for a project still awaiting register approval.
+    Manager only: change planned deadline (end_date) for any portfolio row, including on the register.
     """
     if not pmo_session.is_pmo_manager(request):
         return JsonResponse({"ok": False, "message": "Managers only."}, status=403)
@@ -8235,11 +8229,6 @@ def project_portfolio_approval_set_deadline(request):
     except ValueError:
         return JsonResponse({"ok": False, "message": "Invalid project id."}, status=400)
 
-    if obj.pmo_register_published:
-        return JsonResponse(
-            {"ok": False, "message": "Project is already approved to the register."},
-            status=400,
-        )
     dl = parse_date(dl_raw)
     if not dl:
         return JsonResponse({"ok": False, "message": "Invalid date."}, status=400)
@@ -8250,7 +8239,7 @@ def project_portfolio_approval_set_deadline(request):
     WorkspacePortfolioActivity.objects.create(
         project=obj,
         message=(
-            f"Deadline set to {dl.strftime('%b %d, %Y')} (pending approval) · by "
+            f"Deadline updated to {dl.strftime('%b %d, %Y')} · by "
             f"{pmo_session.pmo_actor_label(request)}"
         ),
     )
@@ -8267,7 +8256,8 @@ def project_portfolio_approval_set_deadline(request):
 def project_portfolio_update_project(request):
     """
     PATCH-style update from Transformation Workspace editor.
-    Team may edit all structured fields except deadline (end_date); managers may also change deadline.
+    Team may edit structured fields but not schedule dates (start_date, end_date).
+    Managers may change start_date and/or end_date (planned_deadline) only.
     """
     if not (pmo_session.is_pmo_manager(request) or pmo_session.is_pmo_team(request)):
         return JsonResponse({"ok": False, "message": "Forbidden."}, status=403)
@@ -8300,6 +8290,49 @@ def project_portfolio_update_project(request):
             obj = get_object_or_404(ProjectTrackerItem, pk=int(pid_raw))
         except ValueError:
             return JsonResponse({"ok": False, "message": "Invalid project id."}, status=400)
+
+        if pmo_session.is_pmo_manager(request):
+            st_raw = _s("start_date")
+            dl_raw = _s("planned_deadline")
+            if not st_raw and not dl_raw:
+                return JsonResponse(
+                    {"ok": False, "message": "Provide start_date and/or planned_deadline."},
+                    status=400,
+                )
+
+            def _fmt_d(d):
+                return d.strftime("%b %d, %Y") if d else "—"
+
+            update_fields = []
+            parts = []
+            if st_raw:
+                st = parse_date(st_raw)
+                if not st:
+                    return JsonResponse({"ok": False, "message": "Invalid start date."}, status=400)
+                if obj.start_date != st:
+                    obj.start_date = st
+                    update_fields.append("start_date")
+                    parts.append(f"Start date → {_fmt_d(st)}")
+            if dl_raw:
+                dl = parse_date(dl_raw)
+                if not dl:
+                    return JsonResponse({"ok": False, "message": "Invalid deadline date."}, status=400)
+                if obj.end_date != dl:
+                    obj.end_date = dl
+                    update_fields.append("end_date")
+                    parts.append(f"Deadline → {_fmt_d(dl)}")
+
+            if not update_fields:
+                return JsonResponse({"ok": True})
+
+            obj.save(update_fields=update_fields)
+            from .models import WorkspacePortfolioActivity
+
+            msg = "; ".join(parts) + " · by " + pmo_session.pmo_actor_label(request)
+            if len(msg) > 420:
+                msg = msg[:417] + "..."
+            WorkspacePortfolioActivity.objects.create(project=obj, message=msg)
+            return JsonResponse({"ok": True})
 
         snap = {
             "description": obj.description or "",
@@ -8419,19 +8452,6 @@ def project_portfolio_update_project(request):
                 actual_hours = Decimal(ah_raw.replace(",", "."))
             except (InvalidOperation, ValueError):
                 actual_hours = None
-
-        st_raw = _s("start_date")
-        if st_raw:
-            st = parse_date(st_raw)
-            if st:
-                obj.start_date = st
-
-        if pmo_session.is_pmo_manager(request):
-            dl_raw = _s("planned_deadline")
-            if dl_raw:
-                dl = parse_date(dl_raw)
-                if dl:
-                    obj.end_date = dl
 
         project_type = obj.project_type or "idea"
         if register_category and "automation" in (register_category.name or "").lower():
