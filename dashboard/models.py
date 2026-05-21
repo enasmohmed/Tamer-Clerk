@@ -812,6 +812,11 @@ class ProjectTrackerItem(models.Model):
         blank=True,
         help_text="Last PMO/status update (used in PMO Score — Updates component).",
     )
+    progress_pct = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="% complete (0–100) from Project Register; overrides phase-derived estimate when set.",
+    )
     objective_sow = models.TextField(
         blank=True,
         help_text="Project Objective / Statement of Work",

@@ -37,6 +37,158 @@ from django.views.decorators.http import require_POST
 from django.utils.dateparse import parse_date
 
 
+def _portfolio_pct_to_phase_statuses(pct_complete):
+    """Map % complete to the four phase status columns (same rules as add project)."""
+    if pct_complete >= 100:
+        return "done", "done", "done", "done"
+    if pct_complete >= 75:
+        return "done", "done", "working_on_it", "working_on_it"
+    if pct_complete >= 45:
+        return "done", "working_on_it", "", ""
+    if pct_complete > 0:
+        return "working_on_it", "", "", ""
+    return "", "", "", ""
+
+
+def _portfolio_rebuild_remarks(obj, *, risk_level="", pmbok_phase="", budget_usd=""):
+    """Mirror structured project fields into remarks for legacy UI parsing."""
+    lines = []
+    company_name = (obj.company or "").strip()
+    if company_name:
+        lines.append(f"Company: {company_name}")
+    project_code = (obj.project_code or "").strip()
+    if project_code:
+        lines.append(f"ID: {project_code}")
+    project_lead = (obj.project_lead or "").strip()
+    if project_lead:
+        lines.append(f"Project Lead: {project_lead}")
+    project_secondary = (obj.person_name or "").strip()
+    if project_secondary:
+        lines.append(f"Project 2: {project_secondary}")
+    department_text = (obj.department or "").strip()
+    if department_text:
+        lines.append(f"Department: {department_text}")
+    register_priority = (obj.register_priority or "").strip()
+    if register_priority:
+        lines.append(f"Priority: {register_priority}")
+    register_status = (obj.register_status or "").strip()
+    if register_status:
+        lines.append(f"Register status: {register_status}")
+    register_category = getattr(obj, "register_category", None)
+    if register_category:
+        lines.append(f"Category: {register_category.name}")
+    strategic_alignment_ref = getattr(obj, "strategic_alignment_ref", None)
+    if strategic_alignment_ref:
+        lines.append(f"Strategic alignment: {strategic_alignment_ref.name}")
+    risk_level = (risk_level or "").strip()
+    if risk_level:
+        lines.append(f"Risk level: {risk_level}")
+    pmbok_phase = (pmbok_phase or "").strip()
+    if pmbok_phase:
+        lines.append(f"PMBOK phase: {pmbok_phase}")
+    budget_usd = (budget_usd or "").strip()
+    if budget_usd:
+        lines.append(f"Budget (USD): {budget_usd}")
+    progress_pct = getattr(obj, "progress_pct", None)
+    if progress_pct is not None:
+        lines.append(f"Progress %: {int(progress_pct)}")
+    objective_sow = (obj.objective_sow or "").strip()
+    if objective_sow:
+        lines.append(f"Objective: {objective_sow}")
+    kpi_success_criteria = (obj.kpi_success_criteria or "").strip()
+    if kpi_success_criteria:
+        lines.append(f"KPI: {kpi_success_criteria}")
+    cost_reduction_pct = getattr(obj, "cost_reduction_pct", None)
+    if cost_reduction_pct is not None:
+        lines.append(f"Cost reduction %: {cost_reduction_pct}")
+    headcount_impact = (obj.headcount_impact or "").strip()
+    if headcount_impact:
+        lines.append(f"Headcount impact: {headcount_impact}")
+    sla_improvement = (obj.sla_improvement or "").strip()
+    if sla_improvement:
+        lines.append(f"SLA improvement: {sla_improvement}")
+    scope_in = (obj.scope_in or "").strip()
+    if scope_in:
+        lines.append(f"In scope: {scope_in}")
+    scope_out = (obj.scope_out or "").strip()
+    if scope_out:
+        lines.append(f"Out of scope: {scope_out}")
+    scope_deliverables = (obj.scope_deliverables or "").strip()
+    if scope_deliverables:
+        lines.append(f"Deliverables: {scope_deliverables}")
+    scope_dependencies = (obj.scope_dependencies or "").strip()
+    if scope_dependencies:
+        lines.append(f"Dependencies: {scope_dependencies}")
+    gov_submitted_by = (obj.gov_submitted_by or "").strip()
+    if gov_submitted_by:
+        lines.append(f"Gov submitted by: {gov_submitted_by}")
+    gov_reviewed_by = (obj.gov_reviewed_by or "").strip()
+    if gov_reviewed_by:
+        lines.append(f"Gov reviewed by: {gov_reviewed_by}")
+    gov_approval_status = (obj.gov_approval_status or "").strip()
+    if gov_approval_status:
+        lines.append(f"Gov approval: {gov_approval_status}")
+    return "\n".join(lines).strip()
+
+
+def _portfolio_sync_process_steps(obj, request):
+    from .models import ProjectProcessStep
+
+    obj.process_steps.all().delete()
+    proc_desc = request.POST.getlist("process_description")
+    proc_dl = request.POST.getlist("process_deadline")
+    proc_own = request.POST.getlist("process_owner")
+    for idx, pdesc in enumerate(proc_desc):
+        pdesc = (pdesc or "").strip()
+        if not pdesc:
+            continue
+        dl_raw = (proc_dl[idx] if idx < len(proc_dl) else "") or ""
+        dl_raw = dl_raw.strip()
+        step_dl = parse_date(dl_raw) if dl_raw else None
+        ow = (proc_own[idx] if idx < len(proc_own) else "") or ""
+        ProjectProcessStep.objects.create(
+            project=obj,
+            description=pdesc,
+            step_deadline=step_dl,
+            owner_name=ow.strip(),
+            display_order=idx,
+        )
+
+
+def _portfolio_sync_raid_items(obj, request):
+    from .models import PortfolioRaidItem
+
+    obj.raid_items.all().delete()
+    raid_cat = request.POST.getlist("raid_category")
+    raid_title = request.POST.getlist("raid_title")
+    raid_priority = request.POST.getlist("raid_priority")
+    raid_owner = request.POST.getlist("raid_owner")
+    raid_status = request.POST.getlist("raid_status")
+    for idx, rtitle in enumerate(raid_title):
+        rtitle = (rtitle or "").strip()
+        if not rtitle:
+            continue
+        cat = (raid_cat[idx] if idx < len(raid_cat) else "") or "risk"
+        if cat not in ("risk", "assumption", "issue", "dependency"):
+            cat = "risk"
+        sev = (raid_priority[idx] if idx < len(raid_priority) else "") or "medium"
+        if sev not in ("critical", "high", "medium", "low"):
+            sev = "medium"
+        st = (raid_status[idx] if idx < len(raid_status) else "") or "open"
+        if st not in ("open", "mitigated", "closed"):
+            st = "open"
+        row_own = (raid_owner[idx] if idx < len(raid_owner) else "") or ""
+        PortfolioRaidItem.objects.create(
+            project=obj,
+            category=cat,
+            title=rtitle,
+            severity=sev,
+            status=st,
+            owner_name=row_own.strip(),
+            display_order=idx,
+        )
+
+
 @require_POST
 def project_portfolio_add_project(request):
     """
@@ -259,6 +411,7 @@ def project_portfolio_add_project(request):
             execution_status=execution_status,
             test_deadline_status=test_deadline_status,
             launch_status=launch_status,
+            progress_pct=pct_complete,
             remarks=remarks,
             last_status_update=today,
             pmo_register_published=published_to_register,
@@ -8366,6 +8519,10 @@ def project_portfolio_update_project(request):
             "actual_hours": obj.actual_hours,
             "start_date": obj.start_date,
             "end_date": obj.end_date,
+            "progress_pct": obj.progress_pct,
+            "remarks": obj.remarks or "",
+            "process_step_count": obj.process_steps.count(),
+            "raid_item_count": obj.raid_items.count(),
         }
 
         description = _s("project_name")
@@ -8494,6 +8651,27 @@ def project_portfolio_update_project(request):
         obj.actual_hours = actual_hours
         obj.last_status_update = date.today()
 
+        risk_level = _s("risk_level")
+        pmbok_phase = _s("pmbok_phase")
+        budget_usd = _s("budget_usd")
+
+        pct_complete_raw = _s("pct_complete", "")
+        if pct_complete_raw != "":
+            try:
+                pct_complete = max(0, min(100, int(float(pct_complete_raw))))
+            except Exception:
+                pct_complete = 0
+            obj.progress_pct = pct_complete
+
+        _portfolio_sync_process_steps(obj, request)
+        _portfolio_sync_raid_items(obj, request)
+        obj.remarks = _portfolio_rebuild_remarks(
+            obj,
+            risk_level=risk_level,
+            pmbok_phase=pmbok_phase,
+            budget_usd=budget_usd,
+        )
+
         def _fmt_d(d):
             return d.strftime("%b %d, %Y") if d else "—"
 
@@ -8556,6 +8734,14 @@ def project_portfolio_update_project(request):
             parts.append("Planned hours updated")
         if obj.actual_hours != snap["actual_hours"]:
             parts.append("Actual hours updated")
+        if obj.progress_pct != snap["progress_pct"]:
+            parts.append("% complete updated")
+        if (obj.remarks or "") != snap["remarks"]:
+            parts.append("Project notes updated")
+        if obj.process_steps.count() != snap["process_step_count"]:
+            parts.append("Process steps updated")
+        if obj.raid_items.count() != snap["raid_item_count"]:
+            parts.append("RAID log updated")
         if obj.start_date != snap["start_date"]:
             parts.append(f"Start date → {_fmt_d(obj.start_date)}")
         if obj.end_date != snap["end_date"]:

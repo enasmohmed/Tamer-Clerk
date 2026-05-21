@@ -2618,6 +2618,35 @@
     } catch (e0) {}
   }
 
+  function ppRemarkLine(remarks, prefix) {
+    var raw = (remarks || "").trim();
+    if (!raw) return "";
+    var pl = prefix.toLowerCase();
+    var lines = raw.split("\n");
+    for (var i = 0; i < lines.length; i++) {
+      var s = lines[i].trim();
+      if (s.toLowerCase().indexOf(pl) === 0) {
+        return s.split(":").slice(1).join(":").trim();
+      }
+    }
+    return "";
+  }
+
+  function ppPopulateRepeatRows(tbodyId, rowClass, items, fillRowFn, raidDefaults) {
+    var tb = document.getElementById(tbodyId);
+    if (!tb) return;
+    ppResetRepeatTableRows(tbodyId, rowClass, raidDefaults);
+    if (!items || !items.length) return;
+    var first = tb.querySelector("tr." + rowClass);
+    if (!first) return;
+    fillRowFn(first, items[0]);
+    for (var i = 1; i < items.length; i++) {
+      var nr = first.cloneNode(true);
+      fillRowFn(nr, items[i]);
+      tb.appendChild(nr);
+    }
+  }
+
   function ppResetRepeatTableRows(tbodyId, rowClass, raidDefaults) {
     var tb = document.getElementById(tbodyId);
     if (!tb) return;
@@ -2712,13 +2741,65 @@
     ppFormSetField(form, "start_date", (fe.start_date_iso || row.dataset.startIso || "").trim());
     ppFormSetField(form, "planned_deadline", (row.dataset.endIso || "").trim());
 
-    var prog = row.dataset.progress;
+    var prog = (fe.progress_pct != null && fe.progress_pct !== "") ? String(fe.progress_pct) : row.dataset.progress;
     if (prog !== undefined && prog !== null && String(prog).trim() !== "") {
       ppFormSetField(form, "pct_complete", String(prog).trim());
     }
 
     var rk = (row.dataset.risk || "").trim();
     if (rk && rk !== "—") ppFormSetField(form, "risk_level", rk);
+
+    var pmbokFromRow = (row.dataset.pmbok || "").trim().toUpperCase();
+    var pmbokSelectMap = {
+      INITIATING: "Initiating",
+      PLANNING: "Planning",
+      EXECUTING: "Execution",
+      EXECUTION: "Execution",
+      MONITORING: "Monitoring",
+      CLOSING: "Closing"
+    };
+    var pmbokVal = pmbokSelectMap[pmbokFromRow] || ppRemarkLine(det.remarks || "", "pmbok phase:");
+    if (pmbokVal) ppFormSetField(form, "pmbok_phase", pmbokVal);
+
+    var budgetVal = ppRemarkLine(det.remarks || "", "budget (usd):");
+    if (budgetVal) ppFormSetField(form, "budget_usd", budgetVal);
+
+    ppPopulateRepeatRows("ppProcessRows", "pp-process-row", det.process_steps || [], function(tr, step) {
+      var desc = tr.querySelector("input[name=\"process_description\"]");
+      var dl = tr.querySelector("input[name=\"process_deadline\"]");
+      var ow = tr.querySelector("input[name=\"process_owner\"]");
+      if (desc) desc.value = (step.description || "").trim();
+      if (dl) dl.value = (step.deadline_iso || "").trim();
+      if (ow) ow.value = (step.owner || step.owner_name || "").trim();
+    }, false);
+
+    ppPopulateRepeatRows("ppRaidRows", "pp-raid-row", det.raid_items || [], function(tr, raid) {
+      var rc = tr.querySelector("select[name=\"raid_category\"]");
+      var rt = tr.querySelector("input[name=\"raid_title\"]");
+      var rp = tr.querySelector("select[name=\"raid_priority\"]");
+      var ro = tr.querySelector("input[name=\"raid_owner\"]");
+      var rs = tr.querySelector("select[name=\"raid_status\"]");
+      var cat = (raid.category_code || raid.category || "risk").toLowerCase();
+      if (rc) {
+        for (var ci = 0; ci < rc.options.length; ci++) {
+          if (rc.options[ci].value === cat) { rc.selectedIndex = ci; break; }
+        }
+      }
+      if (rt) rt.value = (raid.title || "").trim();
+      var sev = (raid.severity_code || raid.severity || raid.priority || "medium").toLowerCase();
+      if (rp) {
+        for (var pi = 0; pi < rp.options.length; pi++) {
+          if (rp.options[pi].value === sev) { rp.selectedIndex = pi; break; }
+        }
+      }
+      if (ro) ro.value = (raid.owner || raid.owner_name || "").trim();
+      var st = (raid.status_code || raid.status || "open").toLowerCase();
+      if (rs) {
+        for (var si = 0; si < rs.options.length; si++) {
+          if (rs.options[si].value === st) { rs.selectedIndex = si; break; }
+        }
+      }
+    }, true);
 
     ppFormSetField(form, "gov_submitted_by", (fe.gov_submitted_by || "").trim());
     ppFormSetField(form, "gov_reviewed_by", (fe.gov_reviewed_by || "").trim());

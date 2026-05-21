@@ -1301,6 +1301,16 @@ def get_transformation_workspace(project_type=None):
             total = sum(status_score.get(v, 0.0) for v in vals)
             return int(round((total / 4.0) * 100))
 
+        def project_progress_pct(item):
+            """Use saved % complete when set; otherwise derive from phase statuses."""
+            stored = getattr(item, "progress_pct", None)
+            if stored is not None:
+                try:
+                    return max(0, min(100, int(stored)))
+                except (TypeError, ValueError):
+                    pass
+            return calc_progress(item)
+
         def current_phase(item):
             phases = [
                 ("Brainstorming", item.brainstorming_status),
@@ -1386,7 +1396,7 @@ def get_transformation_workspace(project_type=None):
         def build_pending_approval_entry(obj):
             """Rich card + detail payload for manager Approval Queue (unpublished items)."""
             tday = date.today()
-            prog_pct = calc_progress(obj)
+            prog_pct = project_progress_pct(obj)
             planned_pct = planned_progress_pct(obj, tday)
             spi_p = None
             if planned_pct is not None and planned_pct > 1e-6:
@@ -1630,7 +1640,7 @@ def get_transformation_workspace(project_type=None):
         for obj in qs:
             is_completed = (obj.launch_status or "").strip() == "done"
             is_active = not is_completed
-            prog_pct = calc_progress(obj)
+            prog_pct = project_progress_pct(obj)
             planned_pct = planned_progress_pct(obj, today)
 
             spi_p = None
@@ -1728,6 +1738,9 @@ def get_transformation_workspace(project_type=None):
                         "deadline": s.step_deadline.strftime("%b %d, %Y")
                         if s.step_deadline
                         else "",
+                        "deadline_iso": s.step_deadline.isoformat()
+                        if s.step_deadline
+                        else "",
                         "owner_name": s.owner_name or "",
                     }
                 )
@@ -1737,6 +1750,7 @@ def get_transformation_workspace(project_type=None):
                 raid_rows.append(
                     {
                         "category": r.get_category_display() if r.category else "",
+                        "category_code": (r.category or "").strip(),
                         "category_abbr": raid_cat_abbr.get(r.category or "", "?"),
                         "title": r.title or "",
                         "severity": r.get_severity_display() if r.severity else "",
@@ -1911,6 +1925,7 @@ def get_transformation_workspace(project_type=None):
                     "actual_hours": str(obj.actual_hours)
                     if getattr(obj, "actual_hours", None) is not None
                     else "",
+                    "progress_pct": project_progress_pct(obj),
                     "gov_submitted_by": getattr(obj, "gov_submitted_by", "") or "",
                     "gov_reviewed_by": getattr(obj, "gov_reviewed_by", "") or "",
                     "gov_approval_status": _gov_appr,
