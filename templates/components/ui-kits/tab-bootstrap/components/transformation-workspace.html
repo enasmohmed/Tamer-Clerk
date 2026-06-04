@@ -19,18 +19,10 @@
   /* Transformation Workspace — portfolio KPI strip (same card language as pp-card) */
   .tw-kpi-strip {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
     gap: 14px;
     margin-bottom: 18px;
-  }
-  @media (max-width: 1400px) {
-    .tw-kpi-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  }
-  @media (max-width: 768px) {
-    .tw-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
-  @media (max-width: 520px) {
-    .tw-kpi-strip { grid-template-columns: 1fr; }
   }
 
   .tw-kpi-card {
@@ -101,13 +93,8 @@
 
   /* Project Register + Active Alerts */
   .tw-register-row {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(300px, 440px);
-    gap: 18px;
+    display: block;
     align-items: stretch;
-  }
-  @media (max-width: 1100px) {
-    .tw-register-row { grid-template-columns: 1fr; }
   }
 
   .tw-register-panel.pp-card {
@@ -1697,18 +1684,6 @@
     <div class="tw-kpi-sub">Schedule Perf.</div>
     <div class="tw-kpi-foot {{ transformation_workspace.metrics.spi_footer_class|default:'tw-foot-neutral' }}">{{ transformation_workspace.metrics.spi_footer|default:"—" }}</div>
   </div>
-  <div class="tw-kpi-card" style="--tw-accent:#d97706;">
-    <div class="tw-kpi-title">CPI</div>
-    <div class="tw-kpi-value">{{ transformation_workspace.metrics.cpi|default:0|floatformat:2 }}</div>
-    <div class="tw-kpi-sub">Cost Perf.</div>
-    <div class="tw-kpi-foot {{ transformation_workspace.metrics.cpi_footer_class|default:'tw-foot-neutral' }}">{{ transformation_workspace.metrics.cpi_footer|default:"—" }}</div>
-  </div>
-  <div class="tw-kpi-card" style="--tw-accent:#7c3aed;">
-    <div class="tw-kpi-title">Open RAID Items</div>
-    <div class="tw-kpi-value">{{ transformation_workspace.metrics.open_raid_items|default:0 }}</div>
-    <div class="tw-kpi-sub">Across portfolio</div>
-    <div class="tw-kpi-foot {{ transformation_workspace.metrics.raid_footer_class|default:'tw-foot-neutral' }}">{{ transformation_workspace.metrics.raid_footer|default:"—" }}</div>
-  </div>
   <div class="tw-kpi-card" style="--tw-accent:#0284c7;">
     <div class="tw-kpi-title">Avg PMO Score</div>
     <div class="tw-kpi-value">{{ transformation_workspace.metrics.avg_pmo_score|default:0 }}%</div>
@@ -1743,7 +1718,6 @@
               <th style="min-width:104px;">PMBOK phase</th>
               <th style="min-width:140px;">Progress</th>
               <th style="min-width:112px;">Deadline</th>
-              <th style="min-width:72px;">PMO score</th>
               <th style="min-width:100px;">PM</th>
             </tr>
           </thead>
@@ -1811,16 +1785,13 @@
                 {% endif %}
               </td>
               <td>
-                <span class="tw-pmo-pct {{ p.pmo_row_class }}">{{ p.pmo_score_pct }}%</span>
-              </td>
-              <td>
                 {% with pm_disp=p.project_lead|default:p.owner %}
                 <span class="tw-pm-name" title="{{ pm_disp|escape }}">{{ pm_disp }}</span>
                 {% endwith %}
               </td>
             </tr>
             {% empty %}
-            <tr><td colspan="7" class="tw-reg-empty-msg" style="text-align:center;padding:22px;">No projects found. Use + ADD PROJECT or Admin → Transformation Workspace — Projects.</td></tr>
+            <tr><td colspan="6" class="tw-reg-empty-msg" style="text-align:center;padding:22px;">No projects found. Use + ADD PROJECT or Admin → Transformation Workspace — Projects.</td></tr>
             {% endfor %}
           </tbody>
         </table>
@@ -2170,32 +2141,6 @@
   </div>
 
     </div>
-
-    <aside class="tw-alerts-panel" aria-label="Active alerts">
-      <div class="tw-alerts-head">
-        <div class="tw-alerts-head-top">
-          <h3 class="tw-alerts-title">
-            <span class="tw-bell" aria-hidden="true">🔔</span>
-            Active Alerts
-          </h3>
-          <a href="#" class="tw-alerts-config" onclick="return false;">CONFIGURE</a>
-        </div>
-      </div>
-      <div class="tw-alerts-list">
-        {% for a in transformation_workspace.active_alerts %}
-        <div class="tw-alert-card tw-alert-{{ a.kind }}">
-          <span class="tw-alert-dot" aria-hidden="true"></span>
-          <div>
-            <div class="tw-alert-msg">{{ a.message }}</div>
-            <div class="tw-alert-ctx">{{ a.context }}</div>
-          </div>
-          <div class="tw-alert-time">{{ a.time_label }}</div>
-        </div>
-        {% empty %}
-        <div class="tw-alert-empty">No active alerts — portfolio looks calm.</div>
-        {% endfor %}
-      </div>
-    </aside>
   </div>
 
   </div>
@@ -2228,11 +2173,6 @@
             <div class="col-md-6">
               <label class="form-label pp-muted">Business / Company</label>
               <input name="company" class="form-control" placeholder="e.g. Tamer Logistics"
-                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label pp-muted">Project code / ID</label>
-              <input name="project_code" class="form-control" placeholder="e.g. LOG-007"
                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
             </div>
             <div class="col-md-6">
@@ -2272,81 +2212,15 @@
               </select>
               <div class="form-text" style="font-size:11px;color:rgba(226,232,240,0.55);">Add departments in Admin → TW Lookups.</div>
             </div>
-            <div class="col-md-4">
-              <label class="form-label pp-muted">Priority</label>
-              <select name="register_priority" class="form-select"
-                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-                <option value="">—</option>
-                <option value="critical">Critical</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label pp-muted">Category</label>
-              <select name="category_id" class="form-select"
-                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-                <option value="">—</option>
-                {% if transformation_workspace.register_lookups %}
-                {% for c in transformation_workspace.register_lookups.categories %}
-                <option value="{{ c.id }}">{{ c.name }}</option>
-                {% endfor %}
-                {% endif %}
-              </select>
-            </div>
           </div>
 
-          <div class="pp-modal-section-title pp-modal-section-spaced">02 — BUSINESS CASE &amp; IMPACT</div>
+          <div class="pp-modal-section-title pp-modal-section-spaced">02 — PROJECT OBJECTIVE</div>
 
           <div class="row g-3 mt-2">
             <div class="col-12">
               <label class="form-label pp-muted">Project Objective / SOW</label>
               <textarea name="objective_sow" class="form-control" rows="3" placeholder="Describe the project objective and statement of work..."
                         style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;"></textarea>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label pp-muted">Strategic Alignment</label>
-              <select name="strategic_alignment_id" class="form-select"
-                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-                <option value="">—</option>
-                {% if transformation_workspace.register_lookups %}
-                {% for a in transformation_workspace.register_lookups.alignments %}
-                <option value="{{ a.id }}">{{ a.name }}</option>
-                {% endfor %}
-                {% endif %}
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label pp-muted">KPI / Success Criteria</label>
-              <input name="kpi_success_criteria" class="form-control" placeholder="e.g. target 85% on-time delivery"
-                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label pp-muted">Cost Reduction (%)</label>
-              <input name="cost_reduction_pct" type="text" class="form-control" placeholder="e.g. 18"
-                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-              <div class="form-text" style="font-size:11px;color:rgba(226,232,240,0.55);">Expected cost-saving impact.</div>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label pp-muted">SLA Improvement</label>
-              <input name="sla_improvement" class="form-control" placeholder="e.g. +15% OTD"
-                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label pp-muted">Headcount impact</label>
-              <input name="headcount_impact" class="form-control" placeholder="e.g. -2 FTE warehouse"
-                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label pp-muted">Planned hours</label>
-              <input name="planned_hours" type="text" class="form-control" placeholder="e.g. 120"
-                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label pp-muted">Actual hours</label>
-              <input name="actual_hours" type="text" class="form-control" placeholder="e.g. 80"
-                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
             </div>
           </div>
 
@@ -2391,11 +2265,6 @@
               <input name="pct_complete" type="number" min="0" max="100" class="form-control" placeholder="0 - 100"
                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
             </div>
-            <div class="col-md-6">
-              <label class="form-label pp-muted">Budget (USD)</label>
-              <input name="budget_usd" class="form-control" placeholder="e.g. 450,000"
-                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-            </div>
           </div>
 
           <div class="pp-modal-section-subtitle">Project process steps — Description · Deadline · Owner</div>
@@ -2430,106 +2299,7 @@
           </table>
           <button type="button" class="pp-add-repeat" id="ppAddProcessRow">+ Add process step</button>
 
-          <div class="pp-modal-section-title pp-modal-section-spaced">04 — RAID LOG (RISKS · ASSUMPTIONS · ISSUES · DEPENDENCIES)</div>
-          <table class="pp-repeat-table">
-            <thead>
-              <tr>
-                <th style="min-width:108px;">Type</th>
-                <th>Description</th>
-                <th style="min-width:96px;">Priority</th>
-                <th style="min-width:96px;">Owner</th>
-                <th style="min-width:96px;">Status</th>
-                <th style="width:40px;"></th>
-              </tr>
-            </thead>
-            <tbody id="ppRaidRows">
-              <tr class="pp-raid-row">
-                <td>
-                  <select name="raid_category" class="form-select"
-                          style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-                    <option value="risk" selected>Risk</option>
-                    <option value="assumption">Assumption</option>
-                    <option value="issue">Issue</option>
-                    <option value="dependency">Dependency</option>
-                  </select>
-                </td>
-                <td>
-                  <input name="raid_title" type="text" class="form-control" placeholder="Description"
-                         style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-                </td>
-                <td>
-                  <select name="raid_priority" class="form-select"
-                          style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-                    <option value="critical">Critical</option>
-                    <option value="high" selected>High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                </td>
-                <td>
-                  <input name="raid_owner" type="text" class="form-control" placeholder="Owner"
-                         style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-                </td>
-                <td>
-                  <select name="raid_status" class="form-select"
-                          style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-                    <option value="open" selected>Open</option>
-                    <option value="mitigated">Mitigated</option>
-                    <option value="closed">Closed</option>
-                  </select>
-                </td>
-                <td>
-                  <button type="button" class="btn btn-sm btn-outline-light pp-remove-raid" title="Remove row">×</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <button type="button" class="pp-add-repeat" id="ppAddRaidRow">+ Add RAID item</button>
-
-          <div class="pp-modal-section-title pp-modal-section-spaced">05 — GOVERNANCE &amp; APPROVALS</div>
-          <div class="row g-3 mt-2">
-            <div class="col-md-4">
-              <label class="form-label pp-muted">Submitted by</label>
-              <input name="gov_submitted_by" type="text" class="form-control" placeholder="Name"
-                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label pp-muted">Reviewed by</label>
-              <input name="gov_reviewed_by" type="text" class="form-control" placeholder="Name"
-                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-            </div>
-            <div class="col-md-4">
-              <label class="form-label pp-muted">Approval status</label>
-              <select name="gov_approval_status" class="form-select"
-                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-                <option value="">—</option>
-                <option value="pending" selected>Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
-                <option value="in_review">In review</option>
-              </select>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label pp-muted">Stakeholders</label>
-              <input name="gov_stakeholders" type="text" class="form-control"
-                     placeholder="e.g. Ops Manager, IT Lead, Finance, Warehouse Mgr"
-                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label pp-muted">Operational impact</label>
-              <input name="gov_operational_impact" type="text" class="form-control"
-                     placeholder="e.g. 3 warehouses, 120 accounts, Shift A&amp;B"
-                     style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-            </div>
-            <div class="col-12">
-              <label class="form-label pp-muted">Assumptions &amp; constraints</label>
-              <textarea name="gov_assumptions_constraints" class="form-control" rows="3"
-                        placeholder="e.g. Budget approved Q2, vendor contract finalized..."
-                        style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;"></textarea>
-            </div>
-          </div>
-
-          <div class="pp-modal-section-title pp-modal-section-spaced">06 — CHALLENGES &amp; CONSTRAINTS</div>
+          <div class="pp-modal-section-title pp-modal-section-spaced">04 — CHALLENGES &amp; CONSTRAINTS</div>
 
           <div class="row g-3 mt-2">
             <div class="col-md-8">
@@ -2571,6 +2341,17 @@
                 <option value="Medium">Medium</option>
                 <option value="High">High</option>
               </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label pp-muted">Remark</label>
+              <div id="ppRemarkRows">
+                <div class="pp-remark-row d-flex gap-2 mb-2">
+                  <input name="project_remark" type="text" class="form-control flex-grow-1" placeholder="Add a note..."
+                         style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                  <button type="button" class="btn btn-sm btn-outline-light pp-remove-remark" title="Remove remark">×</button>
+                </div>
+              </div>
+              <button type="button" class="pp-add-repeat" id="ppAddRemarkRow">+ Add remark</button>
             </div>
           </div>
 
@@ -2630,6 +2411,61 @@
       }
     }
     return "";
+  }
+
+  function ppProjectRemarkLines(remarks) {
+    var raw = (remarks || "").trim();
+    if (!raw) return [];
+    var out = [];
+    raw.split("\n").forEach(function(line) {
+      var s = line.trim();
+      if (s.toLowerCase().indexOf("remark:") === 0) {
+        var txt = s.split(":").slice(1).join(":").trim();
+        if (txt) out.push(txt);
+      }
+    });
+    return out;
+  }
+
+  function ppResetRemarkRows() {
+    var wrap = document.getElementById("ppRemarkRows");
+    if (!wrap) return;
+    var rows = wrap.querySelectorAll(".pp-remark-row");
+    while (rows.length > 1) {
+      rows[rows.length - 1].remove();
+      rows = wrap.querySelectorAll(".pp-remark-row");
+    }
+    var first = wrap.querySelector(".pp-remark-row");
+    if (!first) return;
+    var inp = first.querySelector("input[name=\"project_remark\"]");
+    if (inp) inp.value = "";
+  }
+
+  function ppPopulateRemarkRows(remarks, registerRemarks) {
+    var wrap = document.getElementById("ppRemarkRows");
+    if (!wrap) return;
+    ppResetRemarkRows();
+    var items = [];
+    if (registerRemarks && registerRemarks.length) {
+      registerRemarks.forEach(function(r) {
+        var t = (r && r.text != null ? r.text : r || "").trim();
+        if (t) items.push(t);
+      });
+    }
+    if (!items.length) items = ppProjectRemarkLines(remarks);
+    if (!items.length) return;
+    var first = wrap.querySelector(".pp-remark-row");
+    if (!first) return;
+    var fill = function(row, text) {
+      var inp = row.querySelector("input[name=\"project_remark\"]");
+      if (inp) inp.value = (text || "").trim();
+    };
+    fill(first, items[0]);
+    for (var i = 1; i < items.length; i++) {
+      var nr = first.cloneNode(true);
+      fill(nr, items[i]);
+      wrap.appendChild(nr);
+    }
   }
 
   function ppPopulateRepeatRows(tbodyId, rowClass, items, fillRowFn, raidDefaults) {
@@ -2694,7 +2530,7 @@
     if (titleEl) titleEl.textContent = "REGISTER NEW PROJECT";
     if (subBtn) subBtn.textContent = "Register Project";
     ppResetRepeatTableRows("ppProcessRows", "pp-process-row", false);
-    ppResetRepeatTableRows("ppRaidRows", "pp-raid-row", true);
+    ppResetRemarkRows();
     setPpAddFormManagerDatesOnlyLocked(false);
   }
 
@@ -2717,7 +2553,6 @@
 
     ppFormSetField(form, "project_name", fe.project_name || row.dataset.name || "");
     ppFormSetField(form, "company", (row.dataset.company || "").trim());
-    ppFormSetField(form, "project_code", (fe.project_code || "").trim());
     ppFormSetField(form, "project_lead", (row.dataset.projectLead || "").trim());
     ppFormSetField(form, "project_secondary", (fe.person_name || row.dataset.secondary || "").trim());
 
@@ -2726,17 +2561,8 @@
     ppFormSetField(form, "register_status", rsCode);
 
     ppFormSetField(form, "department_id", fe.department_id != null && fe.department_id !== "" ? String(fe.department_id) : "");
-    ppFormSetField(form, "category_id", fe.category_id != null && fe.category_id !== "" ? String(fe.category_id) : "");
-    ppFormSetField(form, "register_priority", (fe.register_priority || row.dataset.registerPriorityCode || "").trim());
-    ppFormSetField(form, "strategic_alignment_id", fe.strategic_alignment_id != null && fe.strategic_alignment_id !== "" ? String(fe.strategic_alignment_id) : "");
 
     ppFormSetField(form, "objective_sow", (det.objective_sow || "").trim());
-    ppFormSetField(form, "kpi_success_criteria", (det.kpi_success_criteria || "").trim());
-    ppFormSetField(form, "cost_reduction_pct", (fe.cost_reduction_pct || "").trim());
-    ppFormSetField(form, "sla_improvement", (fe.sla_improvement || biz.sla_improvement || "").trim());
-    ppFormSetField(form, "headcount_impact", (fe.headcount_impact || biz.headcount_impact || "").trim());
-    ppFormSetField(form, "planned_hours", (fe.planned_hours || "").trim());
-    ppFormSetField(form, "actual_hours", (fe.actual_hours || "").trim());
 
     ppFormSetField(form, "start_date", (fe.start_date_iso || row.dataset.startIso || "").trim());
     ppFormSetField(form, "planned_deadline", (row.dataset.endIso || "").trim());
@@ -2746,7 +2572,8 @@
       ppFormSetField(form, "pct_complete", String(prog).trim());
     }
 
-    var rk = (row.dataset.risk || "").trim();
+    var rk = (fe.register_risk_level || "").trim();
+    if (!rk) rk = ppRemarkLine(det.remarks || "", "risk level:");
     if (rk && rk !== "—") ppFormSetField(form, "risk_level", rk);
 
     var pmbokFromRow = (row.dataset.pmbok || "").trim().toUpperCase();
@@ -2761,8 +2588,10 @@
     var pmbokVal = pmbokSelectMap[pmbokFromRow] || ppRemarkLine(det.remarks || "", "pmbok phase:");
     if (pmbokVal) ppFormSetField(form, "pmbok_phase", pmbokVal);
 
-    var budgetVal = ppRemarkLine(det.remarks || "", "budget (usd):");
-    if (budgetVal) ppFormSetField(form, "budget_usd", budgetVal);
+    ppPopulateRemarkRows(
+      det.remarks || row.dataset.remarks || "",
+      det.register_remarks || []
+    );
 
     ppPopulateRepeatRows("ppProcessRows", "pp-process-row", det.process_steps || [], function(tr, step) {
       var desc = tr.querySelector("input[name=\"process_description\"]");
@@ -2772,41 +2601,6 @@
       if (dl) dl.value = (step.deadline_iso || "").trim();
       if (ow) ow.value = (step.owner || step.owner_name || "").trim();
     }, false);
-
-    ppPopulateRepeatRows("ppRaidRows", "pp-raid-row", det.raid_items || [], function(tr, raid) {
-      var rc = tr.querySelector("select[name=\"raid_category\"]");
-      var rt = tr.querySelector("input[name=\"raid_title\"]");
-      var rp = tr.querySelector("select[name=\"raid_priority\"]");
-      var ro = tr.querySelector("input[name=\"raid_owner\"]");
-      var rs = tr.querySelector("select[name=\"raid_status\"]");
-      var cat = (raid.category_code || raid.category || "risk").toLowerCase();
-      if (rc) {
-        for (var ci = 0; ci < rc.options.length; ci++) {
-          if (rc.options[ci].value === cat) { rc.selectedIndex = ci; break; }
-        }
-      }
-      if (rt) rt.value = (raid.title || "").trim();
-      var sev = (raid.severity_code || raid.severity || raid.priority || "medium").toLowerCase();
-      if (rp) {
-        for (var pi = 0; pi < rp.options.length; pi++) {
-          if (rp.options[pi].value === sev) { rp.selectedIndex = pi; break; }
-        }
-      }
-      if (ro) ro.value = (raid.owner || raid.owner_name || "").trim();
-      var st = (raid.status_code || raid.status || "open").toLowerCase();
-      if (rs) {
-        for (var si = 0; si < rs.options.length; si++) {
-          if (rs.options[si].value === st) { rs.selectedIndex = si; break; }
-        }
-      }
-    }, true);
-
-    ppFormSetField(form, "gov_submitted_by", (fe.gov_submitted_by || "").trim());
-    ppFormSetField(form, "gov_reviewed_by", (fe.gov_reviewed_by || "").trim());
-    ppFormSetField(form, "gov_approval_status", (fe.gov_approval_status || "").trim());
-    ppFormSetField(form, "gov_stakeholders", (fe.gov_stakeholders || "").trim());
-    ppFormSetField(form, "gov_operational_impact", (fe.gov_operational_impact || "").trim());
-    ppFormSetField(form, "gov_assumptions_constraints", (fe.gov_assumptions_constraints || "").trim());
 
     var titleEl = document.getElementById("ppAddProjectModalTitle");
     var subBtn = document.getElementById("ppSubmitProjectBtn");
@@ -2931,13 +2725,13 @@
         el.disabled = false;
       }
     });
-    form.querySelectorAll(".pp-remove-process, .pp-remove-raid").forEach(function(b) {
+    form.querySelectorAll(".pp-remove-process, .pp-remove-remark").forEach(function(b) {
       b.disabled = !!locked;
     });
     var addProc = document.getElementById("ppAddProcessRow");
-    var addRaid = document.getElementById("ppAddRaidRow");
+    var addRemark = document.getElementById("ppAddRemarkRow");
     if (addProc) addProc.disabled = !!locked;
-    if (addRaid) addRaid.disabled = !!locked;
+    if (addRemark) addRemark.disabled = !!locked;
   }
 
   var submitBtn = document.getElementById("ppSubmitProjectBtn");
@@ -3088,27 +2882,22 @@
     });
   }
 
-  var raidRowsEl = document.getElementById("ppRaidRows");
-  var addRaidBtn = document.getElementById("ppAddRaidRow");
-  if (addRaidBtn && raidRowsEl) {
-    addRaidBtn.addEventListener("click", function() {
-      var first = raidRowsEl.querySelector(".pp-raid-row");
+  var remarkRowsEl = document.getElementById("ppRemarkRows");
+  var addRemarkBtn = document.getElementById("ppAddRemarkRow");
+  if (addRemarkBtn && remarkRowsEl) {
+    addRemarkBtn.addEventListener("click", function() {
+      var first = remarkRowsEl.querySelector(".pp-remark-row");
       if (!first) return;
       var nr = first.cloneNode(true);
-      nr.querySelectorAll("input").forEach(function(inp) { inp.value = ""; });
-      var rc = nr.querySelector("select[name=\"raid_category\"]");
-      var rp = nr.querySelector("select[name=\"raid_priority\"]");
-      var rs = nr.querySelector("select[name=\"raid_status\"]");
-      if (rc) rc.selectedIndex = 0;
-      if (rp) rp.selectedIndex = 1;
-      if (rs) rs.selectedIndex = 0;
-      raidRowsEl.appendChild(nr);
+      var inp = nr.querySelector("input[name=\"project_remark\"]");
+      if (inp) inp.value = "";
+      remarkRowsEl.appendChild(nr);
     });
-    raidRowsEl.addEventListener("click", function(e) {
-      if (!e.target.closest(".pp-remove-raid")) return;
-      var rows = raidRowsEl.querySelectorAll(".pp-raid-row");
-      var tr = e.target.closest("tr");
-      if (rows.length > 1 && tr) tr.remove();
+    remarkRowsEl.addEventListener("click", function(e) {
+      if (!e.target.closest(".pp-remove-remark")) return;
+      var rows = remarkRowsEl.querySelectorAll(".pp-remark-row");
+      var row = e.target.closest(".pp-remark-row");
+      if (rows.length > 1 && row) row.remove();
     });
   }
 
@@ -3256,7 +3045,16 @@
     setText("ppDev", row.dataset.dev || "—");
     setText("ppTest", row.dataset.test || "—");
     setText("ppLaunch", row.dataset.launch || "—");
-    setText("ppRemarks", row.dataset.remarks || "—");
+    var detRm = (detailMap[String(row.dataset.id)] || detailMap[row.dataset.id] || {}).register_remarks;
+    var remarkLines = [];
+    if (detRm && detRm.length) {
+      detRm.forEach(function(r) {
+        var t = (r && r.text != null ? r.text : "").trim();
+        if (t) remarkLines.push(t);
+      });
+    }
+    if (!remarkLines.length) remarkLines = ppProjectRemarkLines(row.dataset.remarks || "");
+    setText("ppRemarks", remarkLines.length ? remarkLines.join("\n") : "—");
 
     // tags
     var risk = (row.dataset.risk || "").toLowerCase();

@@ -50,6 +50,26 @@ def _portfolio_pct_to_phase_statuses(pct_complete):
     return "", "", "", ""
 
 
+def _portfolio_remark_lines_from_request(request):
+    return [
+        (r or "").strip()
+        for r in request.POST.getlist("project_remark")
+        if (r or "").strip()
+    ]
+
+
+def _portfolio_sync_register_remarks(obj, request):
+    from .models import ProjectRegisterRemark
+
+    obj.register_remarks.all().delete()
+    for idx, text in enumerate(_portfolio_remark_lines_from_request(request)):
+        ProjectRegisterRemark.objects.create(
+            project=obj,
+            text=text,
+            display_order=idx,
+        )
+
+
 def _portfolio_rebuild_remarks(obj, *, risk_level="", pmbok_phase="", budget_usd=""):
     """Mirror structured project fields into remarks for legacy UI parsing."""
     lines = []
@@ -80,7 +100,9 @@ def _portfolio_rebuild_remarks(obj, *, risk_level="", pmbok_phase="", budget_usd
     strategic_alignment_ref = getattr(obj, "strategic_alignment_ref", None)
     if strategic_alignment_ref:
         lines.append(f"Strategic alignment: {strategic_alignment_ref.name}")
-    risk_level = (risk_level or "").strip()
+    risk_level = (
+        (getattr(obj, "register_risk_level", "") or "").strip() or (risk_level or "").strip()
+    )
     if risk_level:
         lines.append(f"Risk level: {risk_level}")
     pmbok_phase = (pmbok_phase or "").strip()
@@ -372,6 +394,8 @@ def project_portfolio_add_project(request):
             lines.append(f"Gov approval: {gov_approval_status}")
 
         remarks = "\n".join(lines).strip()
+        if risk_level not in ("Low", "Medium", "High"):
+            risk_level = ""
 
         today = datetime.date.today()
         # مدير PMO أو عضو التيم: يُنشر المشروع في السجل فوراً دون انتظار موافقة منفصلة.
@@ -413,9 +437,16 @@ def project_portfolio_add_project(request):
             launch_status=launch_status,
             progress_pct=pct_complete,
             remarks=remarks,
+            register_risk_level=risk_level,
             last_status_update=today,
             pmo_register_published=published_to_register,
         )
+
+        _portfolio_sync_register_remarks(obj, request)
+        obj.remarks = _portfolio_rebuild_remarks(
+            obj, risk_level=risk_level, pmbok_phase=pmbok_phase, budget_usd=budget
+        )
+        obj.save(update_fields=["remarks"])
 
         proc_desc = request.POST.getlist("process_description")
         proc_dl = request.POST.getlist("process_deadline")
@@ -8523,6 +8554,8 @@ def project_portfolio_update_project(request):
             "remarks": obj.remarks or "",
             "process_step_count": obj.process_steps.count(),
             "raid_item_count": obj.raid_items.count(),
+            "register_remark_count": obj.register_remarks.count(),
+            "register_risk_level": obj.register_risk_level or "",
         }
 
         description = _s("project_name")
@@ -8652,6 +8685,9 @@ def project_portfolio_update_project(request):
         obj.last_status_update = date.today()
 
         risk_level = _s("risk_level")
+        if risk_level not in ("Low", "Medium", "High"):
+            risk_level = ""
+        obj.register_risk_level = risk_level
         pmbok_phase = _s("pmbok_phase")
         budget_usd = _s("budget_usd")
 
@@ -8665,6 +8701,7 @@ def project_portfolio_update_project(request):
 
         _portfolio_sync_process_steps(obj, request)
         _portfolio_sync_raid_items(obj, request)
+        _portfolio_sync_register_remarks(obj, request)
         obj.remarks = _portfolio_rebuild_remarks(
             obj,
             risk_level=risk_level,
@@ -8738,6 +8775,10 @@ def project_portfolio_update_project(request):
             parts.append("% complete updated")
         if (obj.remarks or "") != snap["remarks"]:
             parts.append("Project notes updated")
+        if obj.register_remarks.count() != snap["register_remark_count"]:
+            parts.append("Register remarks updated")
+        if (obj.register_risk_level or "") != snap["register_risk_level"]:
+            parts.append("Risk level updated")
         if obj.process_steps.count() != snap["process_step_count"]:
             parts.append("Process steps updated")
         if obj.raid_items.count() != snap["raid_item_count"]:

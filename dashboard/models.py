@@ -668,6 +668,13 @@ GOV_APPROVAL_STATUS_CHOICES = [
     ("in_review", "In review"),
 ]
 
+REGISTER_RISK_LEVEL_CHOICES = [
+    ("", "—"),
+    ("Low", "Low"),
+    ("Medium", "Medium"),
+    ("High", "High"),
+]
+
 
 class ProjectTrackerItem(models.Model):
     """
@@ -817,6 +824,13 @@ class ProjectTrackerItem(models.Model):
         blank=True,
         help_text="% complete (0–100) from Project Register; overrides phase-derived estimate when set.",
     )
+    register_risk_level = models.CharField(
+        max_length=20,
+        choices=REGISTER_RISK_LEVEL_CHOICES,
+        blank=True,
+        default="",
+        help_text="Risk level from Project Register form (Low / Medium / High).",
+    )
     objective_sow = models.TextField(
         blank=True,
         help_text="Project Objective / Statement of Work",
@@ -901,6 +915,28 @@ class ProjectTrackerItem(models.Model):
 
     def __str__(self):
         return f"{self.description[:50]} ({self.start_date})"
+
+
+class ProjectRegisterRemark(models.Model):
+    """
+    ملاحظات Project Register (أكثر من Remark لكل مشروع).
+    """
+
+    project = models.ForeignKey(
+        ProjectTrackerItem,
+        on_delete=models.CASCADE,
+        related_name="register_remarks",
+    )
+    text = models.TextField(help_text="نص الملاحظة")
+    display_order = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ["project", "display_order", "id"]
+        verbose_name = "Project register remark"
+        verbose_name_plural = "Project register remarks"
+
+    def __str__(self):
+        return (self.text or "—")[:60]
 
 
 class ProjectProcessStep(models.Model):

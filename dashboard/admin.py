@@ -27,6 +27,7 @@ from .models import (
     Recommendation,
     PortfolioRaidItem,
     ProjectProcessStep,
+    ProjectRegisterRemark,
     WorkspaceDepartment,
     WorkspaceProjectCategory,
     WorkspaceStrategicAlignment,
@@ -572,6 +573,12 @@ class PortfolioRaidItemInline(admin.TabularInline):
     fields = ("category", "title", "status", "severity", "owner_name", "display_order")
 
 
+class ProjectRegisterRemarkInline(admin.TabularInline):
+    model = ProjectRegisterRemark
+    extra = 1
+    fields = ("text", "display_order")
+
+
 @admin.register(TransformationWorkspaceProject)
 class TransformationWorkspaceProjectAdmin(admin.ModelAdmin):
     """بيانات المشاريع التي تغذّي الكاردات العلوية (Active / Delayed / SPI / CPI / PMO) وجدول السجل."""
@@ -646,7 +653,7 @@ class TransformationWorkspaceProjectAdmin(admin.ModelAdmin):
                 )
             },
         ),
-        ("Notes", {"fields": ("remarks",)}),
+        ("Notes", {"fields": ("register_risk_level", "remarks")}),
     )
 
     list_display = (
@@ -691,7 +698,7 @@ class TransformationWorkspaceProjectAdmin(admin.ModelAdmin):
     search_fields = ("description", "person_name", "company", "department")
     ordering = ("-created_at", "-id")
     list_per_page = 25
-    inlines = [ProjectProcessStepInline, PortfolioRaidItemInline]
+    inlines = [ProjectProcessStepInline, PortfolioRaidItemInline, ProjectRegisterRemarkInline]
 
     def brainstorming_badge(self, obj):
         return obj.get_brainstorming_status_display() or "—"

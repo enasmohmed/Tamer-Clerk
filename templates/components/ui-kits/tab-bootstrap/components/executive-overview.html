@@ -17,13 +17,11 @@
 
   .tw-kpi-strip {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    width: 100%;
+    grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
     gap: 14px;
     margin-bottom: 18px;
   }
-  @media (max-width: 1400px) { .tw-kpi-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
-  @media (max-width: 768px) { .tw-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-  @media (max-width: 520px) { .tw-kpi-strip { grid-template-columns: 1fr; } }
 
   .tw-kpi-card {
     position: relative;
@@ -1072,27 +1070,6 @@
     </div>
   </div>
 
-  <!-- Row 3: Budget + Strategic Alignment (compact row — same body height) -->
-  <div class="eo-row-3 eo-row-3-charts-top eo-row-3-compact eo-row-3-bottom-2" style="margin-top: 14px;">
-    <article class="pp-card">
-      <header class="pp-card-header">
-        <h3 class="pp-title">Budget vs EAC</h3>
-        <span class="pp-pill">Per project</span>
-      </header>
-      <div class="pp-body">
-        <div class="eo-chart tall eo-auto eo-budget-tall eo-row-3-budget"><canvas id="eo-budget-eac" aria-label="Budget vs EAC bar chart"></canvas></div>
-      </div>
-    </article>
-    <article class="pp-card">
-      <header class="pp-card-header">
-        <h3 class="pp-title">Strategic Alignment</h3>
-        <span class="pp-pill">By objective</span>
-      </header>
-      <div class="pp-body">
-        <div class="eo-chart eo-chart-compact"><canvas id="eo-alignment-donut" aria-label="Strategic alignment donut"></canvas></div>
-      </div>
-    </article>
-  </div>
 </section>
 
 <script>
@@ -1415,9 +1392,6 @@
       const statusPayload = payload?.status;
       const phasePayload = payload?.phase;
       const categoryPayload = payload?.category;
-      const budgetPayload = payload?.budget_eac;
-      const alignmentPayload = payload?.alignment;
-
       const statusLabels = statusPayload?.labels?.length
         ? statusPayload.labels
         : ["On Track", "At Risk", "Delayed", "Blocked"];
@@ -1502,48 +1476,6 @@
             pointRadius: 3,
           },
         ],
-      );
-
-      const budLabs = budgetPayload?.labels?.length ? budgetPayload.labels : ["No project data"];
-      const budVals = budgetPayload?.values?.length ? budgetPayload.values : [1];
-      const budgetBarPalette = [
-        "rgba(2, 132, 199, 0.82)",
-        "rgba(5, 150, 105, 0.82)",
-        "rgba(217, 119, 6, 0.82)",
-        "rgba(124, 58, 237, 0.82)",
-        "rgba(220, 38, 38, 0.76)",
-      ];
-      const budgetBg = budLabs[0] === "No project data"
-        ? "rgba(148, 163, 184, 0.55)"
-        : budLabs.map((_, i) => budgetBarPalette[i % budgetBarPalette.length]);
-      renderHorizontalBars(
-        host.querySelector("#eo-budget-eac"),
-        colors,
-        budLabs,
-        budVals,
-        budgetBg,
-      );
-
-      const ALIGN_LABELS = [
-        "Cost Optimization",
-        "Automation",
-        "Compliance",
-        "Digital Transformation",
-      ];
-      let alVals = Array.isArray(alignmentPayload?.values) ? alignmentPayload.values : [];
-      if (alVals.length !== 4) {
-        alVals = [0, 0, 0, 0];
-      }
-      alVals = alVals.map((v) => Number(v) || 0);
-      const goalsSum = alVals.reduce((a, b) => a + b, 0);
-      const alignPalette = [colors.green, colors.cyan, colors.amber, colors.purple];
-      renderDoughnut(
-        host.querySelector("#eo-alignment-donut"),
-        colors,
-        ALIGN_LABELS,
-        alVals,
-        alignPalette,
-        { subtext: "Goals", text: String(goalsSum) },
       );
 
       document.dispatchEvent(new Event("chart:rendered"));

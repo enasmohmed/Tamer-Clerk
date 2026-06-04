@@ -203,7 +203,8 @@ def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
                 k = d.get("key")
                 if k in computed and (d.get("value_text") in ("—", "", None)):
                     d["value_text"] = computed[k]
-            return defaults
+            _hidden_eo_kpi_keys = frozenset({"cpi", "open_risks"})
+            return [d for d in defaults if (d.get("key") or "").strip().lower() not in _hidden_eo_kpi_keys]
 
         result = []
         for r in rows:
@@ -220,13 +221,27 @@ def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
                     "accent": r.accent or "cyan",
                 }
             )
+        _hidden_eo_kpi_keys = frozenset({"cpi", "open_risks"})
+        result = [
+            r
+            for r in result
+            if (r.get("key") or "").strip().lower() not in _hidden_eo_kpi_keys
+        ]
+        if not any((r.get("key") or "").strip().lower() == "spi" for r in result):
+            spi_tpl = next((d for d in defaults if d.get("key") == "spi"), None)
+            if spi_tpl:
+                spi_card = dict(spi_tpl)
+                if computed.get("spi"):
+                    spi_card["value_text"] = computed["spi"]
+                result.append(spi_card)
         return result
     except Exception:
         for d in defaults:
             k = d.get("key")
             if k in computed and (d.get("value_text") in ("—", "", None)):
                 d["value_text"] = computed[k]
-        return defaults
+        _hidden_eo_kpi_keys = frozenset({"cpi", "open_risks"})
+        return [d for d in defaults if (d.get("key") or "").strip().lower() not in _hidden_eo_kpi_keys]
 
 
 def get_executive_overview_tw_payload(tw_items, top_n=6):
@@ -1157,6 +1172,7 @@ def get_transformation_workspace(project_type=None):
         from .models import (
             PortfolioRaidItem,
             ProjectProcessStep,
+            ProjectRegisterRemark,
             ProjectTrackerItem,
             WorkspaceDepartment,
             WorkspacePortfolioActivity,
@@ -1177,6 +1193,10 @@ def get_transformation_workspace(project_type=None):
             Prefetch(
                 "raid_items",
                 queryset=PortfolioRaidItem.objects.order_by("display_order", "id"),
+            ),
+            Prefetch(
+                "register_remarks",
+                queryset=ProjectRegisterRemark.objects.order_by("display_order", "id"),
             ),
         ).all()
         if project_type and project_type in ("idea", "automation"):
@@ -1338,6 +1358,26 @@ def get_transformation_workspace(project_type=None):
             if "done" in vals and all(v == "done" for v in vals if v):
                 return "Low"
             return "—"
+
+        def register_remarks_payload(obj):
+            try:
+                rows = obj.register_remarks.all()
+                return [
+                    {"text": (r.text or "").strip()}
+                    for r in rows
+                    if (r.text or "").strip()
+                ]
+            except Exception:
+                return []
+
+        def register_risk_display(obj):
+            rl = (getattr(obj, "register_risk_level", "") or "").strip()
+            if rl in ("Low", "Medium", "High"):
+                return rl
+            rl = remark_field((getattr(obj, "remarks", "") or ""), "risk level:")
+            if rl in ("Low", "Medium", "High"):
+                return rl
+            return risk_level(obj)
 
         def planned_progress_pct(obj, today):
             start, end = obj.start_date, obj.end_date
@@ -1573,6 +1613,7 @@ def get_transformation_workspace(project_type=None):
                     else "",
                 },
                 "remarks": remarks_txt,
+                "register_remarks": register_remarks_payload(obj),
                 "company": (getattr(obj, "company", "") or "").strip(),
             }
             enrich_detail_from_remarks(obj, detail_payload)
@@ -1926,6 +1967,7 @@ def get_transformation_workspace(project_type=None):
                     if getattr(obj, "actual_hours", None) is not None
                     else "",
                     "progress_pct": project_progress_pct(obj),
+                    "register_risk_level": (getattr(obj, "register_risk_level", "") or "").strip(),
                     "gov_submitted_by": getattr(obj, "gov_submitted_by", "") or "",
                     "gov_reviewed_by": getattr(obj, "gov_reviewed_by", "") or "",
                     "gov_approval_status": _gov_appr,
@@ -1934,6 +1976,8 @@ def get_transformation_workspace(project_type=None):
                     "gov_assumptions_constraints": getattr(obj, "gov_assumptions_constraints", "")
                     or "",
                 },
+                "register_remarks": register_remarks_payload(obj),
+                "remarks": (getattr(obj, "remarks", "") or "").strip(),
             }
             enrich_detail_from_remarks(obj, detail_payload)
             project_details_map[str(obj.id)] = detail_payload
@@ -1996,7 +2040,7 @@ def get_transformation_workspace(project_type=None):
                     else "—",
                     "phase": phase_nm,
                     "progress_pct": prog_pct,
-                    "risk": risk_level(obj),
+                    "risk": register_risk_display(obj),
                     "brainstorming_status": (obj.brainstorming_status or "").strip(),
                     "execution_status": (obj.execution_status or "").strip(),
                     "test_deadline_status": (getattr(obj, "test_deadline_status", "") or "").strip(),
