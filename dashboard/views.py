@@ -76,9 +76,6 @@ def _portfolio_rebuild_remarks(obj, *, risk_level="", pmbok_phase="", budget_usd
     company_name = (obj.company or "").strip()
     if company_name:
         lines.append(f"Company: {company_name}")
-    project_code = (obj.project_code or "").strip()
-    if project_code:
-        lines.append(f"ID: {project_code}")
     project_lead = (obj.project_lead or "").strip()
     if project_lead:
         lines.append(f"Project Lead: {project_lead}")
@@ -117,6 +114,13 @@ def _portfolio_rebuild_remarks(obj, *, risk_level="", pmbok_phase="", budget_usd
     objective_sow = (obj.objective_sow or "").strip()
     if objective_sow:
         lines.append(f"Objective: {objective_sow}")
+    estimated_time_saving = getattr(obj, "estimated_time_saving", None)
+    if estimated_time_saving is not None:
+        unit = (getattr(obj, "estimated_time_saving_unit", "") or "hours").strip() or "hours"
+        lines.append(f"Estimated time saving: {estimated_time_saving} {unit}")
+    resources_before = (getattr(obj, "resources_before_automation", "") or "").strip()
+    if resources_before:
+        lines.append(f"Resources before automation: {resources_before}")
     kpi_success_criteria = (obj.kpi_success_criteria or "").strip()
     if kpi_success_criteria:
         lines.append(f"KPI: {kpi_success_criteria}")
@@ -246,7 +250,6 @@ def project_portfolio_add_project(request):
             return JsonResponse({"ok": False, "message": "Project name is required."}, status=400)
 
         company_name = _s("company")
-        project_code = _s("project_code")
         project_lead = _s("project_lead")
         project_secondary = _s("project_secondary")
 
@@ -280,6 +283,10 @@ def project_portfolio_add_project(request):
 
         objective_sow = _s("objective_sow")
         kpi_success_criteria = _s("kpi_success_criteria")
+        estimated_time_saving, estimated_time_saving_unit = (
+            context_helpers.parse_estimated_time_saving_post(request.POST)
+        )
+        resources_before_automation = _s("resources_before_automation")
 
         cost_reduction_pct = None
         cr_raw = _s("cost_reduction_pct")
@@ -342,8 +349,6 @@ def project_portfolio_add_project(request):
         lines = []
         if company_name:
             lines.append(f"Company: {company_name}")
-        if project_code:
-            lines.append(f"ID: {project_code}")
         if project_lead:
             lines.append(f"Project Lead: {project_lead}")
         if project_secondary:
@@ -366,6 +371,12 @@ def project_portfolio_add_project(request):
             lines.append(f"Budget (USD): {budget}")
         if objective_sow:
             lines.append(f"Objective: {objective_sow}")
+        if estimated_time_saving is not None:
+            lines.append(
+                f"Estimated time saving: {estimated_time_saving} {estimated_time_saving_unit}"
+            )
+        if resources_before_automation:
+            lines.append(f"Resources before automation: {resources_before_automation}")
         if kpi_success_criteria:
             lines.append(f"KPI: {kpi_success_criteria}")
         if cost_reduction_pct is not None:
@@ -403,7 +414,6 @@ def project_portfolio_add_project(request):
 
         obj = ProjectTrackerItem.objects.create(
             description=description,
-            project_code=project_code,
             project_lead=project_lead,
             person_name=project_secondary,
             department=department_text,
@@ -413,6 +423,9 @@ def project_portfolio_add_project(request):
             register_category=register_category,
             strategic_alignment_ref=strategic_alignment_ref,
             objective_sow=objective_sow,
+            estimated_time_saving=estimated_time_saving,
+            estimated_time_saving_unit=estimated_time_saving_unit,
+            resources_before_automation=resources_before_automation,
             kpi_success_criteria=kpi_success_criteria,
             cost_reduction_pct=cost_reduction_pct,
             headcount_impact=headcount_impact,
@@ -2097,6 +2110,7 @@ class UploadExcelViewRoche(View):
                     "components/ui-kits/tab-bootstrap/components/transformation-workspace.html",
                     {
                         "transformation_workspace": transformation_workspace,
+                        "projects_tab": context_helpers.get_projects_tab_data(),
                         "dashboard_theme": context_helpers.get_dashboard_theme_dict(),
                         **pmo_session.pmo_template_context(request),
                     },
@@ -2225,6 +2239,7 @@ class UploadExcelViewRoche(View):
                     project_type=_pt_wh
                 ),
                 "transformation_workspace": transformation_workspace,
+                "projects_tab": context_helpers.get_projects_tab_data(),
                 "clerk_details": context_helpers.get_clerk_details_list(),
             }
             render_context.update(pmo_session.pmo_template_context(request))
@@ -2298,7 +2313,11 @@ class UploadExcelViewRoche(View):
         # Read request parameters
         # --------------------------
         selected_tab = (request.GET.get("tab") or "").strip().lower() or "executive overview"
-        _allowed_main_tabs = {"executive overview", "transformation workspace", "project portfolio"}
+        _allowed_main_tabs = {
+            "executive overview",
+            "transformation workspace",
+            "project portfolio",
+        }
         if pmo_session.is_pmo_manager(request):
             _allowed_main_tabs.add("approval queue")
         if selected_tab not in _allowed_main_tabs:
@@ -2700,6 +2719,7 @@ class UploadExcelViewRoche(View):
             "transformation_workspace": context_helpers.get_transformation_workspace(
                 project_type=request.GET.get("project_type") or None
             ),
+            "projects_tab": context_helpers.get_projects_tab_data(),
             "clerk_details": context_helpers.get_clerk_details_list(),
         }
         render_context.update(pmo_session.pmo_template_context(request))
@@ -8437,6 +8457,164 @@ def project_portfolio_approval_set_deadline(request):
 
 
 @require_POST
+def projects_tab_add_project(request):
+    """Add a new project card to the Cards View register."""
+    if not (pmo_session.is_pmo_manager(request) or pmo_session.is_pmo_team(request)):
+        return JsonResponse({"ok": False, "message": "Forbidden."}, status=403)
+    try:
+        from .models import ProjectsTabCardProject
+
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "message": "Invalid JSON."}, status=400)
+    try:
+        existing_ids = {
+            p.get("id")
+            for p in (context_helpers.get_projects_tab_data().get("projects") or [])
+        }
+        project = context_helpers.build_cards_view_project(
+            payload,
+            existing_ids=existing_ids,
+        )
+        context_helpers._recalc_project_task_counts(project)
+    except ValueError as exc:
+        return JsonResponse({"ok": False, "message": str(exc)}, status=400)
+    key = project["id"]
+    if key in existing_ids:
+        return JsonResponse(
+            {"ok": False, "message": f"A project named “{project.get('title', '')}” already exists."},
+            status=400,
+        )
+    ProjectsTabCardProject.objects.create(project_key=key, data=project)
+    return JsonResponse({"ok": True, "message": "Project added.", "project": project})
+
+
+@require_POST
+def projects_tab_update_project(request):
+    """Update Cards View project metadata (not deadline unless PMO manager)."""
+    if not (pmo_session.is_pmo_manager(request) or pmo_session.is_pmo_team(request)):
+        return JsonResponse({"ok": False, "message": "Forbidden."}, status=403)
+    try:
+        from .models import ProjectsTabCardProject, ProjectsTabProjectMetaStore
+
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "message": "Invalid JSON."}, status=400)
+
+    project_key = (payload.get("project_id") or "").strip().lower()
+    if not project_key:
+        return JsonResponse({"ok": False, "message": "project_id is required."}, status=400)
+
+    title = (payload.get("title") or "").strip()
+    if not title:
+        return JsonResponse({"ok": False, "message": "Project title is required."}, status=400)
+
+    category = (payload.get("category") or "").strip().lower()
+    if category and category not in context_helpers.CARDS_VIEW_CATEGORY_LABELS:
+        category = ""
+
+    status = (payload.get("status") or "").strip().lower()
+    if status and status not in context_helpers.CARDS_VIEW_STATUS_LABELS:
+        status = ""
+
+    meta_patch = {
+        "title": title,
+        "description": (payload.get("description") or "").strip(),
+        "owner": (payload.get("owner") or "").strip(),
+        "phase": (payload.get("phase") or "").strip(),
+        "estimated_time_saving": (payload.get("estimated_time_saving") or "").strip(),
+        "estimated_time_saving_unit": (
+            (payload.get("estimated_time_saving_unit") or "hours").strip().lower()
+        ),
+        "resources_before_automation": (
+            (payload.get("resources_before_automation") or "").strip()
+        ),
+    }
+    if category:
+        meta_patch["category"] = category
+    if status:
+        meta_patch["status"] = status
+
+    if pmo_session.is_pmo_manager(request) and "deadline" in payload:
+        meta_patch["deadline"] = (payload.get("deadline") or "").strip()
+
+    store, _created = ProjectsTabProjectMetaStore.objects.get_or_create(
+        project_key=project_key,
+        defaults={"meta": {}},
+    )
+    merged = dict(store.meta or {})
+    merged.update(meta_patch)
+    store.meta = merged
+    store.save(update_fields=["meta", "updated_at"])
+
+    card = ProjectsTabCardProject.objects.filter(project_key=project_key).first()
+    if card:
+        data = dict(card.data or {})
+        context_helpers.apply_cards_view_meta_patch(data, meta_patch)
+        card.data = data
+        card.save(update_fields=["data", "updated_at"])
+
+    demo = context_helpers.get_projects_tab_data()
+    project = next(
+        (p for p in (demo.get("projects") or []) if p.get("id") == project_key),
+        None,
+    )
+    if not project:
+        return JsonResponse({"ok": False, "message": "Project not found."}, status=404)
+    return JsonResponse({"ok": True, "message": "Project updated.", "project": project})
+
+
+@require_POST
+def projects_tab_save_tasks(request):
+    """Save task list for a Projects tab project (demo register)."""
+    if not (pmo_session.is_pmo_manager(request) or pmo_session.is_pmo_team(request)):
+        return JsonResponse({"ok": False, "message": "Forbidden."}, status=403)
+    try:
+        from .models import ProjectsTabTaskStore
+
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "message": "Invalid JSON."}, status=400)
+
+    project_key = (payload.get("project_id") or "").strip().lower()
+    tasks = payload.get("tasks")
+    if not project_key:
+        return JsonResponse({"ok": False, "message": "project_id is required."}, status=400)
+    if not isinstance(tasks, list):
+        return JsonResponse({"ok": False, "message": "tasks must be a list."}, status=400)
+
+    store, _created = ProjectsTabTaskStore.objects.update_or_create(
+        project_key=project_key,
+        defaults={"tasks": tasks},
+    )
+    demo = context_helpers.get_projects_tab_data()
+    project = next(
+        (p for p in (demo.get("projects") or []) if p.get("id") == project_key),
+        None,
+    )
+    counts = {}
+    if project:
+        counts = {
+            "tasks_done": project.get("tasks_done", 0),
+            "tasks_total": project.get("tasks_total", 0),
+            "tasks_in_progress": project.get("tasks_in_progress", 0),
+            "tasks_pending": project.get("tasks_pending", 0),
+            "progress": project.get("progress", 0),
+            "pmo_score": project.get("pmo_score", 0),
+            "spi": project.get("spi", 0),
+            "cpi": project.get("cpi", 0),
+        }
+    return JsonResponse(
+        {
+            "ok": True,
+            "message": "Tasks saved.",
+            "updated_at": store.updated_at.isoformat(),
+            "counts": counts,
+        }
+    )
+
+
+@require_POST
 def project_portfolio_update_project(request):
     """
     PATCH-style update from Transformation Workspace editor.
@@ -8520,7 +8698,6 @@ def project_portfolio_update_project(request):
 
         snap = {
             "description": obj.description or "",
-            "project_code": obj.project_code or "",
             "project_lead": obj.project_lead or "",
             "person_name": obj.person_name or "",
             "company": obj.company or "",
@@ -8531,6 +8708,9 @@ def project_portfolio_update_project(request):
             "register_category_id": obj.register_category_id,
             "strategic_alignment_ref_id": obj.strategic_alignment_ref_id,
             "objective_sow": obj.objective_sow or "",
+            "estimated_time_saving": obj.estimated_time_saving,
+            "estimated_time_saving_unit": obj.estimated_time_saving_unit or "",
+            "resources_before_automation": obj.resources_before_automation or "",
             "kpi_success_criteria": obj.kpi_success_criteria or "",
             "cost_reduction_pct": obj.cost_reduction_pct,
             "headcount_impact": obj.headcount_impact or "",
@@ -8563,7 +8743,6 @@ def project_portfolio_update_project(request):
             return JsonResponse({"ok": False, "message": "Project name is required."}, status=400)
 
         company_name = _s("company")
-        project_code = _s("project_code")
         project_lead = _s("project_lead")
         project_secondary = _s("person_name") or _s("project_secondary")
 
@@ -8601,6 +8780,10 @@ def project_portfolio_update_project(request):
 
         objective_sow = _s("objective_sow")
         kpi_success_criteria = _s("kpi_success_criteria")
+        estimated_time_saving, estimated_time_saving_unit = (
+            context_helpers.parse_estimated_time_saving_post(request.POST)
+        )
+        resources_before_automation = _s("resources_before_automation")
 
         cost_reduction_pct = None
         cr_raw = _s("cost_reduction_pct")
@@ -8650,7 +8833,6 @@ def project_portfolio_update_project(request):
             project_type = "idea"
 
         obj.description = description
-        obj.project_code = project_code
         obj.project_lead = project_lead
         obj.person_name = project_secondary
         obj.company = company_name
@@ -8661,6 +8843,9 @@ def project_portfolio_update_project(request):
         obj.register_category = register_category
         obj.strategic_alignment_ref = strategic_alignment_ref
         obj.objective_sow = objective_sow
+        obj.estimated_time_saving = estimated_time_saving
+        obj.estimated_time_saving_unit = estimated_time_saving_unit
+        obj.resources_before_automation = resources_before_automation
         obj.kpi_success_criteria = kpi_success_criteria
         obj.cost_reduction_pct = cost_reduction_pct
         obj.headcount_impact = headcount_impact
@@ -8715,8 +8900,6 @@ def project_portfolio_update_project(request):
         parts = []
         if (obj.description or "") != snap["description"]:
             parts.append("Project name updated")
-        if (obj.project_code or "") != snap["project_code"]:
-            parts.append("Project code updated")
         if (obj.project_lead or "") != snap["project_lead"]:
             parts.append("Project lead updated")
         if (obj.person_name or "") != snap["person_name"]:
@@ -8737,6 +8920,12 @@ def project_portfolio_update_project(request):
             parts.append("Strategic alignment updated")
         if (obj.objective_sow or "") != snap["objective_sow"]:
             parts.append("Objective / SoW updated")
+        if obj.estimated_time_saving != snap["estimated_time_saving"]:
+            parts.append("Estimated time saving updated")
+        if (obj.estimated_time_saving_unit or "") != snap["estimated_time_saving_unit"]:
+            parts.append("Time saving unit updated")
+        if (obj.resources_before_automation or "") != snap["resources_before_automation"]:
+            parts.append("Resources before automation updated")
         if (obj.kpi_success_criteria or "") != snap["kpi_success_criteria"]:
             parts.append("KPI / success criteria updated")
         if obj.cost_reduction_pct != snap["cost_reduction_pct"]:

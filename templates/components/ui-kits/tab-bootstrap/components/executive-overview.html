@@ -964,12 +964,8 @@
                 <div class="eo-gantt-row">
                   <div class="eo-gantt-meta">
                     <div class="eo-gantt-name">{{ g.name }}</div>
-                    {% if g.log_id or g.priority_display %}
-                      <div class="eo-gantt-code">
-                        {% if g.log_id %}{{ g.log_id }}{% endif %}
-                        {% if g.log_id and g.priority_display %} · {% endif %}
-                        {{ g.priority_display }}
-                      </div>
+                    {% if g.priority_display %}
+                      <div class="eo-gantt-code">{{ g.priority_display }}</div>
                     {% endif %}
                     <div class="eo-gantt-dates">{{ g.start_display }} – {{ g.end_display }}</div>
                   </div>
@@ -1020,7 +1016,6 @@
               {% for h in executive_pmo_health %}
                 <div class="eo-pmo-card">
                   <div class="eo-pmo-name">{{ h.name }}</div>
-                  {% if h.log_id %}<div class="eo-pmo-code">{{ h.log_id }}</div>{% endif %}
                   <div class="eo-pmo-score tone-{{ h.tone }}">{{ h.pmo_score_pct }}%</div>
                   <div class="eo-pmo-bar" aria-hidden="true">
                     <span
@@ -1049,7 +1044,6 @@
                 <div class="eo-li-head">
                   <div>
                     <div class="eo-li-title">{{ d.name }}</div>
-                    {% if d.log_id %}<div class="eo-li-sub">{{ d.log_id }}</div>{% endif %}
                     <div class="eo-li-sub">Due: {{ d.due_display }}</div>
                   </div>
                   <span class="eo-pill {% if d.urgency == 'good' %}good{% elif d.urgency == 'bad' %}bad{% else %}warn{% endif %}">{{ d.days_label }}</span>

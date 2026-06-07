@@ -97,6 +97,17 @@ def get_phases_sections_list():
         return []
 
 
+EO_KPI_CARD_ORDER = (
+    "total_projects",
+    "on_track",
+    "at_risk",
+    "spi",
+    "time_saved",
+)
+
+HIDDEN_EO_KPI_KEYS = frozenset({"cpi", "open_risks"})
+
+
 def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
     """
     Executive Overview KPI cards (top strip).
@@ -136,6 +147,14 @@ def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
             "accent": "cyan",
         },
         {
+            "key": "time_saved",
+            "title": "TIME SAVED",
+            "value_text": "—",
+            "subtitle": "Total hours preserved",
+            "footer": "Sum of project estimates (converted to hours)",
+            "accent": "purple",
+        },
+        {
             "key": "cpi",
             "title": "CPI",
             "value_text": "—",
@@ -152,6 +171,35 @@ def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
             "accent": "red",
         },
     ]
+
+    def _apply_computed_to_card(card, computed_values):
+        key = (card.get("key") or "").strip().lower()
+        if key in computed_values and (card.get("value_text") in ("—", "", None)):
+            card["value_text"] = computed_values[key]
+        if key == "time_saved" and computed_values.get("time_saved_subtitle"):
+            card["subtitle"] = computed_values["time_saved_subtitle"]
+        return card
+
+    def _card_from_default(tpl, computed_values):
+        return _apply_computed_to_card(dict(tpl), computed_values)
+
+    def _merge_eo_kpi_cards(existing, computed_values):
+        """Ensure all standard KPI cards appear in canonical order."""
+        by_key = {
+            (r.get("key") or "").strip().lower(): r
+            for r in (existing or [])
+            if (r.get("key") or "").strip().lower() not in HIDDEN_EO_KPI_KEYS
+        }
+        merged = []
+        for key in EO_KPI_CARD_ORDER:
+            if key in by_key:
+                merged.append(by_key[key])
+                continue
+            tpl = next((d for d in defaults if d.get("key") == key), None)
+            if tpl:
+                merged.append(_card_from_default(tpl, computed_values))
+        return merged
+
     def _compute_defaults():
         """
         Compute live values from Transformation Workspace data models.
@@ -171,6 +219,8 @@ def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
                 project__launch_status="done"
             ).count()
 
+            time_saved_text, time_saved_projects = aggregate_portfolio_time_saved(qs)
+
             spi = None
             cpi = None
             if workspace_metrics:
@@ -183,6 +233,13 @@ def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
                 "open_risks": str(open_risks),
                 "spi": f"{spi:.2f}" if isinstance(spi, (int, float)) else "—",
                 "cpi": f"{cpi:.2f}" if isinstance(cpi, (int, float)) else "—",
+                "time_saved": time_saved_text,
+                "time_saved_subtitle": (
+                    f"From {time_saved_projects} project"
+                    f"{'' if time_saved_projects == 1 else 's'}"
+                    if time_saved_projects
+                    else "Across portfolio"
+                ),
             }
         except Exception:
             return {}
@@ -198,50 +255,37 @@ def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
             )
         )
         if not rows:
-            # Fill default placeholders with computed values if available
-            for d in defaults:
-                k = d.get("key")
-                if k in computed and (d.get("value_text") in ("—", "", None)):
-                    d["value_text"] = computed[k]
-            _hidden_eo_kpi_keys = frozenset({"cpi", "open_risks"})
-            return [d for d in defaults if (d.get("key") or "").strip().lower() not in _hidden_eo_kpi_keys]
+            return _merge_eo_kpi_cards(
+                [_card_from_default(d, computed) for d in defaults],
+                computed,
+            )
 
         result = []
         for r in rows:
+            if (r.key or "").strip().lower() in HIDDEN_EO_KPI_KEYS:
+                continue
             v = (r.value_text or "").strip() or "—"
             if v in ("—", "-") and r.key in computed and computed[r.key] not in ("", "—", None):
                 v = computed[r.key]
+            subtitle = r.subtitle or ""
+            if r.key == "time_saved" and computed.get("time_saved_subtitle"):
+                subtitle = computed["time_saved_subtitle"]
             result.append(
                 {
                     "key": r.key,
                     "title": r.title,
                     "value_text": v,
-                    "subtitle": r.subtitle or "",
+                    "subtitle": subtitle,
                     "footer": r.footer or "",
                     "accent": r.accent or "cyan",
                 }
             )
-        _hidden_eo_kpi_keys = frozenset({"cpi", "open_risks"})
-        result = [
-            r
-            for r in result
-            if (r.get("key") or "").strip().lower() not in _hidden_eo_kpi_keys
-        ]
-        if not any((r.get("key") or "").strip().lower() == "spi" for r in result):
-            spi_tpl = next((d for d in defaults if d.get("key") == "spi"), None)
-            if spi_tpl:
-                spi_card = dict(spi_tpl)
-                if computed.get("spi"):
-                    spi_card["value_text"] = computed["spi"]
-                result.append(spi_card)
-        return result
+        return _merge_eo_kpi_cards(result, computed)
     except Exception:
-        for d in defaults:
-            k = d.get("key")
-            if k in computed and (d.get("value_text") in ("—", "", None)):
-                d["value_text"] = computed[k]
-        _hidden_eo_kpi_keys = frozenset({"cpi", "open_risks"})
-        return [d for d in defaults if (d.get("key") or "").strip().lower() not in _hidden_eo_kpi_keys]
+        return _merge_eo_kpi_cards(
+            [_card_from_default(d, computed) for d in defaults],
+            computed,
+        )
 
 
 def get_executive_overview_tw_payload(tw_items, top_n=6):
@@ -293,12 +337,6 @@ def get_executive_overview_tw_payload(tw_items, top_n=6):
         n = (item.get("name") or "").strip()
         if n and n != "—":
             return n
-        pc = (item.get("project_code") or "").strip()
-        if pc:
-            return pc
-        lid = (item.get("log_id") or "").strip()
-        if lid:
-            return lid
         oid = item.get("id")
         return f"Project #{oid}" if oid is not None else "—"
 
@@ -1226,6 +1264,7 @@ def get_transformation_workspace(project_type=None):
             pairs = [
                 ("objective_sow", "objective:"),
                 ("kpi_success_criteria", "kpi:"),
+                ("resources_before_automation", "resources before automation:"),
                 ("scope_in", "in scope:"),
                 ("scope_out", "out of scope:"),
                 ("scope_deliverables", "deliverables:"),
@@ -1616,6 +1655,7 @@ def get_transformation_workspace(project_type=None):
                 "register_remarks": register_remarks_payload(obj),
                 "company": (getattr(obj, "company", "") or "").strip(),
             }
+            detail_payload.update(automation_fields_payload(obj))
             enrich_detail_from_remarks(obj, detail_payload)
 
             def _clip(s, n):
@@ -1890,6 +1930,7 @@ def get_transformation_workspace(project_type=None):
                 days_since_update = (today - lu_dt).days
 
             _gov_appr = (getattr(obj, "gov_approval_status", "") or "").strip()
+            _auto = automation_fields_payload(obj)
             detail_payload = {
                 "objective_sow": getattr(obj, "objective_sow", "") or "",
                 "kpi_success_criteria": getattr(obj, "kpi_success_criteria", "") or "",
@@ -1945,7 +1986,6 @@ def get_transformation_workspace(project_type=None):
                 },
                 "form_edit": {
                     "project_name": (obj.description or "").strip(),
-                    "project_code": (obj.project_code or "").strip(),
                     "person_name": (obj.person_name or "").strip(),
                     "department_id": getattr(obj, "department_ref_id", None),
                     "category_id": getattr(obj, "register_category_id", None),
@@ -1975,10 +2015,14 @@ def get_transformation_workspace(project_type=None):
                     "gov_operational_impact": getattr(obj, "gov_operational_impact", "") or "",
                     "gov_assumptions_constraints": getattr(obj, "gov_assumptions_constraints", "")
                     or "",
+                    "estimated_time_saving": _auto["estimated_time_saving"],
+                    "estimated_time_saving_unit": _auto["estimated_time_saving_unit"],
+                    "resources_before_automation": _auto["resources_before_automation"],
                 },
                 "register_remarks": register_remarks_payload(obj),
                 "remarks": (getattr(obj, "remarks", "") or "").strip(),
             }
+            detail_payload.update(_auto)
             enrich_detail_from_remarks(obj, detail_payload)
             project_details_map[str(obj.id)] = detail_payload
 
@@ -2377,3 +2421,605 @@ def get_transformation_workspace(project_type=None):
 def get_project_portfolio_list(project_type=None):
     """Backward-compatible alias for Transformation Workspace context."""
     return get_transformation_workspace(project_type)
+
+
+DEFAULT_PROJECT_PHASES = [
+    {"name": "Phase 1 — Requirements & Design", "done": 0, "total": 0, "pct": 0},
+    {"name": "Phase 2 — Development", "done": 0, "total": 0, "pct": 0},
+    {"name": "Phase 3 — Testing & UAT", "done": 0, "total": 0, "pct": 0},
+    {"name": "Phase 4 — Go Live", "done": 0, "total": 0, "pct": 0},
+]
+
+
+def _ensure_project_phases(project):
+    """Every project shows the same 4-phase summary shell (even when empty)."""
+    defaults = [dict(phase) for phase in DEFAULT_PROJECT_PHASES]
+    existing = project.get("phases") or []
+    if not existing:
+        project["phases"] = defaults
+        return project
+    merged = []
+    for i, default in enumerate(defaults):
+        if i < len(existing):
+            merged.append(existing[i])
+        else:
+            merged.append(dict(default))
+    project["phases"] = merged
+    return project
+
+
+def _phase_number(label):
+    import re
+
+    match = re.search(r"phase\s*(\d+)", (label or ""), re.I)
+    return int(match.group(1)) if match else None
+
+
+def _recalc_project_phases_from_tasks(project):
+    """Phase progress = actual tasks grouped by phase number (not static demo totals)."""
+    _ensure_project_phases(project)
+    phase_defs = project.get("phases") or [dict(p) for p in DEFAULT_PROJECT_PHASES]
+    counts_by_num = {}
+
+    for grp in project.get("tasks") or []:
+        task_phase = (grp.get("phase") or "").strip()
+        items = grp.get("items") or []
+        phase_num = _phase_number(task_phase)
+        if phase_num is None:
+            continue
+        bucket = counts_by_num.setdefault(phase_num, {"done": 0, "total": 0})
+        bucket["total"] += len(items)
+        bucket["done"] += sum(1 for t in items if t.get("status") == "done")
+
+    recalced = []
+    for ph_def in phase_defs:
+        name = ph_def.get("name") or ""
+        phase_num = _phase_number(name)
+        stats = counts_by_num.get(phase_num, {"done": 0, "total": 0}) if phase_num else {"done": 0, "total": 0}
+        total = stats["total"]
+        done = stats["done"]
+        pct = round(done / total * 100) if total else 0
+        recalced.append({"name": name, "done": done, "total": total, "pct": pct})
+
+    project["phases"] = recalced
+    return project
+
+
+def _recalc_project_metrics_from_tasks(project):
+    """Derive progress, PMO score, SPI, and CPI from actual task statuses."""
+    total = project.get("tasks_total", 0) or 0
+    done = project.get("tasks_done", 0) or 0
+    in_progress = project.get("tasks_in_progress", 0) or 0
+
+    if total > 0:
+        progress = round(done / total * 100)
+        pmo_score = round((done * 100 + in_progress * 50) / total)
+        spi = round(done / total, 2)
+        cpi = round((done + 0.5 * in_progress) / total, 2)
+    else:
+        progress = 0
+        pmo_score = 0
+        spi = 0.0
+        cpi = 0.0
+
+    project["progress"] = progress
+    project["pmo_score"] = pmo_score
+    project["spi"] = spi
+    project["cpi"] = cpi
+    return project
+
+
+def _recalc_project_task_counts(project):
+    items = []
+    for grp in project.get("tasks") or []:
+        items.extend(grp.get("items") or [])
+    project["tasks_total"] = len(items)
+    project["tasks_done"] = sum(1 for t in items if t.get("status") == "done")
+    project["tasks_in_progress"] = sum(1 for t in items if t.get("status") == "in_progress")
+    project["tasks_pending"] = sum(
+        1 for t in items if t.get("status") not in ("done", "in_progress")
+    )
+    _recalc_project_phases_from_tasks(project)
+    _recalc_project_metrics_from_tasks(project)
+    return project
+
+
+def _merge_projects_tab_task_overrides(projects):
+    from .models import ProjectsTabTaskStore
+
+    overrides = {
+        row.project_key: row.tasks
+        for row in ProjectsTabTaskStore.objects.all()
+    }
+    for project in projects:
+        key = project.get("id")
+        if key and key in overrides:
+            project["tasks"] = overrides[key]
+        _recalc_project_task_counts(project)
+    return projects
+
+
+def _merge_cards_view_custom_projects(projects):
+    from .models import ProjectsTabCardProject
+
+    existing_ids = {p.get("id") for p in projects}
+    for row in ProjectsTabCardProject.objects.all():
+        payload = dict(row.data or {})
+        payload["id"] = payload.get("id") or row.project_key
+        if payload["id"] in existing_ids:
+            continue
+        _ensure_project_phases(payload)
+        payload.setdefault("tasks", [])
+        _recalc_project_task_counts(payload)
+        projects.append(payload)
+    return projects
+
+
+def parse_estimated_time_saving_post(post):
+    """Parse estimated_time_saving + unit from POST/JSON dict."""
+    from decimal import Decimal, InvalidOperation
+
+    raw = (post.get("estimated_time_saving") or "").strip()
+    val = None
+    if raw:
+        try:
+            val = Decimal(raw.replace(",", "."))
+            if val < 0:
+                val = None
+        except (InvalidOperation, ValueError):
+            val = None
+    unit = (post.get("estimated_time_saving_unit") or "hours").strip().lower()
+    if unit not in ("hours", "minutes"):
+        unit = "hours"
+    return val, unit
+
+
+def format_estimated_time_saving_display(value, unit="hours"):
+    if value is None:
+        return ""
+    u = (unit or "hours").strip().lower()
+    label = "hours" if u == "hours" else "minutes"
+    s = format(value, "f").rstrip("0").rstrip(".")
+    return f"{s} {label}"
+
+
+def estimated_time_saving_to_minutes(value, unit="hours"):
+    """Normalize a single project's estimated saving to minutes."""
+    from decimal import Decimal
+
+    if value is None:
+        return Decimal(0)
+    v = Decimal(str(value))
+    u = (unit or "hours").strip().lower()
+    return v if u == "minutes" else v * Decimal(60)
+
+
+def aggregate_portfolio_time_saved(qs):
+    """
+    Sum estimated_time_saving across projects, always displayed in hours.
+    Per-project minutes are converted (e.g. 30 min → 0.5 hr) before summing.
+    Returns (value_text, projects_with_savings_count).
+    """
+    from decimal import Decimal
+
+    total_mins = Decimal(0)
+    project_count = 0
+    for obj in qs.only("estimated_time_saving", "estimated_time_saving_unit").iterator():
+        val = getattr(obj, "estimated_time_saving", None)
+        if val is None:
+            continue
+        total_mins += estimated_time_saving_to_minutes(
+            val,
+            getattr(obj, "estimated_time_saving_unit", "hours"),
+        )
+        project_count += 1
+
+    hours = total_mins / Decimal(60)
+    if hours <= 0:
+        return "0 hrs", project_count
+
+    if hours >= 100:
+        return f"{int(hours)} hrs", project_count
+    h_str = format(hours, "f").rstrip("0").rstrip(".")
+    return f"{h_str} hrs", project_count
+
+
+def automation_fields_payload(obj):
+    """Structured automation-impact fields for project detail / form_edit."""
+    val = getattr(obj, "estimated_time_saving", None)
+    unit = (getattr(obj, "estimated_time_saving_unit", "") or "hours").strip() or "hours"
+    resources = (getattr(obj, "resources_before_automation", "") or "").strip()
+    return {
+        "estimated_time_saving": str(val) if val is not None else "",
+        "estimated_time_saving_unit": unit,
+        "estimated_time_saving_display": format_estimated_time_saving_display(val, unit),
+        "resources_before_automation": resources,
+    }
+
+
+CARDS_VIEW_CATEGORY_LABELS = {
+    "automation": "AUTOMATION",
+    "operations": "OPERATIONS",
+    "digital": "DIGITAL",
+}
+
+CARDS_VIEW_STATUS_LABELS = {
+    "on_track": "ON TRACK",
+    "delayed": "DELAYED",
+}
+
+
+def apply_cards_view_meta_patch(project, meta):
+    """Apply saved metadata overrides onto a cards-view project dict."""
+    if not meta:
+        return project
+    if meta.get("title"):
+        project["title"] = str(meta["title"]).strip()
+    if "description" in meta:
+        project["description"] = str(meta.get("description") or "").strip()
+    if meta.get("owner") is not None:
+        project["owner"] = str(meta.get("owner") or "").strip()
+    if meta.get("phase"):
+        project["phase"] = str(meta["phase"]).strip()
+    category = (meta.get("category") or "").strip().lower()
+    if category in CARDS_VIEW_CATEGORY_LABELS:
+        project["category"] = category
+        project["category_label"] = CARDS_VIEW_CATEGORY_LABELS[category]
+    status = (meta.get("status") or "").strip().lower()
+    if status in CARDS_VIEW_STATUS_LABELS:
+        project["status"] = status
+        project["status_label"] = CARDS_VIEW_STATUS_LABELS[status]
+    if meta.get("deadline") is not None:
+        project["deadline"] = str(meta.get("deadline") or "").strip()
+    if "estimated_time_saving" in meta:
+        raw = meta.get("estimated_time_saving")
+        project["estimated_time_saving"] = (
+            str(raw).strip() if raw is not None and str(raw).strip() != "" else ""
+        )
+    if meta.get("estimated_time_saving_unit"):
+        unit = str(meta["estimated_time_saving_unit"]).strip().lower()
+        if unit in ("hours", "minutes"):
+            project["estimated_time_saving_unit"] = unit
+    if "resources_before_automation" in meta:
+        project["resources_before_automation"] = str(
+            meta.get("resources_before_automation") or ""
+        ).strip()
+    val = project.get("estimated_time_saving")
+    unit = project.get("estimated_time_saving_unit") or "hours"
+    if val:
+        try:
+            from decimal import Decimal
+
+            project["estimated_time_saving_display"] = format_estimated_time_saving_display(
+                Decimal(str(val).replace(",", ".")),
+                unit,
+            )
+        except Exception:
+            project["estimated_time_saving_display"] = ""
+    else:
+        project["estimated_time_saving_display"] = ""
+    return project
+
+
+def _merge_projects_tab_meta_overrides(projects):
+    from .models import ProjectsTabProjectMetaStore
+
+    overrides = {
+        row.project_key: row.meta
+        for row in ProjectsTabProjectMetaStore.objects.all()
+    }
+    for project in projects:
+        key = project.get("id")
+        if key and key in overrides:
+            apply_cards_view_meta_patch(project, overrides[key])
+    return projects
+
+
+def cards_project_key_from_title(title, existing_ids=None):
+    """Derive a stable internal card id from the project title (no user-facing code)."""
+    import re
+    import uuid
+
+    base = re.sub(r"[^a-z0-9]+", "-", (title or "").lower()).strip("-") or "project"
+    key = base[:48]
+    taken = {str(x).strip().lower() for x in (existing_ids or []) if x}
+    if key not in taken:
+        return key
+    for n in range(2, 1000):
+        candidate = f"{key}-{n}"
+        if candidate not in taken:
+            return candidate
+    return f"{key}-{uuid.uuid4().hex[:6]}"
+
+
+def build_cards_view_project(payload, existing_ids=None):
+    """Normalize POST payload into a card project dict."""
+    category = (payload.get("category") or "automation").strip().lower()
+    if category not in CARDS_VIEW_CATEGORY_LABELS:
+        category = "automation"
+    status = (payload.get("status") or "on_track").strip().lower()
+    if status not in CARDS_VIEW_STATUS_LABELS:
+        status = "on_track"
+    title = (payload.get("title") or "").strip()
+    if not title:
+        raise ValueError("Project title is required.")
+    project_key = cards_project_key_from_title(title, existing_ids=existing_ids)
+    deadline = (payload.get("deadline") or "").strip()
+    phase = (payload.get("phase") or "Initiating").strip()
+    unit = (payload.get("estimated_time_saving_unit") or "hours").strip().lower()
+    if unit not in ("hours", "minutes"):
+        unit = "hours"
+    project = {
+        "id": project_key,
+        "category": category,
+        "category_label": CARDS_VIEW_CATEGORY_LABELS[category],
+        "status": status,
+        "status_label": CARDS_VIEW_STATUS_LABELS[status],
+        "title": title,
+        "description": (payload.get("description") or "").strip(),
+        "estimated_time_saving": (payload.get("estimated_time_saving") or "").strip(),
+        "estimated_time_saving_unit": unit,
+        "resources_before_automation": (
+            (payload.get("resources_before_automation") or "").strip()
+        ),
+        "progress": 0,
+        "phase": phase,
+        "owner": (payload.get("owner") or "").strip(),
+        "pmo_score": 0,
+        "deadline": deadline,
+        "spi": 0.0,
+        "cpi": 0.0,
+        "tasks_done": 0,
+        "tasks_total": 0,
+        "tasks_in_progress": 0,
+        "tasks_pending": 0,
+        "phases": [dict(p) for p in DEFAULT_PROJECT_PHASES],
+        "tasks": [],
+        "remaining": [],
+    }
+    apply_cards_view_meta_patch(
+        project,
+        {
+            "estimated_time_saving": project["estimated_time_saving"],
+            "estimated_time_saving_unit": project["estimated_time_saving_unit"],
+            "resources_before_automation": project["resources_before_automation"],
+        },
+    )
+    return project
+
+
+def get_projects_tab_data():
+    """
+    Static demo data for the Projects tab (matches PMO dashboard mockups).
+    Will be wired to ProjectTrackerItem in a later iteration.
+    """
+    projects = [
+        {
+            "id": "log-069",
+            "code": "LOG-069",
+            "category": "automation",
+            "category_label": "AUTOMATION",
+            "status": "delayed",
+            "status_label": "DELAYED",
+            "title": "Daily Tamer Dashboard Enhancement",
+            "description": (
+                "Enhance the daily Tamer operations dashboard with new KPIs, "
+                "automated data refresh, and alert thresholds for warehouse managers."
+            ),
+            "progress": 39,
+            "phase": "Executing",
+            "owner": "Aljwharah",
+            "pmo_score": 48,
+            "deadline": "2026-05-21",
+            "spi": 0.62,
+            "cpi": 0.71,
+            "tasks_done": 5,
+            "tasks_total": 12,
+            "tasks_in_progress": 2,
+            "tasks_pending": 5,
+            "phases": [
+                {"name": "Phase 1 — Requirements & Design", "done": 6, "total": 6, "pct": 100},
+                {"name": "Phase 2 — Development", "done": 5, "total": 8, "pct": 65},
+                {"name": "Phase 3 — Testing & UAT", "done": 0, "total": 5, "pct": 10},
+                {"name": "Phase 4 — Go Live", "done": 0, "total": 3, "pct": 0},
+            ],
+            "tasks": [
+                {
+                    "phase": "PHASE 1 — REQUIREMENTS & DESIGN",
+                    "items": [
+                        {"text": "Map current dashboard KPIs", "status": "done", "assignee": "Aljwharah"},
+                        {"text": "Define new metrics with ops team", "status": "done", "assignee": "Aljwharah"},
+                        {"text": "Design wireframes", "status": "done", "assignee": "Aljwharah"},
+                    ],
+                },
+                {
+                    "phase": "PHASE 2 — DEVELOPMENT",
+                    "items": [
+                        {"text": "Build backend data pipeline", "status": "done", "assignee": "Aljwharah"},
+                        {"text": "Develop dashboard UI components", "status": "done", "assignee": "Aljwharah"},
+                        {"text": "Integrate SAP data source", "status": "in_progress", "assignee": "Aljwharah"},
+                        {"text": "Connect automated refresh logic", "status": "in_progress", "assignee": "Aljwharah"},
+                        {"text": "Add alert threshold rules", "status": "pending", "assignee": "Aljwharah"},
+                    ],
+                },
+                {
+                    "phase": "PHASE 3 — TESTING & UAT",
+                    "items": [
+                        {"text": "Write test scripts", "status": "pending", "assignee": "TBD"},
+                        {"text": "UAT with warehouse managers", "status": "pending", "assignee": "Ops Team"},
+                    ],
+                },
+                {
+                    "phase": "PHASE 4 — GO LIVE",
+                    "items": [
+                        {"text": "Training session", "status": "pending", "assignee": "Aljwharah"},
+                        {"text": "Go live & monitoring", "status": "pending", "assignee": "Aljwharah"},
+                    ],
+                },
+            ],
+            "remaining": [
+                "Integrate SAP data source",
+                "Connect automated refresh logic",
+                "Add alert threshold rules",
+                "Write test scripts",
+                "UAT with warehouse managers",
+                "Training session",
+                "Go live & monitoring",
+            ],
+        },
+        {
+            "id": "log-067",
+            "code": "LOG-067",
+            "category": "automation",
+            "category_label": "AUTOMATION",
+            "status": "on_track",
+            "status_label": "ON TRACK",
+            "title": "Picker Performance Report Automation",
+            "description": "Automate picker performance reporting with daily SAP extracts and email distribution.",
+            "progress": 100,
+            "phase": "Executing",
+            "owner": "Aljwharah",
+            "pmo_score": 94,
+            "deadline": "2026-04-30",
+            "spi": 1.05,
+            "cpi": 1.02,
+            "tasks_done": 8,
+            "tasks_total": 8,
+            "tasks_in_progress": 0,
+            "tasks_pending": 0,
+            "phases": [
+                {"name": "Phase 1 — Requirements & Design", "done": 2, "total": 2, "pct": 100},
+                {"name": "Phase 2 — Development", "done": 4, "total": 4, "pct": 100},
+                {"name": "Phase 3 — Testing & UAT", "done": 1, "total": 1, "pct": 100},
+                {"name": "Phase 4 — Go Live", "done": 1, "total": 1, "pct": 100},
+            ],
+            "tasks": [],
+            "remaining": [],
+        },
+        {
+            "id": "log-068",
+            "code": "LOG-068",
+            "category": "operations",
+            "category_label": "OPERATIONS",
+            "status": "on_track",
+            "status_label": "ON TRACK",
+            "title": "Picking Status",
+            "description": "Real-time picking status visibility for warehouse floor supervisors.",
+            "progress": 0,
+            "phase": "Initiating",
+            "owner": "Aljwharah",
+            "pmo_score": 14,
+            "deadline": "2026-06-30",
+            "spi": 0.0,
+            "cpi": 0.0,
+            "tasks_done": 0,
+            "tasks_total": 3,
+            "tasks_in_progress": 1,
+            "tasks_pending": 2,
+            "phases": [
+                {"name": "Phase 1 — Scoping", "done": 0, "total": 3, "pct": 0},
+                {"name": "Phase 2 — Development", "done": 0, "total": 0, "pct": 0},
+                {"name": "Phase 3 — Testing & UAT", "done": 0, "total": 0, "pct": 0},
+                {"name": "Phase 4 — Go Live", "done": 0, "total": 0, "pct": 0},
+            ],
+            "tasks": [
+                {
+                    "phase": "PHASE 1 — SCOPING",
+                    "items": [
+                        {
+                            "text": "Define scope with ops manager",
+                            "status": "in_progress",
+                            "assignee": "Aljwharah",
+                        },
+                        {
+                            "text": "Map current picking flow",
+                            "status": "pending",
+                            "assignee": "Aljwharah",
+                        },
+                        {
+                            "text": "Identify data sources",
+                            "status": "pending",
+                            "assignee": "Aljwharah",
+                        },
+                    ],
+                },
+            ],
+            "remaining": [],
+        },
+        {
+            "id": "log-066",
+            "code": "LOG-066",
+            "category": "automation",
+            "category_label": "AUTOMATION",
+            "status": "on_track",
+            "status_label": "ON TRACK",
+            "title": "Daily Activity Reports",
+            "description": "Automated daily activity reports for inbound and outbound operations.",
+            "progress": 72,
+            "phase": "Executing",
+            "owner": "PMO Team",
+            "pmo_score": 72,
+            "deadline": "2026-05-31",
+            "spi": 0.88,
+            "cpi": 0.91,
+            "tasks_done": 9,
+            "tasks_total": 12,
+            "tasks_in_progress": 2,
+            "tasks_pending": 1,
+            "phases": [
+                {"name": "Phase 1 — Requirements & Design", "done": 3, "total": 3, "pct": 100},
+                {"name": "Phase 2 — Development", "done": 5, "total": 7, "pct": 72},
+                {"name": "Phase 3 — Testing & UAT", "done": 1, "total": 2, "pct": 50},
+            ],
+            "tasks": [],
+            "remaining": ["Finalize report templates", "UAT sign-off"],
+        },
+        {
+            "id": "log-065",
+            "code": "LOG-065",
+            "category": "digital",
+            "category_label": "DIGITAL",
+            "status": "on_track",
+            "status_label": "ON TRACK",
+            "title": "VAS Dashboard",
+            "description": "Value-added services dashboard for client-facing KPIs and SLA tracking.",
+            "progress": 11,
+            "phase": "Initiating",
+            "owner": "PMO Team",
+            "pmo_score": 11,
+            "deadline": "2026-06-15",
+            "spi": 0.45,
+            "cpi": 0.52,
+            "tasks_done": 1,
+            "tasks_total": 9,
+            "tasks_in_progress": 1,
+            "tasks_pending": 7,
+            "phases": [
+                {"name": "Phase 1 — Requirements & Design", "done": 1, "total": 4, "pct": 25},
+                {"name": "Phase 2 — Development", "done": 0, "total": 3, "pct": 0},
+                {"name": "Phase 3 — Testing & UAT", "done": 0, "total": 2, "pct": 0},
+            ],
+            "tasks": [],
+            "remaining": ["Define VAS KPIs", "Wireframe dashboard", "Data source mapping"],
+        },
+    ]
+
+    for project in projects:
+        _ensure_project_phases(project)
+        project.setdefault("tasks", [])
+    projects = _merge_cards_view_custom_projects(projects)
+    projects = _merge_projects_tab_meta_overrides(projects)
+    projects = _merge_projects_tab_task_overrides(projects)
+    for project in projects:
+        _recalc_project_task_counts(project)
+
+    def _score_sort_key(item):
+        """Ascending PMO score; cards at 100% progress pinned to the bottom."""
+        progress = item.get("progress", 0) or 0
+        pmo_score = item.get("pmo_score", 0) or 0
+        if progress >= 100:
+            return (2, pmo_score)
+        return (1, pmo_score)
+
+    projects.sort(key=_score_sort_key)
+    return {"projects": projects}

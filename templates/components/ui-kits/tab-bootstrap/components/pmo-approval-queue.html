@@ -254,7 +254,6 @@
   <article class="aq-card" data-project-id="{{ p.id }}" data-deadline-iso="{{ p.deadline_iso }}">
     <div class="aq-card-head">
       <div>
-        <div class="aq-logid">{{ p.log_id }}</div>
         <h3 class="aq-proj-title">{{ p.name }}</h3>
         <div class="aq-meta">{{ p.meta_line }}</div>
       </div>
@@ -421,7 +420,6 @@
       ].filter(Boolean).join("\n"));
     }
     html += block("Summary", [
-      summ.log_id ? "ID: " + summ.log_id : "",
       summ.category_display ? "Category: " + summ.category_display : "",
       summ.alignment_display ? "Alignment: " + summ.alignment_display : "",
       summ.priority_display ? "Priority: " + summ.priority_display : "",
@@ -446,7 +444,7 @@
       };
     }
     var title = document.getElementById("aqDetailModalLabel");
-    if (title) title.textContent = summ.log_id ? ("Details — " + summ.log_id) : "Project details";
+    if (title) title.textContent = "Project details";
   }
 
   function doApprove(projectId, btn) {

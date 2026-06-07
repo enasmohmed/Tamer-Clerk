@@ -25,6 +25,9 @@ urlpatterns = [
         name="project_portfolio_approval_set_deadline",
     ),
     path("project-portfolio/update/", views.project_portfolio_update_project, name="project_portfolio_update_project"),
+    path("projects-tab/save-tasks/", views.projects_tab_save_tasks, name="projects_tab_save_tasks"),
+    path("projects-tab/add-project/", views.projects_tab_add_project, name="projects_tab_add_project"),
+    path("projects-tab/update-project/", views.projects_tab_update_project, name="projects_tab_update_project"),
 
 
 

@@ -1,0 +1,471 @@
+{% with prefix=embed_prefix|default:"pr" %}
+<div class="pr-cards-embed projects-pmo-theme" id="{{ prefix }}-cards-embed" data-embed-prefix="{{ prefix }}" data-open-projects-tab="{{ open_in_projects_tab|yesno:'true,false' }}" data-enable-detail="{{ enable_detail|yesno:'true,false' }}">
+<style>
+  #{{ prefix }}-cards-embed.projects-pmo-theme {
+    --pr-font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --pr-card: #ffffff;
+    --pr-border: #e2e8f0;
+    --pr-text: #0f172a;
+    --pr-muted: #64748b;
+    --pr-blue: #2563eb;
+    --pr-green: #16a34a;
+    --pr-purple: #7c3aed;
+    --pr-red: #dc2626;
+    --pr-yellow: #ca8a04;
+    --pr-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --pr-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    font-family: var(--pr-font);
+    color: var(--pr-text);
+  }
+  @keyframes {{ prefix }}FadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  #{{ prefix }}-cards-embed .pr-register-header {
+    display: flex; flex-wrap: wrap; align-items: flex-start;
+    justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem;
+  }
+  #{{ prefix }}-cards-embed .pr-register-header h2 {
+    font-size: 1.35rem; font-weight: 800; margin: 0 0 0.25rem;
+    letter-spacing: -0.02em; color: var(--pr-text);
+  }
+  #{{ prefix }}-cards-embed .pr-register-header p {
+    margin: 0; color: var(--pr-muted); font-size: 0.88rem;
+  }
+  #{{ prefix }}-cards-embed .pr-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+  #{{ prefix }}-cards-embed .pr-filter-btn {
+    border: 1px solid var(--pr-border); background: #fff; color: var(--pr-text);
+    border-radius: 999px; padding: 0.45rem 1.1rem; font-size: 0.85rem;
+    font-weight: 600; cursor: pointer;
+    transition: background 0.25s var(--pr-ease), transform 0.25s var(--pr-ease-spring);
+  }
+  #{{ prefix }}-cards-embed .pr-filter-btn:hover { background: #f1f5f9; transform: translateY(-1px); }
+  #{{ prefix }}-cards-embed .pr-filter-btn.active {
+    background: #0f172a; color: #fff; border-color: #0f172a;
+    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22);
+  }
+  #{{ prefix }}-cards-embed .pr-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.15rem;
+  }
+  #{{ prefix }}-cards-embed .pr-card {
+    background: var(--pr-card); border: 1px solid var(--pr-border); border-radius: 14px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05); overflow: hidden; cursor: pointer;
+    position: relative; animation: {{ prefix }}FadeUp 0.5s var(--pr-ease) both;
+    transition: box-shadow 0.35s var(--pr-ease), transform 0.35s var(--pr-ease-spring);
+  }
+  #{{ prefix }}-cards-embed .pr-card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1); }
+  #{{ prefix }}-cards-embed .pr-card.pr-card-hide { opacity: 0; transform: scale(0.94); pointer-events: none; }
+  #{{ prefix }}-cards-embed .pr-card-accent { height: 4px; }
+  #{{ prefix }}-cards-embed .pr-card-accent.automation { background: linear-gradient(90deg, #1d4ed8, #3b82f6); }
+  #{{ prefix }}-cards-embed .pr-card-accent.operations { background: linear-gradient(90deg, #15803d, #22c55e); }
+  #{{ prefix }}-cards-embed .pr-card-accent.digital { background: linear-gradient(90deg, #6d28d9, #8b5cf6); }
+  #{{ prefix }}-cards-embed .pr-card-body { padding: 1rem 1.1rem; }
+  #{{ prefix }}-cards-embed .pr-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+  #{{ prefix }}-cards-embed .pr-card-meta { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; }
+  #{{ prefix }}-cards-embed .pr-card-meta.automation { color: var(--pr-blue); }
+  #{{ prefix }}-cards-embed .pr-card-meta.operations { color: var(--pr-green); }
+  #{{ prefix }}-cards-embed .pr-card-meta.digital { color: var(--pr-purple); }
+  #{{ prefix }}-cards-embed .pr-badge { font-size: 0.68rem; font-weight: 700; padding: 0.2rem 0.55rem; border-radius: 6px; }
+  #{{ prefix }}-cards-embed .pr-badge.delayed { background: #fee2e2; color: var(--pr-red); }
+  #{{ prefix }}-cards-embed .pr-badge.on_track { background: #dcfce7; color: var(--pr-green); }
+  #{{ prefix }}-cards-embed .pr-card-title { font-size: 1rem; font-weight: 700; margin: 0 0 0.85rem; line-height: 1.35; }
+  #{{ prefix }}-cards-embed .pr-card-content { display: flex; gap: 1rem; align-items: center; }
+  #{{ prefix }}-cards-embed .pr-card-stats { flex: 1; display: flex; flex-direction: column; gap: 0.4rem; }
+  #{{ prefix }}-cards-embed .pr-stat-row { display: flex; justify-content: space-between; font-size: 0.82rem; }
+  #{{ prefix }}-cards-embed .pr-stat-label { color: var(--pr-muted); font-weight: 600; }
+  #{{ prefix }}-cards-embed .pr-stat-value { font-weight: 600; text-align: right; }
+  #{{ prefix }}-cards-embed .pr-pmo-score { font-weight: 700; text-align: right; }
+  #{{ prefix }}-cards-embed .pr-pmo-score.red { color: var(--pr-red); }
+  #{{ prefix }}-cards-embed .pr-pmo-score.yellow { color: var(--pr-yellow); }
+  #{{ prefix }}-cards-embed .pr-pmo-score.green { color: var(--pr-green); }
+  #{{ prefix }}-cards-embed .pr-pmo-score.blue { color: var(--pr-blue); }
+  #{{ prefix }}-cards-embed .pr-card-footer {
+    display: flex; justify-content: space-between; margin-top: 0.85rem; padding-top: 0.75rem;
+    border-top: 1px solid #f1f5f9; font-size: 0.78rem; color: var(--pr-muted);
+  }
+  #{{ prefix }}-cards-embed .pr-view-link { color: var(--pr-blue); font-weight: 600; font-size: 0.82rem; }
+  #{{ prefix }}-cards-embed .pr-gauge { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+  #{{ prefix }}-cards-embed .pr-gauge svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  #{{ prefix }}-cards-embed .pr-gauge-bg { fill: none; stroke: #e2e8f0; stroke-width: 6; }
+  #{{ prefix }}-cards-embed .pr-gauge-fill { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s var(--pr-ease); }
+  #{{ prefix }}-cards-embed .pr-gauge-text {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    font-size: 0.85rem; font-weight: 800;
+  }
+  #{{ prefix }}-cards-embed .pr-header-actions {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+  }
+  #{{ prefix }}-cards-embed .pr-add-project-btn {
+    border: none; background: linear-gradient(135deg, #0284c7, #6366f1);
+    color: #fff; border-radius: 999px; padding: 0.45rem 1rem;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+    transition: transform 0.2s var(--pr-ease-spring), box-shadow 0.2s ease;
+  }
+  #{{ prefix }}-cards-embed .pr-add-project-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.35);
+  }
+  #{{ prefix }}-pr-add-modal.pr-modal-overlay {
+    position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45);
+    z-index: 1250; display: flex; align-items: center; justify-content: center; padding: 1rem;
+  }
+  #{{ prefix }}-pr-add-modal .pr-modal {
+    background: #fff; border-radius: 14px; padding: 1.35rem 1.5rem;
+    width: min(480px, 100%); max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+  }
+  #{{ prefix }}-pr-add-modal .pr-modal h4 { margin: 0 0 1rem; font-size: 1.05rem; font-weight: 800; }
+  #{{ prefix }}-pr-add-modal label {
+    display: block; font-size: 0.78rem; font-weight: 600; color: var(--pr-muted); margin: 0.6rem 0 0.3rem;
+  }
+  #{{ prefix }}-pr-add-modal input, #{{ prefix }}-pr-add-modal select {
+    width: 100%; border: 1px solid var(--pr-border); border-radius: 8px;
+    padding: 0.5rem 0.65rem; font-size: 0.88rem;
+  }
+  #{{ prefix }}-pr-add-modal .pr-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  #{{ prefix }}-pr-add-modal .pr-modal-actions {
+    display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1.15rem;
+  }
+  #{{ prefix }}-pr-add-modal .pr-modal-actions button {
+    border-radius: 8px; padding: 0.45rem 0.95rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  }
+  #{{ prefix }}-pr-add-modal .pr-modal-cancel { border: 1px solid var(--pr-border); background: #fff; color: var(--pr-muted); }
+  #{{ prefix }}-pr-add-modal .pr-modal-save { border: none; background: var(--pr-blue); color: #fff; }
+  #{{ prefix }}-pr-add-error { color: var(--pr-red); font-size: 0.82rem; margin-top: 0.5rem; display: none; }
+</style>
+
+  <div id="{{ prefix }}-register-wrap">
+  <div class="pr-register-header">
+    <div>
+      {% if register_title %}
+      <h2>{{ register_title }}</h2>
+      {% endif %}
+      {% if register_subtitle %}
+      <p>{{ register_subtitle }}</p>
+      {% endif %}
+    </div>
+    <div class="pr-header-actions">
+      {% if show_add_project %}
+      <button type="button" class="pr-add-project-btn" id="{{ prefix }}-add-project-btn">+ ADD PROJECT</button>
+      {% endif %}
+      <div class="pr-filters" id="{{ prefix }}-category-filters">
+        <button type="button" class="pr-filter-btn active" data-filter="all">All</button>
+        <button type="button" class="pr-filter-btn" data-filter="automation">Automation</button>
+        <button type="button" class="pr-filter-btn" data-filter="operations">Operations</button>
+        <button type="button" class="pr-filter-btn" data-filter="digital">Digital</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="pr-grid" id="{{ prefix }}-project-grid">
+    {% for p in projects_tab.projects %}
+    <article class="pr-card" data-project-id="{{ p.id }}" data-category="{{ p.category }}" style="animation-delay: {{ forloop.counter0 }}00ms">
+      <div class="pr-card-accent {{ p.category }}"></div>
+      <div class="pr-card-body">
+        <div class="pr-card-top">
+          <span class="pr-card-meta {{ p.category }}">{{ p.category_label }}</span>
+          <span class="pr-badge {{ p.status }}">{{ p.status_label }}</span>
+        </div>
+        <h3 class="pr-card-title">{{ p.title }}</h3>
+        <div class="pr-card-content">
+          <div class="pr-gauge" data-progress="{{ p.progress }}" data-color="{{ p.category }}">
+            <svg viewBox="0 0 36 36">
+              <circle class="pr-gauge-bg" cx="18" cy="18" r="15.5"></circle>
+              <circle class="pr-gauge-fill" cx="18" cy="18" r="15.5" stroke-dasharray="97.4" stroke-dashoffset="97.4"></circle>
+            </svg>
+            <span class="pr-gauge-text">{{ p.progress }}%</span>
+          </div>
+          <div class="pr-card-stats">
+            <div class="pr-stat-row">
+              <span class="pr-stat-label">Phase</span>
+              <span class="pr-stat-value">{{ p.phase }}</span>
+            </div>
+            <div class="pr-stat-row">
+              <span class="pr-stat-label">PMO Score</span>
+              <span class="pr-pmo-score {% if p.pmo_score < 30 %}red{% elif p.pmo_score < 60 %}yellow{% elif p.pmo_score >= 90 %}green{% else %}blue{% endif %}">{{ p.pmo_score }}%</span>
+            </div>
+          </div>
+        </div>
+        <div class="pr-card-footer">
+          <span>Deadline: {{ p.deadline }}</span>
+          <span class="pr-view-link">View Details →</span>
+        </div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  </div>
+
+  {% if enable_detail %}
+  {% include 'components/ui-kits/tab-bootstrap/components/projects-cards-detail.html' with prefix=prefix projects_tab=projects_tab %}
+  {% endif %}
+
+  {% if show_add_project and not use_tw_register_modal %}
+  <div id="{{ prefix }}-pr-add-modal" class="pr-modal-overlay" style="display:none" aria-hidden="true">
+    <div class="pr-modal" role="dialog">
+      <h4>Add Project Card</h4>
+      <div class="pr-form-row">
+        <div>
+          <label for="{{ prefix }}-add-category">Category *</label>
+          <select id="{{ prefix }}-add-category">
+            <option value="automation">Automation</option>
+            <option value="operations">Operations</option>
+            <option value="digital">Digital</option>
+          </select>
+        </div>
+      </div>
+      <label for="{{ prefix }}-add-title">Project Title *</label>
+      <input type="text" id="{{ prefix }}-add-title" placeholder="Project name" />
+      <div class="pr-form-row">
+        <div>
+          <label for="{{ prefix }}-add-status">Status</label>
+          <select id="{{ prefix }}-add-status">
+            <option value="on_track">ON TRACK</option>
+            <option value="delayed">DELAYED</option>
+          </select>
+        </div>
+        <div>
+          <label for="{{ prefix }}-add-phase">Phase</label>
+          <select id="{{ prefix }}-add-phase">
+            <option value="Initiating">Initiating</option>
+            <option value="Executing">Executing</option>
+            <option value="Closing">Closing</option>
+          </select>
+        </div>
+      </div>
+      <label for="{{ prefix }}-add-deadline">Deadline</label>
+      <input type="date" id="{{ prefix }}-add-deadline" />
+      <div id="{{ prefix }}-pr-add-error"></div>
+      <div class="pr-modal-actions">
+        <button type="button" class="pr-modal-cancel" id="{{ prefix }}-add-cancel">Cancel</button>
+        <button type="button" class="pr-modal-save" id="{{ prefix }}-add-save">Add Project</button>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+<script>
+(function () {
+  var root = document.getElementById("{{ prefix }}-cards-embed");
+  if (!root) return;
+  var openInProjects = root.getAttribute("data-open-projects-tab") === "true";
+  var CIRC = 97.4;
+  var COLORS = { automation: "#2563eb", operations: "#16a34a", digital: "#7c3aed", red: "#dc2626", green: "#16a34a", blue: "#2563eb", gray: "#94a3b8" };
+
+  function progressColor(pct, cat) {
+    if (pct >= 100) return COLORS.green;
+    if (pct === 0) return COLORS.gray;
+    if (pct < 40) return COLORS.red;
+    return COLORS[cat] || COLORS.blue;
+  }
+
+  function setGauge(el, pct, color) {
+    var fill = el.querySelector(".pr-gauge-fill");
+    if (!fill) return;
+    fill.style.stroke = color;
+    fill.style.strokeDashoffset = String(CIRC);
+    requestAnimationFrame(function () {
+      fill.style.strokeDashoffset = String(CIRC - (CIRC * pct / 100));
+    });
+  }
+
+  function animateCounter(el, target) {
+    var startTime = null;
+    function step(ts) {
+      if (!startTime) startTime = ts;
+      var p = Math.min((ts - startTime) / 900, 1);
+      var eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.round(target * eased) + "%";
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  function pmoScoreClass(score) {
+    if (score < 30) return "red";
+    if (score < 60) return "yellow";
+    if (score >= 90) return "green";
+    return "blue";
+  }
+
+  function initGaugeEl(g, delay) {
+    var pct = parseInt(g.getAttribute("data-progress"), 10) || 0;
+    var cat = g.getAttribute("data-color") || "automation";
+    var textEl = g.querySelector(".pr-gauge-text");
+    setTimeout(function () {
+      setGauge(g, pct, progressColor(pct, cat));
+      if (textEl) animateCounter(textEl, pct);
+    }, delay || 80);
+  }
+
+  var enableDetail = root.getAttribute("data-enable-detail") === "true";
+
+  function bindCardClick(card) {
+    card.addEventListener("click", function () {
+      var pid = card.getAttribute("data-project-id");
+      if (enableDetail && typeof root.__prOpenDetail === "function") {
+        root.__prOpenDetail(pid);
+        return;
+      }
+      if (openInProjects && window.__pmoSelectDashboardTab) {
+        window.__pmoSelectDashboardTab("projects");
+        var n = 0;
+        var timer = setInterval(function () {
+          n += 1;
+          if (window.__prOpenProjectDetail) {
+            window.__prOpenProjectDetail(pid);
+            clearInterval(timer);
+          }
+          if (n > 30) clearInterval(timer);
+        }, 100);
+        return;
+      }
+      if (window.__prOpenProjectDetail) window.__prOpenProjectDetail(pid);
+    });
+  }
+
+  function escHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+  }
+
+  function appendProjectCard(p) {
+    var grid = document.getElementById("{{ prefix }}-project-grid");
+    if (!grid) return;
+    var scoreCls = pmoScoreClass(p.pmo_score || 0);
+    var article = document.createElement("article");
+    article.className = "pr-card";
+    article.setAttribute("data-project-id", p.id);
+    article.setAttribute("data-category", p.category);
+    article.innerHTML =
+      '<div class="pr-card-accent ' + p.category + '"></div>' +
+      '<div class="pr-card-body">' +
+        '<div class="pr-card-top">' +
+          '<span class="pr-card-meta ' + escHtml(p.category) + '">' + escHtml(p.category_label) + '</span>' +
+          '<span class="pr-badge ' + escHtml(p.status) + '">' + escHtml(p.status_label) + '</span>' +
+        '</div>' +
+        '<h3 class="pr-card-title">' + escHtml(p.title) + '</h3>' +
+        '<div class="pr-card-content">' +
+          '<div class="pr-gauge" data-progress="' + p.progress + '" data-color="' + p.category + '">' +
+            '<svg viewBox="0 0 36 36"><circle class="pr-gauge-bg" cx="18" cy="18" r="15.5"></circle>' +
+            '<circle class="pr-gauge-fill" cx="18" cy="18" r="15.5" stroke-dasharray="97.4" stroke-dashoffset="97.4"></circle></svg>' +
+            '<span class="pr-gauge-text">' + p.progress + '%</span>' +
+          '</div>' +
+          '<div class="pr-card-stats">' +
+            '<div class="pr-stat-row"><span class="pr-stat-label">Phase</span><span class="pr-stat-value">' + escHtml(p.phase) + '</span></div>' +
+            '<div class="pr-stat-row"><span class="pr-stat-label">PMO Score</span><span class="pr-pmo-score ' + scoreCls + '">' + escHtml(p.pmo_score) + '%</span></div>' +
+          '</div>' +
+        '</div>' +
+        '<div class="pr-card-footer">' +
+          '<span>Deadline: ' + escHtml(p.deadline || '—') + '</span>' +
+          '<span class="pr-view-link">View Details →</span>' +
+        '</div>' +
+      '</div>';
+    grid.appendChild(article);
+    initGaugeEl(article.querySelector(".pr-gauge"), 50);
+    bindCardClick(article);
+    var activeFilter = root.querySelector("#{{ prefix }}-category-filters .pr-filter-btn.active");
+    if (activeFilter) {
+      var f = activeFilter.getAttribute("data-filter");
+      if (f !== "all" && f !== p.category) {
+        article.classList.add("pr-card-hide");
+        article.style.display = "none";
+      }
+    }
+  }
+
+  root.querySelectorAll(".pr-gauge[data-progress]").forEach(function (g, i) {
+    initGaugeEl(g, 80 + i * 70);
+  });
+
+  root.querySelectorAll(".pr-card").forEach(function (card) {
+    bindCardClick(card);
+  });
+
+  var useTwRegister = {{ use_tw_register_modal|yesno:"true,false" }};
+  var addBtn = document.getElementById("{{ prefix }}-add-project-btn");
+  var addModal = document.getElementById("{{ prefix }}-pr-add-modal");
+  if (addBtn && useTwRegister) {
+    addBtn.addEventListener("click", function () {
+      if (typeof window.__ppOpenRegisterNewProject === "function") {
+        window.__ppOpenRegisterNewProject();
+      }
+    });
+  } else if (addBtn && addModal) {
+    var addErr = document.getElementById("{{ prefix }}-pr-add-error");
+    var ADD_URL = "{% url 'dashboard:projects_tab_add_project' %}";
+    function getCsrf() {
+      var el = document.querySelector("[name=csrfmiddlewaretoken]");
+      return el ? el.value : "";
+    }
+    function openAddModal() {
+      addModal.style.display = "flex";
+      addModal.setAttribute("aria-hidden", "false");
+      if (addErr) { addErr.style.display = "none"; addErr.textContent = ""; }
+    }
+    function closeAddModal() {
+      addModal.style.display = "none";
+      addModal.setAttribute("aria-hidden", "true");
+    }
+    addBtn.addEventListener("click", openAddModal);
+    document.getElementById("{{ prefix }}-add-cancel").addEventListener("click", closeAddModal);
+    addModal.addEventListener("click", function (e) { if (e.target === addModal) closeAddModal(); });
+    document.getElementById("{{ prefix }}-add-save").addEventListener("click", function () {
+      var payload = {
+        title: document.getElementById("{{ prefix }}-add-title").value.trim(),
+        category: document.getElementById("{{ prefix }}-add-category").value,
+        status: document.getElementById("{{ prefix }}-add-status").value,
+        phase: document.getElementById("{{ prefix }}-add-phase").value,
+        deadline: document.getElementById("{{ prefix }}-add-deadline").value,
+      };
+      if (!payload.title) {
+        if (addErr) { addErr.textContent = "Project title is required."; addErr.style.display = "block"; }
+        return;
+      }
+      fetch(ADD_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-CSRFToken": getCsrf(), "X-Requested-With": "XMLHttpRequest" },
+        body: JSON.stringify(payload),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          if (!res.ok) {
+            if (addErr) { addErr.textContent = res.message || "Could not add project."; addErr.style.display = "block"; }
+            return;
+          }
+          appendProjectCard(res.project);
+          closeAddModal();
+          document.getElementById("{{ prefix }}-add-title").value = "";
+          document.getElementById("{{ prefix }}-add-deadline").value = "";
+        })
+        .catch(function () {
+          if (addErr) { addErr.textContent = "Network error — try again."; addErr.style.display = "block"; }
+        });
+    });
+  }
+
+  root.querySelectorAll("#{{ prefix }}-category-filters .pr-filter-btn").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      root.querySelectorAll("#{{ prefix }}-category-filters .pr-filter-btn").forEach(function (b) {
+        b.classList.remove("active");
+      });
+      btn.classList.add("active");
+      var filter = btn.getAttribute("data-filter");
+      root.querySelectorAll(".pr-card").forEach(function (card) {
+        var cat = card.getAttribute("data-category");
+        var show = filter === "all" || cat === filter;
+        if (show) {
+          card.classList.remove("pr-card-hide");
+          card.style.display = "";
+        } else {
+          card.classList.add("pr-card-hide");
+          setTimeout(function () { card.style.display = "none"; }, 280);
+        }
+      });
+    });
+  });
+})();
+</script>
+</div>
+{% endwith %}

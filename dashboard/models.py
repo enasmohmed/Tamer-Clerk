@@ -835,6 +835,28 @@ class ProjectTrackerItem(models.Model):
         blank=True,
         help_text="Project Objective / Statement of Work",
     )
+    TIME_SAVING_UNIT_CHOICES = [
+        ("hours", "Hours"),
+        ("minutes", "Minutes"),
+    ]
+    estimated_time_saving = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Estimated time saving from automation (numeric value).",
+    )
+    estimated_time_saving_unit = models.CharField(
+        max_length=10,
+        choices=TIME_SAVING_UNIT_CHOICES,
+        blank=True,
+        default="hours",
+        help_text="Unit for estimated time saving (hours or minutes).",
+    )
+    resources_before_automation = models.TextField(
+        blank=True,
+        help_text="People / roles involved before automation.",
+    )
     strategic_alignment_ref = models.ForeignKey(
         WorkspaceStrategicAlignment,
         null=True,
@@ -1160,3 +1182,50 @@ class ProgressStatus(models.Model):
 
     def __str__(self):
         return f"{self.clerk or '—'} — {self.account or '—'}"
+
+
+class ProjectsTabTaskStore(models.Model):
+    """Persisted task lists for the Projects tab (demo register until wired to ProjectTrackerItem)."""
+
+    project_key = models.CharField(max_length=80, unique=True, help_text="e.g. log-068")
+    tasks = models.JSONField(default=list, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Projects tab task store"
+        verbose_name_plural = "Projects tab task stores"
+
+    def __str__(self):
+        return self.project_key
+
+
+class ProjectsTabCardProject(models.Model):
+    """User-added projects for the Cards View register in Transformation Workspace."""
+
+    project_key = models.CharField(max_length=80, unique=True)
+    data = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Cards view project"
+        verbose_name_plural = "Cards view projects"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return self.project_key
+
+
+class ProjectsTabProjectMetaStore(models.Model):
+    """Persisted metadata edits for Cards View projects (demo + custom cards)."""
+
+    project_key = models.CharField(max_length=80, unique=True, help_text="e.g. log-065")
+    meta = models.JSONField(default=dict, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Cards view project meta"
+        verbose_name_plural = "Cards view project meta"
+
+    def __str__(self):
+        return self.project_key

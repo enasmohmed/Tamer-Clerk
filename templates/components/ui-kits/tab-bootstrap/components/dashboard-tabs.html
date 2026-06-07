@@ -100,6 +100,19 @@
     flex-direction: column;
   }
 
+  /* Projects tab: same light PMO surface */
+  #tab-content.card:has(.projects-pmo-theme) {
+    font-family: var(--pmo-font-stack);
+    background-color: #f8fafc !important;
+    background-image: none;
+    border: 1px solid rgba(15, 23, 42, 0.12) !important;
+    box-shadow: 0 4px 24px rgba(15, 23, 42, 0.08) !important;
+    color: #0f172a;
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 220px);
+  }
+
   /* تغليف الـ select علشان نتحكم في الشكل */
   .custom-select-wrapper {
     position: relative;
@@ -431,7 +444,7 @@
           </ul>
           <div id="tab-content" class="card p-4 shadow-sm bg-white mt-3">
             {% if active_tab|default:'executive overview' == "transformation workspace" or active_tab == "project portfolio" %}
-              {% include 'components/ui-kits/tab-bootstrap/components/transformation-workspace.html' with transformation_workspace=transformation_workspace %}
+              {% include 'components/ui-kits/tab-bootstrap/components/transformation-workspace.html' with transformation_workspace=transformation_workspace projects_tab=projects_tab %}
             {% elif active_tab == "approval queue" and pmo_is_manager|default:False %}
               {% include 'components/ui-kits/tab-bootstrap/components/pmo-approval-queue.html' with transformation_workspace=transformation_workspace %}
             {% else %}

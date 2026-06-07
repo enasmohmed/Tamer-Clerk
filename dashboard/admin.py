@@ -614,6 +614,9 @@ class TransformationWorkspaceProjectAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "objective_sow",
+                    "estimated_time_saving",
+                    "estimated_time_saving_unit",
+                    "resources_before_automation",
                     "strategic_alignment_ref",
                     "kpi_success_criteria",
                     "cost_reduction_pct",

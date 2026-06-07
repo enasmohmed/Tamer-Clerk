@@ -1356,6 +1356,16 @@
     display: flex;
     flex-direction: column;
   }
+  .tw-pr-cards-comparison {
+    margin-top: 20px;
+    flex: 0 0 auto;
+    border: 1px dashed rgba(14, 165, 233, 0.35);
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+  }
+  .tw-pr-cards-comparison .pp-body {
+    background: #f8fafc;
+    border-radius: 0 0 var(--pp-radius) var(--pp-radius);
+  }
   .tw-pmo-theme .tw-alerts-list {
     flex: 0 1 auto;
     min-height: 0;
@@ -1758,7 +1768,6 @@
                 data-launch="{{ p.launch_display|escape }}"
                 data-remarks="{{ p.remarks|escape }}">
               <td>
-                <div class="tw-project-code">{{ p.log_id }}</div>
                 <div class="tw-project-name">{{ p.name }}</div>
                 <div class="tw-project-sub">{{ p.subtitle_line }}</div>
               </td>
@@ -1807,7 +1816,6 @@
         <button type="button" class="btn btn-sm btn-primary fw-bold px-3" id="twHeaderEditDetailsBtn" style="border-radius:10px;">
           Edit project
         </button>
-        <span id="ppSelectedId" class="pp-pill">—</span>
         <button type="button" id="twDetailCloseBtn" class="tw-detail-close-btn" aria-label="Close project details">✕</button>
       </div>
     </div>
@@ -1815,7 +1823,6 @@
       <div id="twDetailShell" class="tw-detail-shell">
         <div class="tw-detail-header-row">
           <h4 id="ppName" class="tw-detail-header-title">—</h4>
-          <span id="ppHeroLogId" class="tw-detail-header-log">LOG —</span>
         </div>
         <div class="tw-detail-tabbar" role="tablist" aria-label="Project sections">
           <button type="button" class="tw-detail-tab active" data-tw-tab="overview" role="tab" aria-selected="true">Overview</button>
@@ -1833,6 +1840,10 @@
                   </div>
                   <div class="pp-body">
                     <div id="ppObjective" class="pp-muted" style="font-size:13px;line-height:1.45;">—</div>
+                    <div id="ppAutomationMeta" class="tw-automation-meta" style="margin-top:12px;font-size:13px;line-height:1.5;display:none;">
+                      <div class="pp-muted" style="margin-bottom:4px;"><strong style="color:#334155;">Estimated time saving:</strong> <span id="ppTimeSaving">—</span></div>
+                      <div class="pp-muted"><strong style="color:#334155;">Resources before automation:</strong> <span id="ppResourcesBefore">—</span></div>
+                    </div>
                     <div id="ppKpiStrategyLine" class="tw-kpi-strategy-line">—</div>
                   </div>
                 </div>
@@ -1901,13 +1912,9 @@
                     <input type="hidden" id="twEditProjectId" value="">
                     <p class="small text-muted mb-2">Fields load from the selected project. Deadline stays manager-only for team users.</p>
                     <div class="row g-2">
-                      <div class="col-md-8">
+                      <div class="col-12">
                         <label class="form-label small text-muted mb-0">Project name</label>
                         <input type="text" class="form-control form-control-sm" id="twEditProjectName" maxlength="300" />
-                      </div>
-                      <div class="col-md-4">
-                        <label class="form-label small text-muted mb-0">Project code / ID</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditProjectCode" maxlength="80" />
                       </div>
                       <div class="col-12">
                         <label class="form-label small text-muted mb-0">Objective / SOW</label>
@@ -2143,6 +2150,21 @@
     </div>
   </div>
 
+  {% if projects_tab %}
+  <div class="pp-card tw-pr-cards-comparison">
+    <div class="pp-card-header" style="border-bottom:1px solid var(--pp-border);">
+      <h3 class="pp-title mb-0">
+        Project Register
+        <span class="pp-pill" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;">Cards View</span>
+      </h3>
+      <p class="small text-muted mb-0 mt-1" style="font-weight:600;">Compare card layout with the table register above.</p>
+    </div>
+    <div class="pp-body" style="padding:16px 18px 18px;">
+      {% include 'components/ui-kits/tab-bootstrap/components/projects-register-embed.html' with embed_prefix='tw-pr' projects_tab=projects_tab open_in_projects_tab=False enable_detail=True show_add_project=True use_tw_register_modal=True register_title='' register_subtitle='Click any card to open project details in the register table and manage tasks.' %}
+    </div>
+  </div>
+  {% endif %}
+
   </div>
   </div>
 </div>
@@ -2220,6 +2242,25 @@
             <div class="col-12">
               <label class="form-label pp-muted">Project Objective / SOW</label>
               <textarea name="objective_sow" class="form-control" rows="3" placeholder="Describe the project objective and statement of work..."
+                        style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;"></textarea>
+            </div>
+          </div>
+
+          <div class="row g-3 mt-2">
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Estimated Time Saving</label>
+              <div class="d-flex gap-2">
+                <input name="estimated_time_saving" type="number" min="0" step="any" class="form-control" placeholder="e.g. 4"
+                       style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                <select name="estimated_time_saving_unit" class="form-select" style="max-width:130px; background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                  <option value="hours">Hours</option>
+                  <option value="minutes">Minutes</option>
+                </select>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label pp-muted">Resources Involved Before Automation</label>
+              <textarea name="resources_before_automation" class="form-control" rows="2" placeholder="e.g. 3 pickers, 1 supervisor"
                         style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;"></textarea>
             </div>
           </div>
@@ -2563,6 +2604,9 @@
     ppFormSetField(form, "department_id", fe.department_id != null && fe.department_id !== "" ? String(fe.department_id) : "");
 
     ppFormSetField(form, "objective_sow", (det.objective_sow || "").trim());
+    ppFormSetField(form, "estimated_time_saving", (fe.estimated_time_saving || det.estimated_time_saving || "").trim());
+    ppFormSetField(form, "estimated_time_saving_unit", (fe.estimated_time_saving_unit || det.estimated_time_saving_unit || "hours").trim());
+    ppFormSetField(form, "resources_before_automation", (fe.resources_before_automation || det.resources_before_automation || "").trim());
 
     ppFormSetField(form, "start_date", (fe.start_date_iso || row.dataset.startIso || "").trim());
     ppFormSetField(form, "planned_deadline", (row.dataset.endIso || "").trim());
@@ -2652,11 +2696,15 @@
     if (m) m.show();
   }
 
+  window.__ppOpenRegisterNewProject = function() {
+    resetPpProjectFormForAdd();
+    var m = getModalInstance();
+    if (m) m.show();
+  };
+
   if (addBtn) {
     addBtn.addEventListener("click", function() {
-      resetPpProjectFormForAdd();
-      var m = getModalInstance();
-      if (m) m.show();
+      window.__ppOpenRegisterNewProject();
     });
   }
 
@@ -3025,8 +3073,6 @@
     document.querySelectorAll(".pp-row").forEach(function(r) { r.classList.remove("pp-active"); });
     row.classList.add("pp-active");
 
-    var logHeader = (row.dataset.logId || "").trim() || ("LOG-" + String(row.dataset.id || ""));
-    setText("ppSelectedId", logHeader);
     setText("ppName", row.dataset.name || "—");
     setText("ppType", row.dataset.typeDisplay || row.dataset.type || "—");
     setText("ppCompany", row.dataset.company || "—");
@@ -3092,12 +3138,28 @@
       kpiLine = String(det.kpi_success_criteria).trim();
     }
     setText("ppObjective", objective);
+    var timeSaving = "—";
+    if (det.estimated_time_saving_display && String(det.estimated_time_saving_display).trim()) {
+      timeSaving = String(det.estimated_time_saving_display).trim();
+    } else if (det.estimated_time_saving && String(det.estimated_time_saving).trim()) {
+      var u = (det.estimated_time_saving_unit || "hours").toLowerCase() === "minutes" ? "minutes" : "hours";
+      timeSaving = String(det.estimated_time_saving).trim() + " " + u;
+    }
+    var resourcesBefore = "—";
+    if (det.resources_before_automation && String(det.resources_before_automation).trim()) {
+      resourcesBefore = String(det.resources_before_automation).trim();
+    }
+    var autoMeta = document.getElementById("ppAutomationMeta");
+    if (autoMeta) {
+      var showAuto = (timeSaving !== "—") || (resourcesBefore !== "—");
+      autoMeta.style.display = showAuto ? "block" : "none";
+    }
+    setText("ppTimeSaving", timeSaving);
+    setText("ppResourcesBefore", resourcesBefore);
     var kpiStrParts = [];
     if (kpiLine && kpiLine !== "—") kpiStrParts.push("KPI: " + kpiLine);
     if (alignTxt) kpiStrParts.push("Strategy: " + alignTxt);
     setText("ppKpiStrategyLine", kpiStrParts.length ? kpiStrParts.join(" · ") : "—");
-
-    setText("ppHeroLogId", (sum.log_id || row.dataset.logId || logHeader || "—").toString());
 
     var hb = document.getElementById("ppHeroBadges");
     if (hb) {
