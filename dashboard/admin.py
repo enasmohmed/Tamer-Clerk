@@ -631,6 +631,7 @@ class TransformationWorkspaceProjectAdmin(admin.ModelAdmin):
             "03 — Governance & approvals",
             {
                 "fields": (
+                    "pmo_register_published",
                     "gov_submitted_by",
                     "gov_reviewed_by",
                     "gov_approval_status",
@@ -666,6 +667,7 @@ class TransformationWorkspaceProjectAdmin(admin.ModelAdmin):
         "register_priority",
         "register_status",
         "is_approved",
+        "pmo_register_published",
         "project_type",
         "start_date",
         "brainstorming_badge",
@@ -680,6 +682,7 @@ class TransformationWorkspaceProjectAdmin(admin.ModelAdmin):
     list_editable = (
         "register_priority",
         "register_status",
+        "pmo_register_published",
         "test_deadline_status",
         "end_date",
         "planned_hours",
@@ -688,6 +691,7 @@ class TransformationWorkspaceProjectAdmin(admin.ModelAdmin):
         "display_order",
     )
     list_filter = (
+        "pmo_register_published",
         "project_type",
         "brainstorming_status",
         "execution_status",
@@ -720,6 +724,11 @@ class TransformationWorkspaceProjectAdmin(admin.ModelAdmin):
         return obj.get_test_deadline_status_display() or "—"
 
     test_deadline_badge.short_description = "Test"
+
+    def save_model(self, request, obj, form, change):
+        # Projects maintained in Admin are portfolio source-of-truth — show in register & KPIs.
+        obj.pmo_register_published = True
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(TransformationWorkspaceRaid)

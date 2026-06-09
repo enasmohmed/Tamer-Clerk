@@ -3126,7 +3126,16 @@ def get_projects_tab_data(project_type=None):
         projects = []
 
     if not projects:
-        projects = _get_projects_tab_demo_projects()
+        from django.conf import settings
+
+        # Demo cards only for local dev when the DB has no projects at all.
+        # On production, unpublished admin rows must not be masked by fake portfolio data.
+        try:
+            has_any_tracker = ProjectTrackerItem.objects.exists()
+        except Exception:
+            has_any_tracker = False
+        if settings.DEBUG and not has_any_tracker:
+            projects = _get_projects_tab_demo_projects()
 
     for project in projects:
         _ensure_project_phases(project)
