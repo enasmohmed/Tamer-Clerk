@@ -857,6 +857,10 @@ class ProjectTrackerItem(models.Model):
         blank=True,
         help_text="People / roles involved before automation.",
     )
+    business_benefits = models.TextField(
+        blank=True,
+        help_text="Expected business benefits from the project or automation.",
+    )
     strategic_alignment_ref = models.ForeignKey(
         WorkspaceStrategicAlignment,
         null=True,
@@ -961,6 +965,13 @@ class ProjectRegisterRemark(models.Model):
         return (self.text or "—")[:60]
 
 
+TASK_STEP_STATUS_CHOICES = [
+    ("pending", "Not Started"),
+    ("in_progress", "In Progress"),
+    ("done", "Completed"),
+]
+
+
 class ProjectProcessStep(models.Model):
     """
     خطوات تنفيذ المشروع (Project Process): وصف، موعد نهائي، مسؤول.
@@ -974,6 +985,16 @@ class ProjectProcessStep(models.Model):
     description = models.TextField(blank=True, help_text="الخطوة / ماذا سيتم إنجازه")
     step_deadline = models.DateField(null=True, blank=True)
     owner_name = models.CharField(max_length=120, blank=True, help_text="المسؤول عن الخطوة")
+    status = models.CharField(
+        max_length=20,
+        choices=TASK_STEP_STATUS_CHOICES,
+        default="pending",
+        help_text="Task completion status for Cards View progress metrics.",
+    )
+    business_benefits = models.TextField(
+        blank=True,
+        help_text="Business benefits expected from completing this task.",
+    )
     display_order = models.PositiveSmallIntegerField(default=0)
 
     class Meta:

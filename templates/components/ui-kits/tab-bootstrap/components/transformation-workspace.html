@@ -1356,13 +1356,12 @@
     display: flex;
     flex-direction: column;
   }
-  .tw-pr-cards-comparison {
-    margin-top: 20px;
+  .tw-pr-register {
+    margin-top: 0;
     flex: 0 0 auto;
-    border: 1px dashed rgba(14, 165, 233, 0.35);
     box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
   }
-  .tw-pr-cards-comparison .pp-body {
+  .tw-pr-register .pp-body {
     background: #f8fafc;
     border-radius: 0 0 var(--pp-radius) var(--pp-radius);
   }
@@ -1704,468 +1703,15 @@
 
 <div class="pp-wrap">
   <div class="tw-register-stack">
-  <div class="tw-register-row">
-    <div class="pp-card tw-register-panel tw-register-panel-overlay-host">
-      <div class="pp-card-header">
-        <h3 class="pp-title">
-          Project Register
-          <span class="pp-pill">{{ transformation_workspace.items|length }} Projects</span>
-        </h3>
-        <div class="d-flex align-items-center gap-2">
-          <button type="button" class="btn btn-sm" id="ppAddProjectBtn"
-                  style="font-weight:900; border-radius:10px; padding:8px 14px; border:0;">
-            + ADD PROJECT
-          </button>
-        </div>
-      </div>
-      <div class="pp-body pp-register-body">
-      <div class="tw-reg-table-wrap">
-        <table class="pp-table tw-reg-table">
-          <thead>
-            <tr>
-              <th style="min-width:200px;">Project</th>
-              <th style="min-width:96px;">Status</th>
-              <th style="min-width:104px;">PMBOK phase</th>
-              <th style="min-width:140px;">Progress</th>
-              <th style="min-width:112px;">Deadline</th>
-              <th style="min-width:100px;">PM</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for p in transformation_workspace.items %}
-            <tr class="pp-row"
-                data-id="{{ p.id }}"
-                data-register-status-code="{{ p.register_status|default:''|escape }}"
-                data-register-priority-code="{{ p.register_priority|default:''|escape }}"
-                data-log-id="{{ p.log_id|escape }}"
-                data-register-badge="{{ p.register_badge_label|escape }}"
-                data-register-badge-class="{{ p.register_badge_class|escape }}"
-                data-category="{{ p.category_display|escape }}"
-                data-alignment="{{ p.strategic_alignment_display|escape }}"
-                data-pmbok="{{ p.pmbok_label|escape }}"
-                data-pmbok-class="{{ p.pmbok_badge_class|escape }}"
-                data-pmo="{{ p.pmo_score_pct }}"
-                data-name="{{ p.name|escape }}"
-                data-company="{{ p.company|escape }}"
-                data-department="{{ p.department|escape }}"
-                data-owner="{{ p.owner|escape }}"
-                data-project-lead="{{ p.project_lead|escape }}"
-                data-secondary="{{ p.contact_secondary|escape }}"
-                data-register-priority="{{ p.register_priority_display|escape }}"
-                data-register-status="{{ p.register_status_display|escape }}"
-                data-type="{{ p.project_type|escape }}"
-                data-type-display="{{ p.project_type_display|escape }}"
-                data-phase="{{ p.phase|escape }}"
-                data-progress="{{ p.progress_pct }}"
-                data-start="{{ p.start_date_display|escape }}"
-                data-deadline="{{ p.deadline_display|escape }}"
-                {% if p.start_date %}data-start-iso="{{ p.start_date|date:'Y-m-d' }}"{% endif %}
-                {% if p.deadline %}data-end-iso="{{ p.deadline|date:'Y-m-d' }}"{% endif %}
-                data-risk="{{ p.risk|escape }}"
-                data-brain="{{ p.brainstorming_display|escape }}"
-                data-dev="{{ p.execution_display|escape }}"
-                data-test="{{ p.test_deadline_display|escape }}"
-                data-launch="{{ p.launch_display|escape }}"
-                data-remarks="{{ p.remarks|escape }}">
-              <td>
-                <div class="tw-project-name">{{ p.name }}</div>
-                <div class="tw-project-sub">{{ p.subtitle_line }}</div>
-              </td>
-              <td>
-                <span class="tw-badge-pill {{ p.register_badge_class }}">{{ p.register_badge_label }}</span>
-              </td>
-              <td>
-                <span class="tw-badge-pill {{ p.pmbok_badge_class }}">{{ p.pmbok_label }}</span>
-              </td>
-              <td>
-                <div class="tw-reg-progress">
-                  <div class="tw-bar"><span style="width: {{ p.progress_pct }}%;"></span></div>
-                  <strong>{{ p.progress_pct }}%</strong>
-                </div>
-              </td>
-              <td class="tw-dead-cell">
-                {% if p.deadline_iso %}
-                <div class="tw-dead-date">{{ p.deadline_iso }}</div>
-                {% else %}
-                <div class="tw-dead-date">—</div>
-                {% endif %}
-                {% if p.deadline_days_label %}
-                <div class="tw-dead-d">{{ p.deadline_days_label }}</div>
-                {% endif %}
-              </td>
-              <td>
-                {% with pm_disp=p.project_lead|default:p.owner %}
-                <span class="tw-pm-name" title="{{ pm_disp|escape }}">{{ pm_disp }}</span>
-                {% endwith %}
-              </td>
-            </tr>
-            {% empty %}
-            <tr><td colspan="6" class="tw-reg-empty-msg" style="text-align:center;padding:22px;">No projects found. Use + ADD PROJECT or Admin → Transformation Workspace — Projects.</td></tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-      </div>
-
-  <div id="twDetailBackdrop" class="tw-detail-backdrop" aria-hidden="true"></div>
-  <div id="twDetailDrawer" class="tw-detail-drawer" aria-hidden="true">
-    <div class="tw-detail-drawer-sheet pp-card tw-project-detail-card">
-    <div class="pp-card-header tw-detail-drawer-header">
-      <h3 class="pp-title mb-0">Project details</h3>
-      <div class="d-flex align-items-center gap-2 flex-wrap justify-content-end">
-        <button type="button" class="btn btn-sm btn-primary fw-bold px-3" id="twHeaderEditDetailsBtn" style="border-radius:10px;">
-          Edit project
-        </button>
-        <button type="button" id="twDetailCloseBtn" class="tw-detail-close-btn" aria-label="Close project details">✕</button>
-      </div>
-    </div>
-    <div class="pp-body tw-detail-drawer-body">
-      <div id="twDetailShell" class="tw-detail-shell">
-        <div class="tw-detail-header-row">
-          <h4 id="ppName" class="tw-detail-header-title">—</h4>
-        </div>
-        <div class="tw-detail-tabbar" role="tablist" aria-label="Project sections">
-          <button type="button" class="tw-detail-tab active" data-tw-tab="overview" role="tab" aria-selected="true">Overview</button>
-          <button type="button" class="tw-detail-tab" data-tw-tab="schedule" role="tab" aria-selected="false">Schedule</button>
-          <button type="button" class="tw-detail-tab" data-tw-tab="raid" role="tab" aria-selected="false">RAID log</button>
-          <button type="button" class="tw-detail-tab" data-tw-tab="biz" role="tab" aria-selected="false">Biz impact</button>
-          <button type="button" class="tw-detail-tab" data-tw-tab="gov" role="tab" aria-selected="false">Governance</button>
-        </div>
-        <div id="ppHeroBadges" class="tw-detail-badge-row" aria-label="Project badges"></div>
-        <div class="tw-detail-panel-scroll">
-              <div class="tw-tab-section" data-tw-panel="overview">
-                <div class="pp-card" style="box-shadow:none;border-style:dashed;">
-                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
-                    <h3 class="pp-title" style="font-size:13px;">Objective / SOW</h3>
-                  </div>
-                  <div class="pp-body">
-                    <div id="ppObjective" class="pp-muted" style="font-size:13px;line-height:1.45;">—</div>
-                    <div id="ppAutomationMeta" class="tw-automation-meta" style="margin-top:12px;font-size:13px;line-height:1.5;display:none;">
-                      <div class="pp-muted" style="margin-bottom:4px;"><strong style="color:#334155;">Estimated time saving:</strong> <span id="ppTimeSaving">—</span></div>
-                      <div class="pp-muted"><strong style="color:#334155;">Resources before automation:</strong> <span id="ppResourcesBefore">—</span></div>
-                    </div>
-                    <div id="ppKpiStrategyLine" class="tw-kpi-strategy-line">—</div>
-                  </div>
-                </div>
-                <div class="tw-overview-split">
-                  <div class="pp-card tw-split-half">
-                    <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
-                      <h3 class="pp-title" style="font-size:13px;">PMO health score</h3>
-                    </div>
-                    <div class="pp-body tw-pmo-split-inner">
-                      <div id="ppHeroPmoVal" class="tw-pmo-display-val">—</div>
-                      <div class="tw-pmo-display-sub">Based on progress, risk, deadline</div>
-                    </div>
-                  </div>
-                  <div class="pp-card tw-split-half">
-                    <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
-                      <h3 class="pp-title" style="font-size:13px;">Deadline tracker</h3>
-                    </div>
-                    <div class="pp-body">
-                      <div class="tw-dl-top-row">
-                        <span>Progress: <strong id="ppProgressInline" style="color:var(--pp-primary);">—</strong></span>
-                        <span id="ppDaysRemaining" class="tw-days-remain">—</span>
-                      </div>
-                      <div class="pp-bar" style="height:10px;background:rgba(226,232,240,0.9);border:1px solid var(--pp-border);">
-                        <span id="ppProgressBarFill" style="width:0%;"></span>
-                      </div>
-                      <div class="tw-dl-deadline-foot">Deadline: <span id="ppDeadlineIso">—</span></div>
-                      {% if pmo_is_team|default:False %}
-                      <p class="small text-muted mb-0 mt-2" style="line-height:1.35;">This deadline is read-only for your role. A manager can change it after approval.</p>
-                      {% endif %}
-                    </div>
-                  </div>
-                </div>
-                <div id="twDetailFooterMeta" class="tw-detail-footer-meta-light"></div>
-                <div class="d-flex flex-wrap gap-2 mb-2 mt-3">
-                  <span id="ppRiskTag" class="pp-mini-tag">—</span>
-                  <span id="ppPriorityTag" class="pp-mini-tag">—</span>
-                </div>
-                <div class="pp-kv"><div class="k">Type</div><div class="v" id="ppType">—</div></div>
-                <div class="pp-kv"><div class="k">Business</div><div class="v" id="ppCompany">—</div></div>
-                <div class="pp-kv"><div class="k">Department</div><div class="v" id="ppDepartment">—</div></div>
-                <div class="pp-kv"><div class="k">Project Lead</div><div class="v" id="ppLead">—</div></div>
-                <div class="pp-kv"><div class="k">Project 2</div><div class="v" id="ppSecondary">—</div></div>
-                <div class="pp-kv"><div class="k">Lead / Owner</div><div class="v" id="ppOwner">—</div></div>
-                <div class="pp-kv"><div class="k">Register status</div><div class="v" id="ppRegStatus">—</div></div>
-                <div class="pp-kv"><div class="k">Start</div><div class="v" id="ppStart">—</div></div>
-                <div class="pp-kv"><div class="k">Deadline</div><div class="v" id="ppDeadline">—</div></div>
-                <div class="pp-kv"><div class="k">Planned completion</div><div class="v" id="ppPlanned">—</div></div>
-                <div class="pp-kv"><div class="k">Phase</div><div class="v" id="ppPhase">—</div></div>
-                <div class="pp-kv"><div class="k">Progress</div><div class="v" id="ppProgress">—</div></div>
-                <div class="pp-card mt-3" style="box-shadow:none;border-style:dashed;">
-                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
-                    <h3 class="pp-title" style="font-size:13px;">Active challenges</h3>
-                  </div>
-                  <div class="pp-body">
-                    <div id="ppChallenges" class="d-grid gap-2"></div>
-                  </div>
-                </div>
-                <div class="pp-kv mt-2"><div class="k">Remarks</div><div class="v pp-remarks" id="ppRemarks">—</div></div>
-
-                <div class="pp-card mt-3 d-none" id="twEditProjectCard" style="box-shadow:none;border-style:dashed;" aria-hidden="true">
-                  <div class="pp-card-header d-flex flex-wrap justify-content-between align-items-center gap-2" style="background:#fff;border-bottom:1px solid var(--pp-border);">
-                    <h3 class="pp-title mb-0" style="font-size:13px;">Edit project details</h3>
-                    <button type="button" class="btn btn-sm btn-outline-secondary d-none" id="twToggleEditPanelBtn" aria-expanded="false" tabindex="-1" aria-hidden="true">Toggle</button>
-                  </div>
-                  <div class="pp-body d-none" id="twEditProjectBody">
-                    <input type="hidden" id="twEditProjectId" value="">
-                    <p class="small text-muted mb-2">Fields load from the selected project. Deadline stays manager-only for team users.</p>
-                    <div class="row g-2">
-                      <div class="col-12">
-                        <label class="form-label small text-muted mb-0">Project name</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditProjectName" maxlength="300" />
-                      </div>
-                      <div class="col-12">
-                        <label class="form-label small text-muted mb-0">Objective / SOW</label>
-                        <textarea class="form-control form-control-sm" id="twEditObjective" rows="2"></textarea>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">KPI / success criteria</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditKpi" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Strategic alignment</label>
-                        <select class="form-select form-select-sm" id="twEditAlignmentId">
-                          <option value="">—</option>
-                          {% if transformation_workspace.register_lookups %}
-                          {% for a in transformation_workspace.register_lookups.alignments %}
-                          <option value="{{ a.id }}">{{ a.name }}</option>
-                          {% endfor %}
-                          {% endif %}
-                        </select>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Project lead</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditLead" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Project 2 / contact</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditSecondary" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Business / company</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditCompany" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Department</label>
-                        <select class="form-select form-select-sm" id="twEditDepartmentId">
-                          <option value="">—</option>
-                          {% if transformation_workspace.register_lookups %}
-                          {% for d in transformation_workspace.register_lookups.departments %}
-                          <option value="{{ d.id }}">{{ d.name }}</option>
-                          {% endfor %}
-                          {% endif %}
-                        </select>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Category</label>
-                        <select class="form-select form-select-sm" id="twEditCategoryId">
-                          <option value="">—</option>
-                          {% if transformation_workspace.register_lookups %}
-                          {% for c in transformation_workspace.register_lookups.categories %}
-                          <option value="{{ c.id }}">{{ c.name }}</option>
-                          {% endfor %}
-                          {% endif %}
-                        </select>
-                      </div>
-                      <div class="col-md-4">
-                        <label class="form-label small text-muted mb-0">Priority</label>
-                        <select class="form-select form-select-sm" id="twEditRegisterPriority">
-                          <option value="">—</option>
-                          <option value="critical">Critical</option>
-                          <option value="high">High</option>
-                          <option value="medium">Medium</option>
-                          <option value="low">Low</option>
-                        </select>
-                      </div>
-                      <div class="col-md-4">
-                        <label class="form-label small text-muted mb-0">Register status</label>
-                        <select class="form-select form-select-sm" id="twEditRegisterStatus">
-                          <option value="">—</option>
-                          <option value="on_track">On track</option>
-                          <option value="at_risk">At risk</option>
-                          <option value="delayed">Delayed</option>
-                          <option value="blocked">Blocked</option>
-                          {% if pmo_is_manager|default:False %}
-                          <option value="approved">Approved</option>
-                          {% endif %}
-                        </select>
-                      </div>
-                      <div class="col-md-4">
-                        <label class="form-label small text-muted mb-0">Start date</label>
-                        <input type="date" class="form-control form-control-sm" id="twEditStartDate" {% if pmo_is_team|default:False %}disabled title="Only a PMO manager can change the start date"{% elif pmo_is_manager|default:False %}disabled title="Use Edit project to set start and end dates"{% endif %} />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Planned deadline {% if pmo_is_team|default:False %}(manager only){% endif %}</label>
-                        <input type="date" class="form-control form-control-sm" id="twEditDeadline" {% if pmo_is_team|default:False %}disabled title="Only a PMO manager can change the project deadline"{% elif pmo_is_manager|default:False %}disabled title="Use Edit project to set start and end dates"{% endif %} />
-                        {% if pmo_is_team|default:False %}
-                        <div class="form-text">After the project is registered, only a manager can change start date and deadline; other fields stay editable.</div>
-                        {% elif pmo_is_manager|default:False %}
-                        <div class="form-text">Managers set start and end dates from the project edit dialog.</div>
-                        {% endif %}
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Cost reduction %</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditCostReduction" placeholder="e.g. 12.5" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Headcount impact</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditHeadcount" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">SLA improvement</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditSla" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Planned hours</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditPlannedHours" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Actual hours</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditActualHours" />
-                      </div>
-                      <div class="col-12"><hr class="my-1 opacity-25"></div>
-                      <div class="col-md-4">
-                        <label class="form-label small text-muted mb-0">Gov — submitted by</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditGovSubmitted" />
-                      </div>
-                      <div class="col-md-4">
-                        <label class="form-label small text-muted mb-0">Gov — reviewed by</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditGovReviewed" />
-                      </div>
-                      <div class="col-md-4">
-                        <label class="form-label small text-muted mb-0">Gov — approval status</label>
-                        <select class="form-select form-select-sm" id="twEditGovApproval">
-                          <option value="">—</option>
-                          <option value="pending">Pending</option>
-                          <option value="approved">Approved</option>
-                          <option value="rejected">Rejected</option>
-                          <option value="in_review">In review</option>
-                        </select>
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Stakeholders</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditGovStakeholders" />
-                      </div>
-                      <div class="col-md-6">
-                        <label class="form-label small text-muted mb-0">Operational impact</label>
-                        <input type="text" class="form-control form-control-sm" id="twEditGovImpact" />
-                      </div>
-                      <div class="col-12">
-                        <label class="form-label small text-muted mb-0">Assumptions &amp; constraints</label>
-                        <textarea class="form-control form-control-sm" id="twEditGovAssumptions" rows="2"></textarea>
-                      </div>
-                    </div>
-                    <div class="d-flex align-items-center gap-2 mt-2">
-                      <button type="button" class="btn btn-sm btn-success fw-bold" id="twSaveProjectBtn">Save</button>
-                      <span class="small text-muted" id="twSaveProjectMsg"></span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="tw-tab-section d-none" data-tw-panel="schedule">
-                <div class="pp-card" style="box-shadow:none;border-style:dashed;">
-                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
-                    <h3 class="pp-title" style="font-size:13px;">Project process</h3>
-                  </div>
-                  <div class="pp-body" style="padding:0;">
-                    <div class="pp-table-wrap" style="max-height:min(240px,28vh);border:0;">
-                      <table class="pp-tw-detail-table">
-                        <thead>
-                          <tr>
-                            <th>Step / description</th>
-                            <th style="min-width:110px;">Deadline</th>
-                            <th style="min-width:100px;">Owner</th>
-                          </tr>
-                        </thead>
-                        <tbody id="ppProcessBody"></tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-                <div class="pp-kv mt-2"><div class="k">Brainstorming</div><div class="v" id="ppBrain">—</div></div>
-                <div class="pp-kv"><div class="k">Development</div><div class="v" id="ppDev">—</div></div>
-                <div class="pp-kv"><div class="k">Test</div><div class="v" id="ppTest">—</div></div>
-                <div class="pp-kv"><div class="k">Launch</div><div class="v" id="ppLaunch">—</div></div>
-              </div>
-              <div class="tw-tab-section d-none" data-tw-panel="raid">
-                <div class="pp-card" style="box-shadow:none;border-style:dashed;">
-                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
-                    <h3 class="pp-title" style="font-size:13px;">RAID log</h3>
-                  </div>
-                  <div class="pp-body" style="padding:0;">
-                    <div class="pp-table-wrap" style="max-height:min(260px,30vh);border:0;">
-                      <table class="pp-tw-detail-table">
-                        <thead>
-                          <tr>
-                            <th style="min-width:88px;">Type</th>
-                            <th>Description</th>
-                            <th style="min-width:72px;">Priority</th>
-                            <th style="min-width:72px;">Owner</th>
-                            <th style="min-width:72px;">Status</th>
-                          </tr>
-                        </thead>
-                        <tbody id="ppRaidBody"></tbody>
-                      </table>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div class="tw-tab-section d-none" data-tw-panel="biz">
-                <div class="pp-card" style="box-shadow:none;border-style:dashed;">
-                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
-                    <h3 class="pp-title" style="font-size:13px;">Business impact</h3>
-                  </div>
-                  <div class="pp-body">
-                    <div class="pp-kv"><div class="k">Cost reduction (%)</div><div class="v" id="ppBizCostRed">—</div></div>
-                    <div class="pp-kv"><div class="k">SLA improvement</div><div class="v" id="ppBizSla">—</div></div>
-                    <div class="pp-kv"><div class="k">Headcount impact</div><div class="v" id="ppBizHeadcount">—</div></div>
-                    <div class="pp-kv"><div class="k">Strategic alignment</div><div class="v" id="ppBizAlign">—</div></div>
-                  </div>
-                </div>
-              </div>
-              <div class="tw-tab-section d-none" data-tw-panel="gov">
-                <div class="pp-card" style="box-shadow:none;border-style:dashed;">
-                  <div class="pp-card-header" style="background:#fff;border-bottom:1px solid var(--pp-border);">
-                    <h3 class="pp-title" style="font-size:13px;">Governance &amp; approvals</h3>
-                  </div>
-                  <div class="pp-body">
-                    <div class="pp-kv" style="margin-bottom:8px;"><div class="k">Submitted by</div><div class="v" id="ppGovSubmitted">—</div></div>
-                    <div class="pp-kv" style="margin-bottom:8px;"><div class="k">Reviewed by</div><div class="v" id="ppGovReviewed">—</div></div>
-                    <div class="pp-kv" style="margin-bottom:8px;"><div class="k">Approval</div><div class="v" id="ppGovApproval">—</div></div>
-                    <div class="pp-kv" style="margin-bottom:8px;"><div class="k">Stakeholders</div><div class="v" id="ppGovStakeholders">—</div></div>
-                    <div class="pp-kv" style="margin-bottom:8px;"><div class="k">Operational impact</div><div class="v" id="ppGovImpact">—</div></div>
-                    <div class="pp-muted" style="font-weight:900;letter-spacing:0.06em;text-transform:uppercase;font-size:11px;margin-bottom:6px;">Assumptions &amp; constraints</div>
-                    <div id="ppGovAssumptions" class="pp-muted" style="font-size:12.8px;line-height:1.45;white-space:pre-wrap;">—</div>
-                  </div>
-                </div>
-              </div>
-        </div>
-      </div>
-    </div>
-    </div>
-  </div>
-
-    </div>
-  </div>
 
   {% if projects_tab %}
-  <div class="pp-card tw-pr-cards-comparison">
-    <div class="pp-card-header" style="border-bottom:1px solid var(--pp-border);">
-      <h3 class="pp-title mb-0">
-        Project Register
-        <span class="pp-pill" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;">Cards View</span>
-      </h3>
-      <p class="small text-muted mb-0 mt-1" style="font-weight:600;">Compare card layout with the table register above.</p>
-    </div>
+  <div class="pp-card tw-pr-register">
     <div class="pp-body" style="padding:16px 18px 18px;">
-      {% include 'components/ui-kits/tab-bootstrap/components/projects-register-embed.html' with embed_prefix='tw-pr' projects_tab=projects_tab open_in_projects_tab=False enable_detail=True show_add_project=True use_tw_register_modal=True register_title='' register_subtitle='Click any card to open project details in the register table and manage tasks.' %}
+      {% include 'components/ui-kits/tab-bootstrap/components/projects-register-embed.html' with embed_prefix='tw-pr' projects_tab=projects_tab open_in_projects_tab=False enable_detail=True show_add_project=True use_tw_register_modal=True register_title='Project Register' register_subtitle='Click any card to view project details and manage tasks.' %}
     </div>
   </div>
   {% endif %}
 
-  </div>
   </div>
 </div>
 
@@ -2184,20 +1730,20 @@
           {% csrf_token %}
           <input type="hidden" name="project_id" id="ppFormProjectId" value="" autocomplete="off">
 
-          <div class="pp-modal-section-title">01 — PROJECT IDENTITY</div>
+          <div class="pp-modal-section-title" id="ppModalSection01">01 — PROJECT IDENTITY</div>
 
           <div class="row g-3 mt-2">
             <div class="col-md-6">
-              <label class="form-label pp-muted">Project Name *</label>
+              <label class="form-label pp-muted" id="ppLabelProjectName">Project Name *</label>
               <input name="project_name" class="form-control" required placeholder="e.g. Fleet IoT Upgrade"
                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
             </div>
-            <div class="col-md-6">
-              <label class="form-label pp-muted">Business / Company</label>
+            <div class="col-md-6" id="ppProjectCompanyCol">
+              <label class="form-label pp-muted" id="ppLabelCompany">Business / Company</label>
               <input name="company" class="form-control" placeholder="e.g. Tamer Logistics"
                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
             </div>
-            <div class="col-md-6">
+            <div class="col-md-6" id="ppProjectRegisterStatusCol">
               <label class="form-label pp-muted">Project Status</label>
               <select name="register_status" class="form-select"
                       style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
@@ -2211,18 +1757,27 @@
                 {% endif %}
               </select>
             </div>
+            <div class="col-md-6 d-none" id="ppTaskStatusCol">
+              <label class="form-label pp-muted" for="ppTaskStatusField">Task Status</label>
+              <select name="task_status" id="ppTaskStatusField" class="form-select"
+                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
+                <option value="pending">● Not Started</option>
+                <option value="in_progress">● In Progress</option>
+                <option value="done">● Completed</option>
+              </select>
+            </div>
             <div class="col-md-4">
-              <label class="form-label pp-muted">Project Lead</label>
+              <label class="form-label pp-muted" id="ppLabelProjectLead">Project Lead</label>
               <input name="project_lead" class="form-control" placeholder="Team lead name"
                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
             </div>
-            <div class="col-md-4">
-              <label class="form-label pp-muted">Project 2</label>
+            <div class="col-md-4" id="ppProjectSecondaryCol">
+              <label class="form-label pp-muted" id="ppLabelProjectSecondary">Project 2</label>
               <input name="project_secondary" class="form-control" placeholder="Second contact / owner"
                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
             </div>
-            <div class="col-md-4">
-              <label class="form-label pp-muted">Department</label>
+            <div class="col-md-4" id="ppProjectDepartmentCol">
+              <label class="form-label pp-muted" id="ppLabelDepartment">Department</label>
               <select name="department_id" class="form-select"
                       style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
                 <option value="">—</option>
@@ -2236,45 +1791,35 @@
             </div>
           </div>
 
-          <div class="pp-modal-section-title pp-modal-section-spaced">02 — PROJECT OBJECTIVE</div>
+          <div class="pp-modal-section-title pp-modal-section-spaced" id="ppModalSection02">02 — PROJECT OBJECTIVE</div>
 
-          <div class="row g-3 mt-2">
+          <div class="row g-3 mt-2" id="ppModalSection02Body">
             <div class="col-12">
-              <label class="form-label pp-muted">Project Objective / SOW</label>
+              <label class="form-label pp-muted" id="ppLabelObjectiveSow">Project Objective / SOW</label>
               <textarea name="objective_sow" class="form-control" rows="3" placeholder="Describe the project objective and statement of work..."
                         style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;"></textarea>
             </div>
           </div>
 
-          <div class="row g-3 mt-2">
-            <div class="col-md-6">
-              <label class="form-label pp-muted">Estimated Time Saving</label>
-              <div class="d-flex gap-2">
-                <input name="estimated_time_saving" type="number" min="0" step="any" class="form-control" placeholder="e.g. 4"
-                       style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-                <select name="estimated_time_saving_unit" class="form-select" style="max-width:130px; background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
-                  <option value="hours">Hours</option>
-                  <option value="minutes">Minutes</option>
-                </select>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label pp-muted">Resources Involved Before Automation</label>
-              <textarea name="resources_before_automation" class="form-control" rows="2" placeholder="e.g. 3 pickers, 1 supervisor"
+          <div class="row g-3 mt-2" id="ppModalSection02Extra">
+            <div class="col-12">
+              <label class="form-label pp-muted" for="ppBusinessBenefits">Business Benefits</label>
+              <textarea name="business_benefits" id="ppBusinessBenefits" class="form-control" rows="3"
+                        placeholder="Describe the business benefits expected from this project or task..."
                         style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;"></textarea>
             </div>
           </div>
 
-          <div class="pp-modal-section-title pp-modal-section-spaced">03 — SCHEDULE &amp; DEADLINES</div>
+          <div class="pp-modal-section-title pp-modal-section-spaced" id="ppModalSection03">03 — SCHEDULE &amp; DEADLINES</div>
 
           <div class="row g-3 mt-2">
-            <div class="col-md-4">
-              <label class="form-label pp-muted">Start date</label>
+            <div class="col-md-4" id="ppStartDateCol">
+              <label class="form-label pp-muted" id="ppLabelStartDate">Start date</label>
               <input name="start_date" id="ppInputStartDate" type="date" class="form-control"
                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
             </div>
             <div class="col-md-4">
-              <label class="form-label pp-muted">Planned deadline *</label>
+              <label class="form-label pp-muted" id="ppLabelPlannedDeadline">Planned deadline *</label>
               <input name="planned_deadline" id="ppInputPlannedDeadline" type="date" class="form-control"
                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
               {% if pmo_is_team|default:False %}
@@ -2289,8 +1834,8 @@
                 As PMO manager you can change the start date and planned deadline here; other fields stay with the team.
               </p>
             </div>
-            <div class="col-md-4">
-              <label class="form-label pp-muted">PMBOK phase</label>
+            <div class="col-md-4" id="ppPmbokCol">
+              <label class="form-label pp-muted" id="ppLabelPmbok">PMBOK phase</label>
               <select name="pmbok_phase" class="form-select"
                       style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
                 <option value="">—</option>
@@ -2301,20 +1846,20 @@
                 <option value="Closing">Closing</option>
               </select>
             </div>
-            <div class="col-md-6">
-              <label class="form-label pp-muted">% complete</label>
+            <div class="col-md-6" id="ppPctCompleteCol">
+              <label class="form-label pp-muted" id="ppLabelPctComplete">% complete</label>
               <input name="pct_complete" type="number" min="0" max="100" class="form-control" placeholder="0 - 100"
                      style="background:#0f172a; border:1px solid rgba(255,255,255,0.10); color:#e6edf7;">
             </div>
           </div>
 
-          <div class="pp-modal-section-subtitle">Project process steps — Description · Deadline · Owner</div>
+          <div class="pp-modal-section-subtitle" id="ppProcessStepsSubtitle">Project process steps — Description · Deadline · Owner</div>
           <table class="pp-repeat-table">
             <thead>
               <tr>
                 <th>Description</th>
                 <th style="min-width:132px;">Deadline</th>
-                <th style="min-width:108px;">Owner</th>
+                <th style="min-width:108px;" id="ppProcessOwnerColHeader">Owner</th>
                 <th style="width:40px;"></th>
               </tr>
             </thead>
@@ -2340,9 +1885,9 @@
           </table>
           <button type="button" class="pp-add-repeat" id="ppAddProcessRow">+ Add process step</button>
 
-          <div class="pp-modal-section-title pp-modal-section-spaced">04 — CHALLENGES &amp; CONSTRAINTS</div>
+          <div class="pp-modal-section-title pp-modal-section-spaced" id="ppModalSection04">04 — CHALLENGES &amp; CONSTRAINTS</div>
 
-          <div class="row g-3 mt-2">
+          <div class="row g-3 mt-2" id="ppModalSection04Body">
             <div class="col-md-8">
               <label class="form-label pp-muted">Challenge #1</label>
               <input name="challenge_1" class="form-control" placeholder="e.g. Vendor lead times 12+ weeks"
@@ -2544,12 +2089,139 @@
     }
   }
 
-  function resetPpProjectFormForAdd() {
+  function restorePpProjectModalChrome() {
+    var titleEl = document.getElementById("ppAddProjectModalTitle");
+    var subBtn = document.getElementById("ppSubmitProjectBtn");
+    var form = document.getElementById("ppAddProjectForm");
+    var pn = form && form.elements.namedItem("project_name");
+    if (titleEl) titleEl.textContent = "REGISTER NEW PROJECT";
+    if (subBtn) subBtn.textContent = "Register Project";
+    if (pn) pn.setAttribute("required", "required");
+    setPpTaskModeChrome(false);
+  }
+
+  var ppTaskLabelDefaults = {
+    ppModalSection01: "01 — PROJECT IDENTITY",
+    ppModalSection02: "02 — PROJECT OBJECTIVE",
+    ppModalSection03: "03 — SCHEDULE & DEADLINES",
+    ppModalSection04: "04 — CHALLENGES & CONSTRAINTS",
+    ppLabelProjectName: "Project Name *",
+    ppLabelCompany: "Business / Company",
+    ppLabelProjectLead: "Project Lead",
+    ppLabelProjectSecondary: "Project 2",
+    ppLabelDepartment: "Department",
+    ppLabelObjectiveSow: "Project Objective / SOW",
+    ppLabelStartDate: "Start date",
+    ppLabelPlannedDeadline: "Planned deadline *",
+    ppLabelPmbok: "PMBOK phase",
+    ppLabelPctComplete: "% complete",
+    ppProcessStepsSubtitle: "Project process steps — Description · Deadline · Owner",
+    ppProcessOwnerColHeader: "Owner",
+  };
+
+  var ppTaskLabelTaskMode = {
+    ppModalSection01: "01 — TASK IDENTITY",
+    ppModalSection02: "02 — TASK OBJECTIVE",
+    ppModalSection03: "03 — SCHEDULE & DEADLINES",
+    ppModalSection04: "04 — CHALLENGES & CONSTRAINTS",
+    ppLabelProjectName: "Task Description *",
+    ppLabelCompany: "Business / Company",
+    ppLabelProjectLead: "Assigned To",
+    ppLabelProjectSecondary: "Secondary Contact",
+    ppLabelDepartment: "Department",
+    ppLabelObjectiveSow: "Task Objective / Notes",
+    ppLabelStartDate: "Start date",
+    ppLabelPlannedDeadline: "Planned deadline *",
+    ppLabelPmbok: "PMBOK phase",
+    ppLabelPctComplete: "% complete",
+    ppProcessStepsSubtitle: "Task process steps — Description · Deadline · Assigned To",
+    ppProcessOwnerColHeader: "Assigned To",
+  };
+
+  function ppApplyFormLabels(labelMap) {
+    Object.keys(labelMap).forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = labelMap[id];
+    });
+  }
+
+  function setPpTaskModeChrome(isTask) {
+    var taskCol = document.getElementById("ppTaskStatusCol");
+    var projStatCol = document.getElementById("ppProjectRegisterStatusCol");
+    if (taskCol) taskCol.classList.toggle("d-none", !isTask);
+    if (projStatCol) projStatCol.classList.toggle("d-none", !!isTask);
+
+    ppApplyFormLabels(isTask ? ppTaskLabelTaskMode : ppTaskLabelDefaults);
+
+    var nameInp = document.querySelector("#ppAddProjectForm [name=\"project_name\"]");
+    if (nameInp) nameInp.placeholder = isTask ? "e.g. Define scope with ops manager" : "e.g. Fleet IoT Upgrade";
+
+    var leadInp = document.querySelector("#ppAddProjectForm [name=\"project_lead\"]");
+    if (leadInp) leadInp.placeholder = isTask ? "Name or team" : "Team lead name";
+
+    var secInp = document.querySelector("#ppAddProjectForm [name=\"project_secondary\"]");
+    if (secInp) secInp.placeholder = isTask ? "Backup contact" : "Second contact / owner";
+
+    var objTa = document.querySelector("#ppAddProjectForm [name=\"objective_sow\"]");
+    if (objTa) {
+      objTa.placeholder = isTask
+        ? "Describe what this task should achieve..."
+        : "Describe the project objective and statement of work...";
+    }
+
+    var teamHint = document.getElementById("ppTeamScheduleCreateHint");
+    if (teamHint) teamHint.classList.toggle("d-none", !!isTask);
+  }
+
+  function normalizeTaskStatus(status) {
+    var st = (status || "pending").trim();
+    if (st === "done" || st === "in_progress") return st;
+    return "pending";
+  }
+
+  function populatePpFormForTask(editTask) {
+    if (!editTask) return;
+    var form = document.getElementById("ppAddProjectForm");
+    if (!form) return;
+    ppFormSetField(form, "project_name", editTask.text || "");
+    ppFormSetField(form, "project_lead", editTask.assignee || "");
+    ppFormSetField(form, "planned_deadline", editTask.deadline || "");
+    ppFormSetField(form, "task_status", normalizeTaskStatus(editTask.status));
+    ppFormSetField(form, "business_benefits", editTask.business_benefits || "");
+    ppResetRepeatTableRows("ppProcessRows", "pp-process-row", false);
+  }
+
+  window.__ppOpenRegisterNewTask = function(ctx) {
+    ctx = ctx || {};
+    resetPpProjectFormFields();
+    window.__ppFormMode = "task";
+    window.__ppTaskContext = ctx;
+    window.__ppFormIsEdit = !!(ctx.editTask && ctx.editTask.id);
+
+    var titleEl = document.getElementById("ppAddProjectModalTitle");
+    var subBtn = document.getElementById("ppSubmitProjectBtn");
+    var form = document.getElementById("ppAddProjectForm");
+    var pn = form && form.elements.namedItem("project_name");
+    if (titleEl) titleEl.textContent = ctx.editTask ? "EDIT TASK" : "ADD NEW TASK";
+    if (subBtn) subBtn.textContent = "Save Task";
+    if (pn) pn.removeAttribute("required");
+
+    setPpTaskModeChrome(true);
+    if (form) ppFormSetField(form, "task_status", "pending");
+
+    var err = document.getElementById("ppAddProjectError");
+    if (err) { err.classList.add("d-none"); err.textContent = ""; }
+
+    if (ctx.editTask) populatePpFormForTask(ctx.editTask);
+
+    var m = getModalInstance();
+    if (m) m.show();
+  };
+
+  function resetPpProjectFormFields() {
     window.__ppFormIsEdit = false;
     var form = document.getElementById("ppAddProjectForm");
     var tid = document.getElementById("ppFormProjectId");
-    var titleEl = document.getElementById("ppAddProjectModalTitle");
-    var subBtn = document.getElementById("ppSubmitProjectBtn");
     var dl = document.getElementById("ppInputPlannedDeadline");
     var sd = document.getElementById("ppInputStartDate");
     var hint = document.getElementById("ppDeadlineTeamReadonlyHint");
@@ -2568,11 +2240,16 @@
     }
     var teamCreateHint = document.getElementById("ppTeamScheduleCreateHint");
     if (teamCreateHint) teamCreateHint.classList.remove("d-none");
-    if (titleEl) titleEl.textContent = "REGISTER NEW PROJECT";
-    if (subBtn) subBtn.textContent = "Register Project";
     ppResetRepeatTableRows("ppProcessRows", "pp-process-row", false);
     ppResetRemarkRows();
     setPpAddFormManagerDatesOnlyLocked(false);
+  }
+
+  function resetPpProjectFormForAdd() {
+    window.__ppFormMode = "project";
+    window.__ppTaskContext = null;
+    resetPpProjectFormFields();
+    restorePpProjectModalChrome();
   }
 
   function openPpAddProjectModalForEdit(row) {
@@ -2604,9 +2281,7 @@
     ppFormSetField(form, "department_id", fe.department_id != null && fe.department_id !== "" ? String(fe.department_id) : "");
 
     ppFormSetField(form, "objective_sow", (det.objective_sow || "").trim());
-    ppFormSetField(form, "estimated_time_saving", (fe.estimated_time_saving || det.estimated_time_saving || "").trim());
-    ppFormSetField(form, "estimated_time_saving_unit", (fe.estimated_time_saving_unit || det.estimated_time_saving_unit || "hours").trim());
-    ppFormSetField(form, "resources_before_automation", (fe.resources_before_automation || det.resources_before_automation || "").trim());
+    ppFormSetField(form, "business_benefits", (fe.business_benefits || det.business_benefits || "").trim());
 
     ppFormSetField(form, "start_date", (fe.start_date_iso || row.dataset.startIso || "").trim());
     ppFormSetField(form, "planned_deadline", (row.dataset.endIso || "").trim());
@@ -2790,6 +2465,30 @@
       var err = document.getElementById("ppAddProjectError");
       if (!form) return;
       if (err) { err.classList.add("d-none"); err.textContent = ""; }
+
+      if (window.__ppFormMode === "task") {
+        window.__ppAddProjectInFlight = true;
+        var taskOriginalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Saving...";
+        var taskDone = function(ok, msg) {
+          window.__ppAddProjectInFlight = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = taskOriginalText;
+          if (!ok) {
+            if (err && msg) { err.textContent = msg; err.classList.remove("d-none"); }
+            return;
+          }
+          if (modal) modal.hide();
+          setTimeout(hardCleanupModalState, 50);
+        };
+        if (typeof window.__ppSubmitTaskFromRegisterForm === "function") {
+          window.__ppSubmitTaskFromRegisterForm(form, taskDone);
+        } else {
+          taskDone(false, "Task save is not available.");
+        }
+        return;
+      }
 
       window.__ppAddProjectInFlight = true;
       var originalText = submitBtn.textContent;
@@ -3138,24 +2837,15 @@
       kpiLine = String(det.kpi_success_criteria).trim();
     }
     setText("ppObjective", objective);
-    var timeSaving = "—";
-    if (det.estimated_time_saving_display && String(det.estimated_time_saving_display).trim()) {
-      timeSaving = String(det.estimated_time_saving_display).trim();
-    } else if (det.estimated_time_saving && String(det.estimated_time_saving).trim()) {
-      var u = (det.estimated_time_saving_unit || "hours").toLowerCase() === "minutes" ? "minutes" : "hours";
-      timeSaving = String(det.estimated_time_saving).trim() + " " + u;
-    }
-    var resourcesBefore = "—";
-    if (det.resources_before_automation && String(det.resources_before_automation).trim()) {
-      resourcesBefore = String(det.resources_before_automation).trim();
+    var businessBenefits = "—";
+    if (det.business_benefits && String(det.business_benefits).trim()) {
+      businessBenefits = String(det.business_benefits).trim();
     }
     var autoMeta = document.getElementById("ppAutomationMeta");
     if (autoMeta) {
-      var showAuto = (timeSaving !== "—") || (resourcesBefore !== "—");
-      autoMeta.style.display = showAuto ? "block" : "none";
+      autoMeta.style.display = businessBenefits !== "—" ? "block" : "none";
     }
-    setText("ppTimeSaving", timeSaving);
-    setText("ppResourcesBefore", resourcesBefore);
+    setText("ppBusinessBenefits", businessBenefits);
     var kpiStrParts = [];
     if (kpiLine && kpiLine !== "—") kpiStrParts.push("KPI: " + kpiLine);
     if (alignTxt) kpiStrParts.push("Strategy: " + alignTxt);

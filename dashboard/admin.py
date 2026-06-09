@@ -564,7 +564,7 @@ class WorkspaceStrategicAlignmentAdmin(admin.ModelAdmin):
 class ProjectProcessStepInline(admin.TabularInline):
     model = ProjectProcessStep
     extra = 0
-    fields = ("description", "step_deadline", "owner_name", "display_order")
+    fields = ("description", "step_deadline", "owner_name", "status", "business_benefits", "display_order")
 
 
 class PortfolioRaidItemInline(admin.TabularInline):
@@ -614,9 +614,7 @@ class TransformationWorkspaceProjectAdmin(admin.ModelAdmin):
             {
                 "fields": (
                     "objective_sow",
-                    "estimated_time_saving",
-                    "estimated_time_saving_unit",
-                    "resources_before_automation",
+                    "business_benefits",
                     "strategic_alignment_ref",
                     "kpi_success_criteria",
                     "cost_reduction_pct",

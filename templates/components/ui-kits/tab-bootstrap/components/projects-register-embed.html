@@ -23,27 +23,73 @@
   }
   #{{ prefix }}-cards-embed .pr-register-header {
     display: flex; flex-wrap: wrap; align-items: flex-start;
-    justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem;
+    justify-content: space-between; gap: 0.85rem 1.25rem; margin-bottom: 0.85rem;
   }
   #{{ prefix }}-cards-embed .pr-register-header h2 {
     font-size: 1.35rem; font-weight: 800; margin: 0 0 0.25rem;
     letter-spacing: -0.02em; color: var(--pr-text);
   }
   #{{ prefix }}-cards-embed .pr-register-header p {
-    margin: 0; color: var(--pr-muted); font-size: 0.88rem;
+    margin: 0; color: var(--pr-muted); font-size: 0.88rem; max-width: 36rem;
   }
-  #{{ prefix }}-cards-embed .pr-filters { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-  #{{ prefix }}-cards-embed .pr-filter-btn {
-    border: 1px solid var(--pr-border); background: #fff; color: var(--pr-text);
-    border-radius: 999px; padding: 0.45rem 1.1rem; font-size: 0.85rem;
-    font-weight: 600; cursor: pointer;
-    transition: background 0.25s var(--pr-ease), transform 0.25s var(--pr-ease-spring);
+  #{{ prefix }}-cards-embed .pr-header-actions {
+    display: flex; align-items: center; gap: 0.55rem; flex-shrink: 0;
   }
-  #{{ prefix }}-cards-embed .pr-filter-btn:hover { background: #f1f5f9; transform: translateY(-1px); }
-  #{{ prefix }}-cards-embed .pr-filter-btn.active {
-    background: #0f172a; color: #fff; border-color: #0f172a;
-    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.22);
+  #{{ prefix }}-cards-embed .pr-filter-bar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0.65rem;
+    padding: 0.7rem 0.85rem; margin-bottom: 1.15rem;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 1px solid var(--pr-border); border-radius: 12px;
   }
+  #{{ prefix }}-cards-embed .pr-search-wrap {
+    position: relative; flex: 1 1 200px; min-width: 0; max-width: 320px;
+  }
+  #{{ prefix }}-cards-embed .pr-search-wrap svg {
+    position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%);
+    width: 1rem; height: 1rem; color: var(--pr-muted); pointer-events: none;
+  }
+  #{{ prefix }}-cards-embed .pr-search-input {
+    width: 100%; border: 1px solid var(--pr-border); border-radius: 10px;
+    padding: 0.5rem 2rem 0.5rem 2.15rem; font-size: 0.86rem; font-weight: 600;
+    color: var(--pr-text); background: #fff;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  #{{ prefix }}-cards-embed .pr-search-input:focus {
+    outline: none; border-color: #0284c7;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+  }
+  #{{ prefix }}-cards-embed .pr-search-clear {
+    position: absolute; right: 0.45rem; top: 50%; transform: translateY(-50%);
+    border: none; background: transparent; color: var(--pr-muted);
+    font-size: 1.1rem; line-height: 1; cursor: pointer; padding: 0.15rem 0.35rem;
+    border-radius: 6px; display: none;
+  }
+  #{{ prefix }}-cards-embed .pr-search-clear:hover { background: #e2e8f0; color: var(--pr-text); }
+  #{{ prefix }}-cards-embed .pr-search-wrap.has-value .pr-search-clear { display: block; }
+  #{{ prefix }}-cards-embed .pr-filter-select-wrap {
+    display: flex; align-items: center; gap: 0.45rem; flex: 1 1 220px; min-width: 0;
+  }
+  #{{ prefix }}-cards-embed .pr-filter-select-wrap label {
+    font-size: 0.72rem; font-weight: 800; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--pr-muted); white-space: nowrap; margin: 0;
+  }
+  #{{ prefix }}-cards-embed .pr-project-select {
+    flex: 1; min-width: 0; max-width: 340px;
+    border: 1px solid var(--pr-border); border-radius: 10px;
+    padding: 0.5rem 2rem 0.5rem 0.7rem; font-size: 0.86rem; font-weight: 600;
+    color: var(--pr-text); background: #fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 0.65rem center;
+    appearance: none; cursor: pointer;
+  }
+  #{{ prefix }}-cards-embed .pr-project-select:focus {
+    outline: none; border-color: #0284c7;
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.12);
+  }
+  #{{ prefix }}-cards-embed .pr-filter-count {
+    margin-left: auto; font-size: 0.78rem; font-weight: 700; color: var(--pr-muted);
+    white-space: nowrap; padding: 0.35rem 0.65rem; border-radius: 999px;
+    background: #fff; border: 1px solid var(--pr-border);
+  }
+  #{{ prefix }}-cards-embed .pr-filter-count strong { color: var(--pr-text); }
   #{{ prefix }}-cards-embed .pr-grid {
     display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.15rem;
   }
@@ -61,7 +107,15 @@
   #{{ prefix }}-cards-embed .pr-card-accent.digital { background: linear-gradient(90deg, #6d28d9, #8b5cf6); }
   #{{ prefix }}-cards-embed .pr-card-body { padding: 1rem 1.1rem; }
   #{{ prefix }}-cards-embed .pr-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-  #{{ prefix }}-cards-embed .pr-card-meta { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.04em; }
+  #{{ prefix }}-cards-embed .pr-card-meta { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.02em; }
+  #{{ prefix }}-cards-embed .pr-card-meta.pr-card-meta-name {
+    color: var(--pr-text);
+    text-transform: none;
+    max-width: 72%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
   #{{ prefix }}-cards-embed .pr-card-meta.automation { color: var(--pr-blue); }
   #{{ prefix }}-cards-embed .pr-card-meta.operations { color: var(--pr-green); }
   #{{ prefix }}-cards-embed .pr-card-meta.digital { color: var(--pr-purple); }
@@ -92,19 +146,23 @@
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
     font-size: 0.85rem; font-weight: 800;
   }
-  #{{ prefix }}-cards-embed .pr-header-actions {
-    display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
-  }
   #{{ prefix }}-cards-embed .pr-add-project-btn {
     border: none; background: linear-gradient(135deg, #0284c7, #6366f1);
-    color: #fff; border-radius: 999px; padding: 0.45rem 1rem;
-    font-size: 0.82rem; font-weight: 700; cursor: pointer;
-    box-shadow: 0 4px 12px rgba(14, 165, 233, 0.25);
+    color: #fff; border-radius: 10px; padding: 0.55rem 1.15rem;
+    font-size: 0.82rem; font-weight: 800; letter-spacing: 0.04em; cursor: pointer;
+    box-shadow: 0 4px 14px rgba(14, 165, 233, 0.28);
     transition: transform 0.2s var(--pr-ease-spring), box-shadow 0.2s ease;
+    white-space: nowrap;
   }
   #{{ prefix }}-cards-embed .pr-add-project-btn:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(14, 165, 233, 0.35);
+    box-shadow: 0 8px 20px rgba(14, 165, 233, 0.38);
+  }
+  @media (max-width: 640px) {
+    #{{ prefix }}-cards-embed .pr-register-header { flex-direction: column; align-items: stretch; }
+    #{{ prefix }}-cards-embed .pr-header-actions { justify-content: stretch; }
+    #{{ prefix }}-cards-embed .pr-add-project-btn { width: 100%; text-align: center; }
+    #{{ prefix }}-cards-embed .pr-filter-count { margin-left: 0; width: 100%; text-align: center; }
   }
   #{{ prefix }}-pr-add-modal.pr-modal-overlay {
     position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45);
@@ -145,29 +203,46 @@
       <p>{{ register_subtitle }}</p>
       {% endif %}
     </div>
+    {% if show_add_project %}
     <div class="pr-header-actions">
-      {% if show_add_project %}
       <button type="button" class="pr-add-project-btn" id="{{ prefix }}-add-project-btn">+ ADD PROJECT</button>
-      {% endif %}
-      <div class="pr-filters" id="{{ prefix }}-category-filters">
-        <button type="button" class="pr-filter-btn active" data-filter="all">All</button>
-        <button type="button" class="pr-filter-btn" data-filter="automation">Automation</button>
-        <button type="button" class="pr-filter-btn" data-filter="operations">Operations</button>
-        <button type="button" class="pr-filter-btn" data-filter="digital">Digital</button>
-      </div>
     </div>
+    {% endif %}
+  </div>
+
+  <div class="pr-filter-bar" id="{{ prefix }}-filter-bar">
+    <div class="pr-search-wrap" id="{{ prefix }}-search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+        <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path>
+      </svg>
+      <input type="search" class="pr-search-input" id="{{ prefix }}-project-search"
+             placeholder="Search projects..." autocomplete="off" aria-label="Search projects" />
+      <button type="button" class="pr-search-clear" id="{{ prefix }}-search-clear" aria-label="Clear search">×</button>
+    </div>
+    <div class="pr-filter-select-wrap">
+      <label for="{{ prefix }}-project-select">Project</label>
+      <select class="pr-project-select" id="{{ prefix }}-project-select" aria-label="Filter by project">
+        <option value="all">All projects</option>
+        {% for p in projects_tab.projects %}
+        <option value="{{ p.id }}">{{ p.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <span class="pr-filter-count" id="{{ prefix }}-filter-count">
+      <strong>{{ projects_tab.projects|length }}</strong> projects
+    </span>
   </div>
 
   <div class="pr-grid" id="{{ prefix }}-project-grid">
     {% for p in projects_tab.projects %}
-    <article class="pr-card" data-project-id="{{ p.id }}" data-category="{{ p.category }}" style="animation-delay: {{ forloop.counter0 }}00ms">
+    <article class="pr-card" data-project-id="{{ p.id }}" data-project-title="{{ p.title|escape }}" data-category="{{ p.category }}" style="animation-delay: {{ forloop.counter0 }}00ms">
       <div class="pr-card-accent {{ p.category }}"></div>
       <div class="pr-card-body">
         <div class="pr-card-top">
-          <span class="pr-card-meta {{ p.category }}">{{ p.category_label }}</span>
+          <span class="pr-card-meta pr-card-meta-name" title="{{ p.title }}">{{ p.title }}</span>
           <span class="pr-badge {{ p.status }}">{{ p.status_label }}</span>
         </div>
-        <h3 class="pr-card-title">{{ p.title }}</h3>
+        <h3 class="pr-card-title">{{ p.phase }}</h3>
         <div class="pr-card-content">
           <div class="pr-gauge" data-progress="{{ p.progress }}" data-color="{{ p.category }}">
             <svg viewBox="0 0 36 36">
@@ -337,15 +412,16 @@
     var article = document.createElement("article");
     article.className = "pr-card";
     article.setAttribute("data-project-id", p.id);
+    article.setAttribute("data-project-title", p.title || "");
     article.setAttribute("data-category", p.category);
     article.innerHTML =
       '<div class="pr-card-accent ' + p.category + '"></div>' +
       '<div class="pr-card-body">' +
         '<div class="pr-card-top">' +
-          '<span class="pr-card-meta ' + escHtml(p.category) + '">' + escHtml(p.category_label) + '</span>' +
+          '<span class="pr-card-meta pr-card-meta-name" title="' + escHtml(p.title) + '">' + escHtml(p.title) + '</span>' +
           '<span class="pr-badge ' + escHtml(p.status) + '">' + escHtml(p.status_label) + '</span>' +
         '</div>' +
-        '<h3 class="pr-card-title">' + escHtml(p.title) + '</h3>' +
+        '<h3 class="pr-card-title">' + escHtml(p.phase || "—") + '</h3>' +
         '<div class="pr-card-content">' +
           '<div class="pr-gauge" data-progress="' + p.progress + '" data-color="' + p.category + '">' +
             '<svg viewBox="0 0 36 36"><circle class="pr-gauge-bg" cx="18" cy="18" r="15.5"></circle>' +
@@ -365,14 +441,68 @@
     grid.appendChild(article);
     initGaugeEl(article.querySelector(".pr-gauge"), 50);
     bindCardClick(article);
-    var activeFilter = root.querySelector("#{{ prefix }}-category-filters .pr-filter-btn.active");
-    if (activeFilter) {
-      var f = activeFilter.getAttribute("data-filter");
-      if (f !== "all" && f !== p.category) {
-        article.classList.add("pr-card-hide");
-        article.style.display = "none";
+    var selectEl = document.getElementById("{{ prefix }}-project-select");
+    if (selectEl) {
+      var opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = p.title || p.id;
+      selectEl.appendChild(opt);
+    }
+    applyProjectFilters();
+  }
+
+  var searchInput = document.getElementById("{{ prefix }}-project-search");
+  var searchWrap = document.getElementById("{{ prefix }}-search-wrap");
+  var searchClear = document.getElementById("{{ prefix }}-search-clear");
+  var projectSelect = document.getElementById("{{ prefix }}-project-select");
+  var filterCountEl = document.getElementById("{{ prefix }}-filter-count");
+
+  function applyProjectFilters() {
+    var query = (searchInput && searchInput.value || "").trim().toLowerCase();
+    var selected = projectSelect ? (projectSelect.value || "all") : "all";
+    var total = 0;
+    var visible = 0;
+    root.querySelectorAll(".pr-card").forEach(function (card) {
+      total += 1;
+      var pid = card.getAttribute("data-project-id") || "";
+      var title = (card.getAttribute("data-project-title") || "").toLowerCase();
+      var matchSelect = selected === "all" || pid === selected;
+      var matchSearch = !query || title.indexOf(query) >= 0;
+      var show = matchSelect && matchSearch;
+      if (show) {
+        visible += 1;
+        card.classList.remove("pr-card-hide");
+        card.style.display = "";
+      } else {
+        card.classList.add("pr-card-hide");
+        setTimeout(function () { card.style.display = "none"; }, 280);
+      }
+    });
+    if (filterCountEl) {
+      if (visible === total) {
+        filterCountEl.innerHTML = "<strong>" + total + "</strong> projects";
+      } else {
+        filterCountEl.innerHTML = "Showing <strong>" + visible + "</strong> of <strong>" + total + "</strong>";
       }
     }
+    if (searchWrap) {
+      if (query) searchWrap.classList.add("has-value");
+      else searchWrap.classList.remove("has-value");
+    }
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener("input", applyProjectFilters);
+  }
+  if (searchClear) {
+    searchClear.addEventListener("click", function () {
+      if (searchInput) searchInput.value = "";
+      applyProjectFilters();
+      if (searchInput) searchInput.focus();
+    });
+  }
+  if (projectSelect) {
+    projectSelect.addEventListener("change", applyProjectFilters);
   }
 
   root.querySelectorAll(".pr-gauge[data-progress]").forEach(function (g, i) {
@@ -445,26 +575,7 @@
     });
   }
 
-  root.querySelectorAll("#{{ prefix }}-category-filters .pr-filter-btn").forEach(function (btn) {
-    btn.addEventListener("click", function () {
-      root.querySelectorAll("#{{ prefix }}-category-filters .pr-filter-btn").forEach(function (b) {
-        b.classList.remove("active");
-      });
-      btn.classList.add("active");
-      var filter = btn.getAttribute("data-filter");
-      root.querySelectorAll(".pr-card").forEach(function (card) {
-        var cat = card.getAttribute("data-category");
-        var show = filter === "all" || cat === filter;
-        if (show) {
-          card.classList.remove("pr-card-hide");
-          card.style.display = "";
-        } else {
-          card.classList.add("pr-card-hide");
-          setTimeout(function () { card.style.display = "none"; }, 280);
-        }
-      });
-    });
-  });
+  applyProjectFilters();
 })();
 </script>
 </div>

@@ -1,4 +1,4 @@
-{# Project detail — tasks table + phase summary (Cards View) #}
+{# Project detail — tasks table (Cards View) #}
 <style>
   #{{ prefix }}-detail-view { display: none; }
   #{{ prefix }}-detail-view.pr-detail-visible { display: block; animation: {{ prefix }}FadeUp 0.4s ease both; }
@@ -120,23 +120,11 @@
   #{{ prefix }}-cards-embed .pr-task-act-btn:hover { background: #f1f5f9; }
   #{{ prefix }}-cards-embed .pr-task-row-clickable { cursor: pointer; }
   #{{ prefix }}-cards-embed .pr-task-row-clickable:hover td { background: rgba(2, 132, 199, 0.06) !important; }
+  #{{ prefix }}-cards-embed .pr-task-status-pill {
+    display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: 0.06em;
+    padding: 4px 8px; border-radius: 999px; border: 1px solid; white-space: nowrap;
+  }
   #{{ prefix }}-cards-embed .pr-empty-msg { color: var(--pr-muted); text-align: center; padding: 1.5rem; font-size: 0.9rem; }
-  #{{ prefix }}-task-modal.pr-modal-overlay {
-    position: fixed; inset: 0; background: rgba(15,23,42,0.45); z-index: 1300;
-    display: flex; align-items: center; justify-content: center; padding: 1rem;
-  }
-  #{{ prefix }}-task-modal .pr-modal {
-    background: #fff; border-radius: 14px; padding: 1.35rem 1.5rem; width: min(440px, 100%);
-    box-shadow: 0 20px 50px rgba(15,23,42,0.2);
-  }
-  #{{ prefix }}-task-modal label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--pr-muted); margin: 0.6rem 0 0.3rem; }
-  #{{ prefix }}-task-modal input, #{{ prefix }}-task-modal select {
-    width: 100%; border: 1px solid var(--pr-border); border-radius: 8px; padding: 0.5rem 0.65rem; font-size: 0.88rem;
-  }
-  #{{ prefix }}-task-modal .pr-modal-actions { display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem; }
-  #{{ prefix }}-task-modal .pr-modal-actions button { border-radius: 8px; padding: 0.45rem 0.95rem; font-weight: 600; cursor: pointer; }
-  #{{ prefix }}-task-modal .pr-modal-cancel { border: 1px solid var(--pr-border); background: #fff; }
-  #{{ prefix }}-task-modal .pr-modal-save { border: none; background: var(--pr-blue); color: #fff; }
   #{{ prefix }}-cards-embed .pr-kpi-row {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
     gap: 0.75rem; margin-bottom: 1rem;
@@ -206,8 +194,7 @@
     </div>
     <p class="pr-detail-desc" id="{{ prefix }}-d-desc" style="border-bottom:none;"></p>
     <div class="pr-automation-meta" id="{{ prefix }}-d-automation-meta" style="display:none;">
-      <div style="margin-bottom:0.35rem;"><strong>Estimated time saving:</strong> <span id="{{ prefix }}-d-time-saving">—</span></div>
-      <div><strong>Resources before automation:</strong> <span id="{{ prefix }}-d-resources-before">—</span></div>
+      <div><strong>Business Benefits:</strong> <span id="{{ prefix }}-d-business-benefits">—</span></div>
     </div>
   </div>
 
@@ -239,15 +226,6 @@
       <div class="pr-task-header-actions">
         <div class="pr-task-filters">
           <div class="pr-task-filter-group">
-            <label for="{{ prefix }}-filter-status">Status</label>
-            <select id="{{ prefix }}-filter-status" aria-label="Filter tasks by status">
-              <option value="all">All</option>
-              <option value="pending">Not Started</option>
-              <option value="in_progress">In Progress</option>
-              <option value="done">Completed</option>
-            </select>
-          </div>
-          <div class="pr-task-filter-group">
             <label for="{{ prefix }}-filter-assignee">Assigned To</label>
             <select id="{{ prefix }}-filter-assignee" aria-label="Filter tasks by assignee">
               <option value="all">All</option>
@@ -262,9 +240,9 @@
       <table class="pp-table tw-reg-table">
         <thead>
           <tr>
-            <th style="min-width:220px;">Task</th>
+            <th style="min-width:220px;">Description</th>
             <th style="min-width:110px;">Status</th>
-            <th style="min-width:160px;">Phase</th>
+            <th style="min-width:120px;">Deadline</th>
             <th style="min-width:120px;">Assigned To</th>
             <th style="min-width:80px;">Actions</th>
           </tr>
@@ -274,10 +252,6 @@
     </div>
   </div>
 
-  <div class="pr-panel">
-    <h3 class="pr-panel-title">Phase Summary</h3>
-    <div id="{{ prefix }}-d-phases"></div>
-  </div>
 </div>
 
 <div id="{{ prefix }}-edit-project-modal" class="pr-modal-overlay" style="display:none" aria-hidden="true">
@@ -287,16 +261,8 @@
     <input type="text" id="{{ prefix }}-edit-title" placeholder="Project name" />
     <label for="{{ prefix }}-edit-desc">Description</label>
     <textarea id="{{ prefix }}-edit-desc" placeholder="Project objective or summary"></textarea>
-    <label for="{{ prefix }}-edit-time-saving">Estimated Time Saving</label>
-    <div class="pr-time-saving-row">
-      <input type="number" id="{{ prefix }}-edit-time-saving" min="0" step="any" placeholder="e.g. 4" />
-      <select id="{{ prefix }}-edit-time-saving-unit">
-        <option value="hours">Hours</option>
-        <option value="minutes">Minutes</option>
-      </select>
-    </div>
-    <label for="{{ prefix }}-edit-resources-before">Resources Involved Before Automation</label>
-    <textarea id="{{ prefix }}-edit-resources-before" placeholder="e.g. 3 pickers, 1 supervisor" rows="2"></textarea>
+    <label for="{{ prefix }}-edit-business-benefits">Business Benefits</label>
+    <textarea id="{{ prefix }}-edit-business-benefits" placeholder="Describe the business benefits expected from this project..." rows="3"></textarea>
     <div class="pr-form-row">
       <div>
         <label for="{{ prefix }}-edit-category">Category</label>
@@ -342,28 +308,6 @@
   </div>
 </div>
 
-<div id="{{ prefix }}-task-modal" class="pr-modal-overlay" style="display:none" aria-hidden="true">
-  <div class="pr-modal">
-    <h4 id="{{ prefix }}-task-modal-title" style="margin:0 0 1rem;font-weight:800;">Add Task</h4>
-    <label for="{{ prefix }}-task-text">Task name *</label>
-    <input type="text" id="{{ prefix }}-task-text" placeholder="What needs to be done?" />
-    <label for="{{ prefix }}-task-phase">Phase</label>
-    <select id="{{ prefix }}-task-phase"></select>
-    <label for="{{ prefix }}-task-status">Status</label>
-    <select id="{{ prefix }}-task-status">
-      <option value="pending">Not Started</option>
-      <option value="in_progress">In Progress</option>
-      <option value="done">Completed</option>
-    </select>
-    <label for="{{ prefix }}-task-assignee">Assigned To</label>
-    <input type="text" id="{{ prefix }}-task-assignee" placeholder="Name or team" />
-    <div class="pr-modal-actions">
-      <button type="button" class="pr-modal-cancel" id="{{ prefix }}-task-cancel">Cancel</button>
-      <button type="button" class="pr-modal-save" id="{{ prefix }}-task-save">Save</button>
-    </div>
-  </div>
-</div>
-
 {% with projects_data_id=prefix|add:"-projects-data" %}
 {{ projects_tab.projects|json_script:projects_data_id }}
 {% endwith %}
@@ -382,6 +326,7 @@
   var registerWrap = document.getElementById(PREFIX + "-register-wrap");
   var detailView = document.getElementById(PREFIX + "-detail-view");
   var SAVE_URL = "{% url 'dashboard:projects_tab_save_tasks' %}";
+  var SAVE_TASK_URL = "{% url 'dashboard:project_portfolio_save_task' %}";
   var UPDATE_PROJECT_URL = "{% url 'dashboard:projects_tab_update_project' %}";
   var IS_MANAGER = typeof window.__PMO_IS_MANAGER !== "undefined" && window.__PMO_IS_MANAGER;
   var CIRC = 97.4;
@@ -396,7 +341,6 @@
   var currentProjectId = null;
   var currentTasks = [];
   var editingTaskId = null;
-  var taskFilterStatus = "all";
   var taskFilterAssignee = "all";
   var TASK_ASSIGNEE_UNASSIGNED = "__unassigned__";
 
@@ -438,6 +382,9 @@
           text: item.text,
           status: item.status || "pending",
           assignee: item.assignee || "",
+          deadline: item.deadline || "",
+          deadline_display: item.deadline_display || item.deadline || "",
+          business_benefits: item.business_benefits || "",
           phase: grp.phase || "",
         });
       });
@@ -459,6 +406,9 @@
         text: t.text,
         status: t.status,
         assignee: t.assignee,
+        deadline: t.deadline || "",
+        deadline_display: t.deadline_display || t.deadline || "",
+        business_benefits: t.business_benefits || "",
       });
     });
     return order.map(function (ph) {
@@ -522,15 +472,6 @@
   function formatSpiCpi(val) {
     if (val === null || val === undefined) return "0.00";
     return Number(val).toFixed(2);
-  }
-
-  function formatTimeSavingDisplay(p) {
-    if (!p) return "—";
-    if (p.estimated_time_saving_display) return p.estimated_time_saving_display;
-    var raw = (p.estimated_time_saving || "").trim();
-    if (!raw) return "—";
-    var unit = (p.estimated_time_saving_unit || "hours").toLowerCase() === "minutes" ? "minutes" : "hours";
-    return raw + " " + unit;
   }
 
   function renderKpis(p) {
@@ -611,11 +552,12 @@
       pmoEl.className = "pr-pmo-score " + pmoClass(p.pmo_score || 0);
     }
     var titleEl = card.querySelector(".pr-card-title");
-    if (titleEl) titleEl.textContent = p.title || "";
+    if (titleEl) titleEl.textContent = p.phase || "—";
     var metaEl = card.querySelector(".pr-card-meta");
     if (metaEl) {
-      metaEl.textContent = p.category_label || p.category || "";
-      metaEl.className = "pr-card-meta " + (p.category || "automation");
+      metaEl.textContent = p.title || "—";
+      metaEl.className = "pr-card-meta pr-card-meta-name";
+      metaEl.setAttribute("title", p.title || "");
     }
     var badgeEl = card.querySelector(".pr-badge");
     if (badgeEl) {
@@ -653,10 +595,7 @@
     if (!p || !modal) return;
     document.getElementById(PREFIX + "-edit-title").value = p.title || "";
     document.getElementById(PREFIX + "-edit-desc").value = p.description || "";
-    document.getElementById(PREFIX + "-edit-time-saving").value = p.estimated_time_saving || "";
-    document.getElementById(PREFIX + "-edit-time-saving-unit").value =
-      (p.estimated_time_saving_unit || "hours").toLowerCase() === "minutes" ? "minutes" : "hours";
-    document.getElementById(PREFIX + "-edit-resources-before").value = p.resources_before_automation || "";
+    document.getElementById(PREFIX + "-edit-business-benefits").value = p.business_benefits || "";
     document.getElementById(PREFIX + "-edit-category").value = p.category || "automation";
     document.getElementById(PREFIX + "-edit-status").value = p.status || "on_track";
     document.getElementById(PREFIX + "-edit-phase").value = p.phase || "Initiating";
@@ -684,15 +623,12 @@
     if (descEl) {
       descEl.textContent = (p.description || "").trim() || "—";
     }
-    var timeSaving = formatTimeSavingDisplay(p);
-    var resourcesBefore = (p.resources_before_automation || "").trim() || "—";
+    var businessBenefits = (p.business_benefits || "").trim() || "—";
     var autoMeta = document.getElementById(PREFIX + "-d-automation-meta");
-    var timeEl = document.getElementById(PREFIX + "-d-time-saving");
-    var resEl = document.getElementById(PREFIX + "-d-resources-before");
-    if (timeEl) timeEl.textContent = timeSaving;
-    if (resEl) resEl.textContent = resourcesBefore;
+    var benefitsEl = document.getElementById(PREFIX + "-d-business-benefits");
+    if (benefitsEl) benefitsEl.textContent = businessBenefits;
     if (autoMeta) {
-      autoMeta.style.display = (timeSaving !== "—" || resourcesBefore !== "—") ? "block" : "none";
+      autoMeta.style.display = businessBenefits !== "—" ? "block" : "none";
     }
   }
 
@@ -702,8 +638,6 @@
 
   function getFilteredTasks() {
     return flattenTasks(currentTasks).filter(function (t) {
-      var status = t.status || "pending";
-      if (taskFilterStatus !== "all" && status !== taskFilterStatus) return false;
       if (taskFilterAssignee !== "all" && taskAssigneeKey(t.assignee) !== taskFilterAssignee) {
         return false;
       }
@@ -748,7 +682,7 @@
   function updateTaskFilterHint(total, shown) {
     var hint = document.getElementById(PREFIX + "-task-filter-hint");
     if (!hint) return;
-    var active = taskFilterStatus !== "all" || taskFilterAssignee !== "all";
+    var active = taskFilterAssignee !== "all";
     if (!total) {
       hint.style.display = "none";
       hint.textContent = "";
@@ -764,11 +698,8 @@
   }
 
   function resetTaskFilters() {
-    taskFilterStatus = "all";
     taskFilterAssignee = "all";
-    var statusSel = document.getElementById(PREFIX + "-filter-status");
     var assigneeSel = document.getElementById(PREFIX + "-filter-assignee");
-    if (statusSel) statusSel.value = "all";
     if (assigneeSel) assigneeSel.value = "all";
   }
 
@@ -793,16 +724,15 @@
       return;
     }
     tbody.innerHTML = flat.map(function (t) {
+      var dl = t.deadline_display || t.deadline || "—";
       var st = taskStatusMeta(t.status);
-      var phCls = phaseBadgeClass(t.phase);
       return (
         '<tr class="pr-task-row-clickable" data-task-id="' + escHtml(t.id) + '">' +
           "<td>" +
             '<div class="pr-task-name">' + escHtml(t.text) + "</div>" +
-            (t.phase ? '<div class="pr-task-sub">' + escHtml(t.phase) + "</div>" : "") +
           "</td>" +
-          '<td><span class="tw-badge-pill ' + st.cls + '">' + escHtml(st.label) + "</span></td>" +
-          '<td><span class="tw-badge-pill ' + phCls + '">' + escHtml(t.phase || "—") + "</span></td>" +
+          '<td><span class="pr-task-status-pill ' + st.cls + '">' + escHtml(st.label) + "</span></td>" +
+          '<td><span class="tw-pm-name">' + escHtml(dl) + "</span></td>" +
           '<td><span class="tw-pm-name">' + escHtml(t.assignee || "—") + "</span></td>" +
           '<td><div class="pr-task-table-actions">' +
             '<button type="button" class="pr-task-act-btn pr-task-edit" title="Edit">✎</button>' +
@@ -916,7 +846,6 @@
     populateAssigneeFilter();
     renderTasksTable();
     renderMetrics(p);
-    renderPhases(p);
     updateGridCard(currentProjectId);
   }
 
@@ -994,27 +923,84 @@
     return found;
   }
 
-  function openTaskModal(editTask) {
-    var modal = document.getElementById(PREFIX + "-task-modal");
-    var p = projectsMap[currentProjectId];
-    if (!modal || !p) return;
-    editingTaskId = editTask ? editTask.id : null;
-    document.getElementById(PREFIX + "-task-modal-title").textContent = editTask ? "Edit Task" : "Add Task";
-    document.getElementById(PREFIX + "-task-text").value = editTask ? (editTask.text || "") : "";
-    populatePhaseSelect(p, editTask ? editTask.phase : (phaseOptions(p)[0] || DEFAULT_PHASES[0]));
-    if (editTask) document.getElementById(PREFIX + "-task-phase").value = editTask.phase || "";
-    document.getElementById(PREFIX + "-task-status").value = editTask ? (editTask.status || "pending") : "pending";
-    document.getElementById(PREFIX + "-task-assignee").value = editTask ? (editTask.assignee || "") : "";
-    modal.style.display = "flex";
-    modal.setAttribute("aria-hidden", "false");
+  function ppFormFieldValue(form, name) {
+    if (!form || !name) return "";
+    var el = form.elements.namedItem(name);
+    if (!el) return "";
+    return String(el.value || "");
+  }
+
+  function normalizeTaskStatus(status) {
+    var st = (status || "pending").trim();
+    if (st === "done" || st === "in_progress") return st;
+    return "pending";
+  }
+
+  function collectTasksFromPpRegisterForm(form) {
+    var lead = ppFormFieldValue(form, "project_lead");
+    var dl = ppFormFieldValue(form, "planned_deadline");
+    var status = normalizeTaskStatus(ppFormFieldValue(form, "task_status"));
+    var benefits = ppFormFieldValue(form, "business_benefits").trim();
+    var rows = [];
+    var name = ppFormFieldValue(form, "project_name").trim();
+    if (name) {
+      rows.push({
+        description: name,
+        deadline: dl,
+        owner: lead.trim(),
+        assignee: lead.trim(),
+        status: status,
+        business_benefits: benefits,
+      });
+    }
+    var procDesc = form.querySelectorAll('[name="process_description"]');
+    var procDl = form.querySelectorAll('[name="process_deadline"]');
+    var procOwn = form.querySelectorAll('[name="process_owner"]');
+    procDesc.forEach(function (inp, idx) {
+      var desc = (inp.value || "").trim();
+      if (!desc) return;
+      if (name && desc === name && rows.length === 1) return;
+      rows.push({
+        description: desc,
+        deadline: (procDl[idx] && procDl[idx].value) || dl,
+        owner: ((procOwn[idx] && procOwn[idx].value) || lead).trim(),
+        assignee: ((procOwn[idx] && procOwn[idx].value) || lead).trim(),
+        status: status,
+        business_benefits: benefits,
+      });
+    });
+    return rows;
+  }
+
+  function showPpTaskFormError(msg) {
+    var err = document.getElementById("ppAddProjectError");
+    if (!err) return;
+    if (msg) {
+      err.textContent = msg;
+      err.classList.remove("d-none");
+    } else {
+      err.textContent = "";
+      err.classList.add("d-none");
+    }
   }
 
   function closeTaskModal() {
-    var modal = document.getElementById(PREFIX + "-task-modal");
-    if (!modal) return;
-    modal.style.display = "none";
-    modal.setAttribute("aria-hidden", "true");
+    var modalEl = document.getElementById("ppAddProjectModal");
+    if (modalEl && window.bootstrap && bootstrap.Modal) {
+      var m = bootstrap.Modal.getInstance(modalEl);
+      if (m) m.hide();
+    }
     editingTaskId = null;
+  }
+
+  function openTaskModal(editTask) {
+    if (!projectsMap[currentProjectId]) return;
+    if (typeof window.__ppOpenRegisterNewTask !== "function") return;
+    editingTaskId = editTask ? editTask.id : null;
+    window.__ppOpenRegisterNewTask({
+      projectId: currentProjectId,
+      editTask: editTask || null,
+    });
   }
 
   root.__prOpenDetail = showDetail;
@@ -1034,9 +1020,7 @@
       project_id: currentProjectId,
       title: title,
       description: document.getElementById(PREFIX + "-edit-desc").value.trim(),
-      estimated_time_saving: document.getElementById(PREFIX + "-edit-time-saving").value.trim(),
-      estimated_time_saving_unit: document.getElementById(PREFIX + "-edit-time-saving-unit").value,
-      resources_before_automation: document.getElementById(PREFIX + "-edit-resources-before").value.trim(),
+      business_benefits: document.getElementById(PREFIX + "-edit-business-benefits").value.trim(),
       category: document.getElementById(PREFIX + "-edit-category").value,
       status: document.getElementById(PREFIX + "-edit-status").value,
       phase: document.getElementById(PREFIX + "-edit-phase").value,
@@ -1065,14 +1049,7 @@
         closeEditProjectModal();
       });
   });
-  var filterStatusEl = document.getElementById(PREFIX + "-filter-status");
   var filterAssigneeEl = document.getElementById(PREFIX + "-filter-assignee");
-  if (filterStatusEl) {
-    filterStatusEl.addEventListener("change", function () {
-      taskFilterStatus = filterStatusEl.value || "all";
-      renderTasksTable();
-    });
-  }
   if (filterAssigneeEl) {
     filterAssigneeEl.addEventListener("change", function () {
       taskFilterAssignee = filterAssigneeEl.value || "all";
@@ -1081,41 +1058,186 @@
   }
 
   document.getElementById(PREFIX + "-add-task-btn").addEventListener("click", function () { openTaskModal(null); });
-  document.getElementById(PREFIX + "-task-cancel").addEventListener("click", closeTaskModal);
-  document.getElementById(PREFIX + "-task-modal").addEventListener("click", function (e) {
-    if (e.target.id === PREFIX + "-task-modal") closeTaskModal();
-  });
 
-  document.getElementById(PREFIX + "-task-save").addEventListener("click", function () {
-    var text = document.getElementById(PREFIX + "-task-text").value.trim();
-    if (!text) return;
-    var phase = document.getElementById(PREFIX + "-task-phase").value;
-    var status = document.getElementById(PREFIX + "-task-status").value;
-    var assignee = document.getElementById(PREFIX + "-task-assignee").value.trim();
-    if (editingTaskId) {
-      var flat = flattenTasks(currentTasks);
-      flat.forEach(function (t) {
-        if (t.id === editingTaskId) {
+  function applyServerTaskPayload(res) {
+    if (!res || !res.ok || !projectsMap[currentProjectId]) return false;
+    var proj = projectsMap[currentProjectId];
+    currentTasks = cloneTasks(res.tasks || []);
+    proj.tasks = cloneTasks(res.tasks || []);
+    if (res.counts) {
+      proj.progress = res.counts.progress;
+      proj.pmo_score = res.counts.pmo_score;
+      proj.spi = res.counts.spi;
+      proj.cpi = res.counts.cpi;
+      proj.tasks_done = res.counts.tasks_done;
+      proj.tasks_total = res.counts.tasks_total;
+      proj.tasks_in_progress = res.counts.tasks_in_progress;
+      proj.tasks_pending = res.counts.tasks_pending;
+    } else {
+      syncProjectFromTasks(proj);
+    }
+    refreshView();
+    return true;
+  }
+
+  function persistTask(payload, cb, opts) {
+    opts = opts || {};
+    var p = projectsMap[currentProjectId];
+    if (!p) return;
+    if (p.tracker_id) {
+      payload.tracker_id = p.tracker_id;
+      fetch(SAVE_TASK_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": getCsrf(),
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: JSON.stringify(payload),
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          if (!res.ok) {
+            showPpTaskFormError(res.message || "Could not save task.");
+            if (typeof cb === "function") cb(res);
+            return;
+          }
+          applyServerTaskPayload(res);
+          if (!opts.suppressClose) closeTaskModal();
+          if (typeof cb === "function") cb(res);
+        })
+        .catch(function () {
+          showPpTaskFormError("Network error — try again.");
+          if (typeof cb === "function") cb({ ok: false });
+        });
+      return;
+    }
+    var text = payload.description || "";
+    var assignee = payload.owner || payload.assignee || "";
+    var deadline = payload.deadline || "";
+    var status = payload.status || "pending";
+    var benefits = payload.business_benefits || "";
+    if (payload.delete) {
+      currentTasks = groupTasks(
+        flattenTasks(currentTasks).filter(function (t) { return String(t.id) !== String(payload.step_id); })
+      );
+    } else if (payload.step_id) {
+      var flatEdit = flattenTasks(currentTasks);
+      flatEdit.forEach(function (t) {
+        if (String(t.id) === String(payload.step_id)) {
           t.text = text;
-          t.phase = phase;
-          t.status = status;
           t.assignee = assignee;
+          t.status = status;
+          t.deadline = deadline;
+          t.deadline_display = deadline;
+          t.business_benefits = benefits;
         }
       });
-      currentTasks = groupTasks(flat);
+      currentTasks = groupTasks(flatEdit);
     } else {
       currentTasks = groupTasks(flattenTasks(currentTasks).concat([{
         id: "t-" + Math.random().toString(36).slice(2, 9),
         text: text,
         status: status,
         assignee: assignee,
-        phase: phase,
+        deadline: deadline,
+        deadline_display: deadline,
+        business_benefits: benefits,
+        phase: "PROJECT TASKS",
       }]));
     }
     refreshView();
+    if (!opts.suppressClose) closeTaskModal();
+    saveTasks(cb);
+  }
+
+  function persistTaskRowsSequential(rows, idx, cb) {
+    if (!rows.length) {
+      showPpTaskFormError("Description is required.");
+      return;
+    }
+    if (idx >= rows.length) {
+      if (typeof cb === "function") cb({ ok: true });
+      return;
+    }
+    var row = rows[idx];
+    var payload = {
+      description: row.description,
+      deadline: row.deadline,
+      owner: row.owner,
+      status: row.status,
+      business_benefits: row.business_benefits || "",
+    };
+    if (editingTaskId && idx === 0) payload.step_id = editingTaskId;
+    var suppressClose = idx < rows.length - 1;
+    persistTask(payload, function (res) {
+      if (!res || !res.ok) {
+        if (typeof cb === "function") cb(res || { ok: false });
+        return;
+      }
+      persistTaskRowsSequential(rows, idx + 1, cb);
+    }, { suppressClose: suppressClose });
+  }
+
+  window.__ppSubmitTaskFromRegisterForm = function (form, done) {
+    var ctx = window.__ppTaskContext || {};
+    if (ctx.projectId) currentProjectId = ctx.projectId;
+    if (!currentProjectId || !projectsMap[currentProjectId]) {
+      done(false, "Project not found.");
+      return;
+    }
+
+    var rows = collectTasksFromPpRegisterForm(form);
+    if (!rows.length) {
+      done(false, "Description is required.");
+      return;
+    }
+
+    editingTaskId = ctx.editTask && ctx.editTask.id ? ctx.editTask.id : null;
+
+    if (editingTaskId) {
+      var editPayload = rows[0];
+      editPayload.step_id = editingTaskId;
+      persistTask(editPayload, function (res) {
+        done(!!(res && res.ok), res && !res.ok ? (res.message || "Could not save task.") : "");
+      });
+      return;
+    }
+
+    if (rows.length === 1) {
+      persistTask(rows[0], function (res) {
+        done(!!(res && res.ok), res && !res.ok ? (res.message || "Could not save task.") : "");
+      });
+      return;
+    }
+
+    var p = projectsMap[currentProjectId];
+    if (p && p.tracker_id) {
+      persistTaskRowsSequential(rows, 0, function (res) {
+        done(!!(res && res.ok), res && !res.ok ? (res.message || "Could not save task.") : "");
+      });
+      return;
+    }
+
+    var newItems = rows.map(function (row) {
+      return {
+        id: "t-" + Math.random().toString(36).slice(2, 9),
+        text: row.description,
+        status: row.status || "pending",
+        assignee: row.assignee || "",
+        deadline: row.deadline || "",
+        deadline_display: row.deadline || "",
+        business_benefits: row.business_benefits || "",
+        phase: "PROJECT TASKS",
+      };
+    });
+    currentTasks = groupTasks(flattenTasks(currentTasks).concat(newItems));
+    refreshView();
     closeTaskModal();
-    saveTasks();
-  });
+    saveTasks(function (res) {
+      done(!!(res && res.ok !== false));
+    });
+  };
 
   document.getElementById(PREFIX + "-d-table-body").addEventListener("click", function (e) {
     if (e.target.closest(".pr-task-edit") || e.target.closest(".pr-task-del")) {
@@ -1126,9 +1248,7 @@
     var taskId = row.getAttribute("data-task-id");
 
     if (e.target.closest(".pr-task-del")) {
-      currentTasks = groupTasks(flattenTasks(currentTasks).filter(function (t) { return t.id !== taskId; }));
-      refreshView();
-      saveTasks();
+      persistTask({ step_id: taskId, delete: true });
       return;
     }
     if (e.target.closest(".pr-task-edit") || !e.target.closest(".pr-task-table-actions")) {
@@ -1139,7 +1259,8 @@
           text: hit.task.text,
           status: hit.task.status,
           assignee: hit.task.assignee,
-          phase: hit.grp.phase,
+          deadline: hit.task.deadline || "",
+          business_benefits: hit.task.business_benefits || "",
         });
       }
     }

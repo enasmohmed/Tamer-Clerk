@@ -102,10 +102,9 @@ EO_KPI_CARD_ORDER = (
     "on_track",
     "at_risk",
     "spi",
-    "time_saved",
 )
 
-HIDDEN_EO_KPI_KEYS = frozenset({"cpi", "open_risks"})
+HIDDEN_EO_KPI_KEYS = frozenset({"cpi", "open_risks", "time_saved"})
 
 
 def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
@@ -147,14 +146,6 @@ def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
             "accent": "cyan",
         },
         {
-            "key": "time_saved",
-            "title": "TIME SAVED",
-            "value_text": "—",
-            "subtitle": "Total hours preserved",
-            "footer": "Sum of project estimates (converted to hours)",
-            "accent": "purple",
-        },
-        {
             "key": "cpi",
             "title": "CPI",
             "value_text": "—",
@@ -176,8 +167,6 @@ def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
         key = (card.get("key") or "").strip().lower()
         if key in computed_values and (card.get("value_text") in ("—", "", None)):
             card["value_text"] = computed_values[key]
-        if key == "time_saved" and computed_values.get("time_saved_subtitle"):
-            card["subtitle"] = computed_values["time_saved_subtitle"]
         return card
 
     def _card_from_default(tpl, computed_values):
@@ -219,8 +208,6 @@ def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
                 project__launch_status="done"
             ).count()
 
-            time_saved_text, time_saved_projects = aggregate_portfolio_time_saved(qs)
-
             spi = None
             cpi = None
             if workspace_metrics:
@@ -233,13 +220,6 @@ def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
                 "open_risks": str(open_risks),
                 "spi": f"{spi:.2f}" if isinstance(spi, (int, float)) else "—",
                 "cpi": f"{cpi:.2f}" if isinstance(cpi, (int, float)) else "—",
-                "time_saved": time_saved_text,
-                "time_saved_subtitle": (
-                    f"From {time_saved_projects} project"
-                    f"{'' if time_saved_projects == 1 else 's'}"
-                    if time_saved_projects
-                    else "Across portfolio"
-                ),
             }
         except Exception:
             return {}
@@ -268,8 +248,6 @@ def get_executive_overview_kpi_cards(project_type=None, workspace_metrics=None):
             if v in ("—", "-") and r.key in computed and computed[r.key] not in ("", "—", None):
                 v = computed[r.key]
             subtitle = r.subtitle or ""
-            if r.key == "time_saved" and computed.get("time_saved_subtitle"):
-                subtitle = computed["time_saved_subtitle"]
             result.append(
                 {
                     "key": r.key,
@@ -2015,9 +1993,7 @@ def get_transformation_workspace(project_type=None):
                     "gov_operational_impact": getattr(obj, "gov_operational_impact", "") or "",
                     "gov_assumptions_constraints": getattr(obj, "gov_assumptions_constraints", "")
                     or "",
-                    "estimated_time_saving": _auto["estimated_time_saving"],
-                    "estimated_time_saving_unit": _auto["estimated_time_saving_unit"],
-                    "resources_before_automation": _auto["resources_before_automation"],
+                    "business_benefits": _auto["business_benefits"],
                 },
                 "register_remarks": register_remarks_payload(obj),
                 "remarks": (getattr(obj, "remarks", "") or "").strip(),
@@ -2532,6 +2508,9 @@ def _merge_projects_tab_task_overrides(projects):
         for row in ProjectsTabTaskStore.objects.all()
     }
     for project in projects:
+        if project.get("tracker_id"):
+            _recalc_project_task_counts(project)
+            continue
         key = project.get("id")
         if key and key in overrides:
             project["tasks"] = overrides[key]
@@ -2625,16 +2604,19 @@ def aggregate_portfolio_time_saved(qs):
 
 
 def automation_fields_payload(obj):
-    """Structured automation-impact fields for project detail / form_edit."""
-    val = getattr(obj, "estimated_time_saving", None)
-    unit = (getattr(obj, "estimated_time_saving_unit", "") or "hours").strip() or "hours"
-    resources = (getattr(obj, "resources_before_automation", "") or "").strip()
-    return {
-        "estimated_time_saving": str(val) if val is not None else "",
-        "estimated_time_saving_unit": unit,
-        "estimated_time_saving_display": format_estimated_time_saving_display(val, unit),
-        "resources_before_automation": resources,
-    }
+    """Business benefits for project detail / form_edit."""
+    benefits = (getattr(obj, "business_benefits", "") or "").strip()
+    if not benefits:
+        parts = []
+        val = getattr(obj, "estimated_time_saving", None)
+        if val is not None:
+            unit = (getattr(obj, "estimated_time_saving_unit", "") or "hours").strip() or "hours"
+            parts.append(f"Estimated time saving: {val} {unit}")
+        resources = (getattr(obj, "resources_before_automation", "") or "").strip()
+        if resources:
+            parts.append(resources)
+        benefits = "\n".join(parts)
+    return {"business_benefits": benefits}
 
 
 CARDS_VIEW_CATEGORY_LABELS = {
@@ -2671,33 +2653,8 @@ def apply_cards_view_meta_patch(project, meta):
         project["status_label"] = CARDS_VIEW_STATUS_LABELS[status]
     if meta.get("deadline") is not None:
         project["deadline"] = str(meta.get("deadline") or "").strip()
-    if "estimated_time_saving" in meta:
-        raw = meta.get("estimated_time_saving")
-        project["estimated_time_saving"] = (
-            str(raw).strip() if raw is not None and str(raw).strip() != "" else ""
-        )
-    if meta.get("estimated_time_saving_unit"):
-        unit = str(meta["estimated_time_saving_unit"]).strip().lower()
-        if unit in ("hours", "minutes"):
-            project["estimated_time_saving_unit"] = unit
-    if "resources_before_automation" in meta:
-        project["resources_before_automation"] = str(
-            meta.get("resources_before_automation") or ""
-        ).strip()
-    val = project.get("estimated_time_saving")
-    unit = project.get("estimated_time_saving_unit") or "hours"
-    if val:
-        try:
-            from decimal import Decimal
-
-            project["estimated_time_saving_display"] = format_estimated_time_saving_display(
-                Decimal(str(val).replace(",", ".")),
-                unit,
-            )
-        except Exception:
-            project["estimated_time_saving_display"] = ""
-    else:
-        project["estimated_time_saving_display"] = ""
+    if "business_benefits" in meta:
+        project["business_benefits"] = str(meta.get("business_benefits") or "").strip()
     return project
 
 
@@ -2746,9 +2703,6 @@ def build_cards_view_project(payload, existing_ids=None):
     project_key = cards_project_key_from_title(title, existing_ids=existing_ids)
     deadline = (payload.get("deadline") or "").strip()
     phase = (payload.get("phase") or "Initiating").strip()
-    unit = (payload.get("estimated_time_saving_unit") or "hours").strip().lower()
-    if unit not in ("hours", "minutes"):
-        unit = "hours"
     project = {
         "id": project_key,
         "category": category,
@@ -2757,11 +2711,7 @@ def build_cards_view_project(payload, existing_ids=None):
         "status_label": CARDS_VIEW_STATUS_LABELS[status],
         "title": title,
         "description": (payload.get("description") or "").strip(),
-        "estimated_time_saving": (payload.get("estimated_time_saving") or "").strip(),
-        "estimated_time_saving_unit": unit,
-        "resources_before_automation": (
-            (payload.get("resources_before_automation") or "").strip()
-        ),
+        "business_benefits": (payload.get("business_benefits") or "").strip(),
         "progress": 0,
         "phase": phase,
         "owner": (payload.get("owner") or "").strip(),
@@ -2779,21 +2729,152 @@ def build_cards_view_project(payload, existing_ids=None):
     }
     apply_cards_view_meta_patch(
         project,
-        {
-            "estimated_time_saving": project["estimated_time_saving"],
-            "estimated_time_saving_unit": project["estimated_time_saving_unit"],
-            "resources_before_automation": project["resources_before_automation"],
-        },
+        {"business_benefits": project["business_benefits"]},
     )
     return project
 
 
-def get_projects_tab_data():
-    """
-    Static demo data for the Projects tab (matches PMO dashboard mockups).
-    Will be wired to ProjectTrackerItem in a later iteration.
-    """
-    projects = [
+def _category_slug_from_tracker(obj):
+    """Map tracker item to cards-view accent category."""
+    if getattr(obj, "register_category_id", None) and obj.register_category:
+        name = (obj.register_category.name or "").strip().lower()
+        if "operation" in name:
+            return "operations"
+        if "digital" in name:
+            return "digital"
+        if "automation" in name:
+            return "automation"
+    pt = (obj.project_type or "").strip().lower()
+    if pt == "automation":
+        return "automation"
+    return "digital"
+
+
+def _register_status_to_card_status(rs_eff):
+    if rs_eff in ("delayed", "at_risk", "blocked"):
+        return "delayed"
+    return "on_track"
+
+
+def _tracker_progress_pct(obj):
+    stored = getattr(obj, "progress_pct", None)
+    if stored is not None:
+        try:
+            return max(0, min(100, int(stored)))
+        except (TypeError, ValueError):
+            pass
+    status_score = {
+        "done": 1.0,
+        "working_on_it": 0.55,
+        "stuck": 0.25,
+        "": 0.0,
+        None: 0.0,
+    }
+    vals = [
+        obj.brainstorming_status,
+        obj.execution_status,
+        getattr(obj, "test_deadline_status", ""),
+        obj.launch_status,
+    ]
+    total = sum(status_score.get(v, 0.0) for v in vals)
+    return int(round((total / 4.0) * 100))
+
+
+def _tracker_current_phase(obj):
+    phases = [
+        ("Initiating", obj.brainstorming_status),
+        ("Executing", obj.execution_status),
+        ("Monitoring", getattr(obj, "test_deadline_status", "")),
+        ("Closing", obj.launch_status),
+    ]
+    for name, val in phases:
+        if (val or "") != "done":
+            return name
+    return "Closing"
+
+
+def _process_steps_to_task_groups(steps):
+    items = []
+    for step in steps:
+        dl = step.step_deadline
+        st = (getattr(step, "status", None) or "pending").strip()
+        if st not in ("pending", "in_progress", "done"):
+            st = "pending"
+        items.append(
+            {
+                "id": str(step.id),
+                "text": step.description or "",
+                "deadline": dl.isoformat() if dl else "",
+                "deadline_display": dl.strftime("%Y-%m-%d") if dl else "",
+                "assignee": step.owner_name or "",
+                "status": st,
+                "business_benefits": (getattr(step, "business_benefits", "") or "").strip(),
+            }
+        )
+    if not items:
+        return []
+    return [{"phase": "PROJECT TASKS", "items": items}]
+
+
+def _tracker_item_to_card_project(obj):
+    """Build a Cards View project dict from a published ProjectTrackerItem."""
+    from datetime import date
+
+    today = date.today()
+    prog_pct = _tracker_progress_pct(obj)
+
+    rs_reg = (getattr(obj, "register_status", "") or "").strip()
+    rs_eff = rs_reg
+    if not rs_eff:
+        if obj.end_date and obj.end_date < today:
+            rs_eff = "delayed"
+        else:
+            rs_eff = "on_track"
+
+    card_status = _register_status_to_card_status(rs_eff)
+    cat = _category_slug_from_tracker(obj)
+    title = (obj.description or "").strip() or "—"
+    pc = (getattr(obj, "project_code", "") or "").strip()
+    log_id = pc if pc else f"LOG-{obj.id:03d}"
+    lead = (getattr(obj, "project_lead", "") or "").strip()
+    secondary = (obj.person_name or "").strip()
+    owner = lead or secondary or "—"
+    proc_steps = list(obj.process_steps.all())
+    tasks = _process_steps_to_task_groups(proc_steps)
+
+    project = {
+        "id": str(obj.id),
+        "tracker_id": obj.id,
+        "code": log_id,
+        "category": cat,
+        "category_label": title,
+        "status": card_status,
+        "status_label": CARDS_VIEW_STATUS_LABELS[card_status],
+        "title": title,
+        "description": (getattr(obj, "objective_sow", "") or "").strip(),
+        "business_benefits": automation_fields_payload(obj)["business_benefits"],
+        "progress": prog_pct,
+        "phase": _tracker_current_phase(obj),
+        "owner": owner,
+        "pmo_score": prog_pct,
+        "deadline": obj.end_date.isoformat() if obj.end_date else "",
+        "spi": round(prog_pct / 100.0, 2) if prog_pct else 0.0,
+        "cpi": round(prog_pct / 100.0, 2) if prog_pct else 0.0,
+        "tasks_done": 0,
+        "tasks_total": 0,
+        "tasks_in_progress": 0,
+        "tasks_pending": 0,
+        "phases": [dict(p) for p in DEFAULT_PROJECT_PHASES],
+        "tasks": tasks,
+        "remaining": [],
+    }
+    _recalc_project_task_counts(project)
+    return project
+
+
+def _get_projects_tab_demo_projects():
+    """Fallback demo cards when no published tracker rows exist."""
+    return [
         {
             "id": "log-069",
             "code": "LOG-069",
@@ -3003,6 +3084,15 @@ def get_projects_tab_data():
             "remaining": ["Define VAS KPIs", "Wireframe dashboard", "Data source mapping"],
         },
     ]
+
+
+def get_projects_tab_data(project_type=None):
+    """
+    Cards View register: portfolio demo cards (VAS Dashboard, Picking Status, …)
+    plus any user-added cards. Demo cards keep JSON task store; tracker_id cards
+    (if added later) use ProjectProcessStep in the database.
+    """
+    projects = _get_projects_tab_demo_projects()
 
     for project in projects:
         _ensure_project_phases(project)

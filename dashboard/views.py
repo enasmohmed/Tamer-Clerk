@@ -114,13 +114,9 @@ def _portfolio_rebuild_remarks(obj, *, risk_level="", pmbok_phase="", budget_usd
     objective_sow = (obj.objective_sow or "").strip()
     if objective_sow:
         lines.append(f"Objective: {objective_sow}")
-    estimated_time_saving = getattr(obj, "estimated_time_saving", None)
-    if estimated_time_saving is not None:
-        unit = (getattr(obj, "estimated_time_saving_unit", "") or "hours").strip() or "hours"
-        lines.append(f"Estimated time saving: {estimated_time_saving} {unit}")
-    resources_before = (getattr(obj, "resources_before_automation", "") or "").strip()
-    if resources_before:
-        lines.append(f"Resources before automation: {resources_before}")
+    business_benefits = (getattr(obj, "business_benefits", "") or "").strip()
+    if business_benefits:
+        lines.append(f"Business benefits: {business_benefits}")
     kpi_success_criteria = (obj.kpi_success_criteria or "").strip()
     if kpi_success_criteria:
         lines.append(f"KPI: {kpi_success_criteria}")
@@ -283,10 +279,7 @@ def project_portfolio_add_project(request):
 
         objective_sow = _s("objective_sow")
         kpi_success_criteria = _s("kpi_success_criteria")
-        estimated_time_saving, estimated_time_saving_unit = (
-            context_helpers.parse_estimated_time_saving_post(request.POST)
-        )
-        resources_before_automation = _s("resources_before_automation")
+        business_benefits = _s("business_benefits")
 
         cost_reduction_pct = None
         cr_raw = _s("cost_reduction_pct")
@@ -371,12 +364,8 @@ def project_portfolio_add_project(request):
             lines.append(f"Budget (USD): {budget}")
         if objective_sow:
             lines.append(f"Objective: {objective_sow}")
-        if estimated_time_saving is not None:
-            lines.append(
-                f"Estimated time saving: {estimated_time_saving} {estimated_time_saving_unit}"
-            )
-        if resources_before_automation:
-            lines.append(f"Resources before automation: {resources_before_automation}")
+        if business_benefits:
+            lines.append(f"Business benefits: {business_benefits}")
         if kpi_success_criteria:
             lines.append(f"KPI: {kpi_success_criteria}")
         if cost_reduction_pct is not None:
@@ -423,9 +412,7 @@ def project_portfolio_add_project(request):
             register_category=register_category,
             strategic_alignment_ref=strategic_alignment_ref,
             objective_sow=objective_sow,
-            estimated_time_saving=estimated_time_saving,
-            estimated_time_saving_unit=estimated_time_saving_unit,
-            resources_before_automation=resources_before_automation,
+            business_benefits=business_benefits,
             kpi_success_criteria=kpi_success_criteria,
             cost_reduction_pct=cost_reduction_pct,
             headcount_impact=headcount_impact,
@@ -8522,13 +8509,7 @@ def projects_tab_update_project(request):
         "description": (payload.get("description") or "").strip(),
         "owner": (payload.get("owner") or "").strip(),
         "phase": (payload.get("phase") or "").strip(),
-        "estimated_time_saving": (payload.get("estimated_time_saving") or "").strip(),
-        "estimated_time_saving_unit": (
-            (payload.get("estimated_time_saving_unit") or "hours").strip().lower()
-        ),
-        "resources_before_automation": (
-            (payload.get("resources_before_automation") or "").strip()
-        ),
+        "business_benefits": (payload.get("business_benefits") or "").strip(),
     }
     if category:
         meta_patch["category"] = category
@@ -8610,6 +8591,121 @@ def projects_tab_save_tasks(request):
             "message": "Tasks saved.",
             "updated_at": store.updated_at.isoformat(),
             "counts": counts,
+        }
+    )
+
+
+@require_POST
+def project_portfolio_save_task(request):
+    """Create, update, or delete a ProjectProcessStep (Cards View task with deadline)."""
+    if not (pmo_session.is_pmo_manager(request) or pmo_session.is_pmo_team(request)):
+        return JsonResponse({"ok": False, "message": "Forbidden."}, status=403)
+    try:
+        from django.db.models import Prefetch
+
+        from .models import ProjectProcessStep, ProjectTrackerItem
+
+        payload = json.loads(request.body.decode("utf-8") or "{}")
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({"ok": False, "message": "Invalid JSON."}, status=400)
+
+    tracker_id = payload.get("tracker_id")
+    try:
+        tracker_id = int(tracker_id)
+    except (TypeError, ValueError):
+        return JsonResponse({"ok": False, "message": "tracker_id is required."}, status=400)
+
+    obj = ProjectTrackerItem.objects.filter(
+        pk=tracker_id, pmo_register_published=True
+    ).first()
+    if not obj:
+        return JsonResponse({"ok": False, "message": "Project not found."}, status=404)
+
+    step_id = payload.get("step_id")
+    delete = bool(payload.get("delete"))
+
+    if delete:
+        if not step_id:
+            return JsonResponse({"ok": False, "message": "step_id is required."}, status=400)
+        try:
+            step_pk = int(step_id)
+        except (TypeError, ValueError):
+            return JsonResponse({"ok": False, "message": "Invalid step_id."}, status=400)
+        ProjectProcessStep.objects.filter(pk=step_pk, project=obj).delete()
+        message = "Task deleted."
+    else:
+        description = (payload.get("description") or payload.get("text") or "").strip()
+        if not description:
+            return JsonResponse({"ok": False, "message": "Description is required."}, status=400)
+        owner = (payload.get("owner") or payload.get("assignee") or "").strip()
+        dl_raw = (payload.get("deadline") or "").strip()
+        step_dl = parse_date(dl_raw) if dl_raw else None
+        step_status = (payload.get("status") or "pending").strip()
+        if step_status not in ("pending", "in_progress", "done"):
+            step_status = "pending"
+        business_benefits = (payload.get("business_benefits") or "").strip()
+
+        if step_id:
+            try:
+                step_pk = int(step_id)
+            except (TypeError, ValueError):
+                return JsonResponse({"ok": False, "message": "Invalid step_id."}, status=400)
+            step = ProjectProcessStep.objects.filter(pk=step_pk, project=obj).first()
+            if not step:
+                return JsonResponse({"ok": False, "message": "Task not found."}, status=404)
+            step.description = description
+            step.step_deadline = step_dl
+            step.owner_name = owner
+            step.status = step_status
+            step.business_benefits = business_benefits
+            step.save(
+                update_fields=[
+                    "description",
+                    "step_deadline",
+                    "owner_name",
+                    "status",
+                    "business_benefits",
+                ]
+            )
+            message = "Task updated."
+        else:
+            display_order = obj.process_steps.count()
+            ProjectProcessStep.objects.create(
+                project=obj,
+                description=description,
+                step_deadline=step_dl,
+                owner_name=owner,
+                status=step_status,
+                business_benefits=business_benefits,
+                display_order=display_order,
+            )
+            message = "Task added."
+
+    obj = ProjectTrackerItem.objects.filter(
+        pk=tracker_id, pmo_register_published=True
+    ).prefetch_related(
+        Prefetch(
+            "process_steps",
+            queryset=ProjectProcessStep.objects.order_by("display_order", "id"),
+        )
+    ).first()
+    card = context_helpers._tracker_item_to_card_project(obj)
+    tasks = card.get("tasks") or []
+    return JsonResponse(
+        {
+            "ok": True,
+            "message": message,
+            "tasks": tasks,
+            "counts": {
+                "tasks_done": card.get("tasks_done", 0),
+                "tasks_total": card.get("tasks_total", 0),
+                "tasks_in_progress": card.get("tasks_in_progress", 0),
+                "tasks_pending": card.get("tasks_pending", 0),
+                "progress": card.get("progress", 0),
+                "pmo_score": card.get("pmo_score", 0),
+                "spi": card.get("spi", 0),
+                "cpi": card.get("cpi", 0),
+            },
         }
     )
 
@@ -8708,9 +8804,7 @@ def project_portfolio_update_project(request):
             "register_category_id": obj.register_category_id,
             "strategic_alignment_ref_id": obj.strategic_alignment_ref_id,
             "objective_sow": obj.objective_sow or "",
-            "estimated_time_saving": obj.estimated_time_saving,
-            "estimated_time_saving_unit": obj.estimated_time_saving_unit or "",
-            "resources_before_automation": obj.resources_before_automation or "",
+            "business_benefits": obj.business_benefits or "",
             "kpi_success_criteria": obj.kpi_success_criteria or "",
             "cost_reduction_pct": obj.cost_reduction_pct,
             "headcount_impact": obj.headcount_impact or "",
@@ -8780,10 +8874,7 @@ def project_portfolio_update_project(request):
 
         objective_sow = _s("objective_sow")
         kpi_success_criteria = _s("kpi_success_criteria")
-        estimated_time_saving, estimated_time_saving_unit = (
-            context_helpers.parse_estimated_time_saving_post(request.POST)
-        )
-        resources_before_automation = _s("resources_before_automation")
+        business_benefits = _s("business_benefits")
 
         cost_reduction_pct = None
         cr_raw = _s("cost_reduction_pct")
@@ -8843,9 +8934,7 @@ def project_portfolio_update_project(request):
         obj.register_category = register_category
         obj.strategic_alignment_ref = strategic_alignment_ref
         obj.objective_sow = objective_sow
-        obj.estimated_time_saving = estimated_time_saving
-        obj.estimated_time_saving_unit = estimated_time_saving_unit
-        obj.resources_before_automation = resources_before_automation
+        obj.business_benefits = business_benefits
         obj.kpi_success_criteria = kpi_success_criteria
         obj.cost_reduction_pct = cost_reduction_pct
         obj.headcount_impact = headcount_impact
@@ -8920,12 +9009,8 @@ def project_portfolio_update_project(request):
             parts.append("Strategic alignment updated")
         if (obj.objective_sow or "") != snap["objective_sow"]:
             parts.append("Objective / SoW updated")
-        if obj.estimated_time_saving != snap["estimated_time_saving"]:
-            parts.append("Estimated time saving updated")
-        if (obj.estimated_time_saving_unit or "") != snap["estimated_time_saving_unit"]:
-            parts.append("Time saving unit updated")
-        if (obj.resources_before_automation or "") != snap["resources_before_automation"]:
-            parts.append("Resources before automation updated")
+        if (obj.business_benefits or "") != snap["business_benefits"]:
+            parts.append("Business benefits updated")
         if (obj.kpi_success_criteria or "") != snap["kpi_success_criteria"]:
             parts.append("KPI / success criteria updated")
         if obj.cost_reduction_pct != snap["cost_reduction_pct"]:
