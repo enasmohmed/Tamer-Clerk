@@ -1964,6 +1964,8 @@ def get_transformation_workspace(project_type=None):
                 },
                 "form_edit": {
                     "project_name": (obj.description or "").strip(),
+                    "company": (getattr(obj, "company", "") or "").strip(),
+                    "project_lead": lead,
                     "person_name": (obj.person_name or "").strip(),
                     "department_id": getattr(obj, "department_ref_id", None),
                     "category_id": getattr(obj, "register_category_id", None),
@@ -1973,6 +1975,16 @@ def get_transformation_workspace(project_type=None):
                     "start_date_iso": obj.start_date.isoformat()
                     if obj.start_date
                     else "",
+                    "planned_deadline_iso": obj.end_date.isoformat()
+                    if obj.end_date
+                    else "",
+                    "pmbok_phase": phase_nm if phase_nm in (
+                        "Initiating",
+                        "Planning",
+                        "Execution",
+                        "Monitoring",
+                        "Closing",
+                    ) else "",
                     "headcount_impact": (getattr(obj, "headcount_impact", "") or "").strip(),
                     "sla_improvement": (getattr(obj, "sla_improvement", "") or "").strip(),
                     "cost_reduction_pct": str(obj.cost_reduction_pct)
@@ -3088,11 +3100,33 @@ def _get_projects_tab_demo_projects():
 
 def get_projects_tab_data(project_type=None):
     """
-    Cards View register: portfolio demo cards (VAS Dashboard, Picking Status, …)
-    plus any user-added cards. Demo cards keep JSON task store; tracker_id cards
-    (if added later) use ProjectProcessStep in the database.
+    Cards View register: published ProjectTrackerItem rows from Admin (primary).
+    Falls back to demo cards only when no published projects exist (local dev).
     """
-    projects = _get_projects_tab_demo_projects()
+    projects = []
+    try:
+        from django.db.models import Prefetch
+
+        from .models import ProjectProcessStep, ProjectTrackerItem
+
+        qs = (
+            ProjectTrackerItem.objects.filter(pmo_register_published=True)
+            .prefetch_related(
+                Prefetch(
+                    "process_steps",
+                    queryset=ProjectProcessStep.objects.order_by("display_order", "id"),
+                ),
+            )
+            .order_by("-created_at", "-id")
+        )
+        if project_type and project_type in ("idea", "automation"):
+            qs = qs.filter(project_type=project_type)
+        projects = [_tracker_item_to_card_project(obj) for obj in qs]
+    except Exception:
+        projects = []
+
+    if not projects:
+        projects = _get_projects_tab_demo_projects()
 
     for project in projects:
         _ensure_project_phases(project)

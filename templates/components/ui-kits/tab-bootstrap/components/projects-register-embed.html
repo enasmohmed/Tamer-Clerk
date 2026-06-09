@@ -215,8 +215,13 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
         <circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path>
       </svg>
-      <input type="search" class="pr-search-input" id="{{ prefix }}-project-search"
-             placeholder="Search projects..." autocomplete="off" aria-label="Search projects" />
+      <input type="text" class="pr-search-input" id="{{ prefix }}-project-search"
+             name="pr-project-filter-{{ prefix }}"
+             placeholder="Search projects..."
+             autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+             inputmode="search" enterkeyhint="search"
+             data-lpignore="true" data-1p-ignore="true" data-form-type="other"
+             aria-label="Search projects" readonly />
       <button type="button" class="pr-search-clear" id="{{ prefix }}-search-clear" aria-label="Clear search">×</button>
     </div>
     <div class="pr-filter-select-wrap">
@@ -269,6 +274,12 @@
       </div>
     </article>
     {% endfor %}
+    {% if not projects_tab.projects %}
+    <div class="pr-register-empty" id="{{ prefix }}-register-empty" style="grid-column:1/-1;text-align:center;padding:2.5rem 1rem;color:#64748b;">
+      <p style="margin:0 0 0.5rem;font-weight:700;color:#0f172a;">No projects in the register yet</p>
+      <p style="margin:0;font-size:0.9rem;">Add or publish projects from <strong>Admin → Transformation Workspace Projects</strong>, or use <strong>+ Add Project</strong>.</p>
+    </div>
+    {% endif %}
   </div>
   </div>
 
@@ -492,7 +503,14 @@
   }
 
   if (searchInput) {
+    searchInput.addEventListener("focus", function () {
+      searchInput.removeAttribute("readonly");
+    }, { once: true });
     searchInput.addEventListener("input", applyProjectFilters);
+    if (searchInput.value) {
+      searchInput.value = "";
+      if (searchWrap) searchWrap.classList.remove("has-value");
+    }
   }
   if (searchClear) {
     searchClear.addEventListener("click", function () {

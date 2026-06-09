@@ -2248,84 +2248,29 @@
   function resetPpProjectFormForAdd() {
     window.__ppFormMode = "project";
     window.__ppTaskContext = null;
+    window.__ppCardEditFallbackId = null;
     resetPpProjectFormFields();
     restorePpProjectModalChrome();
   }
 
-  function openPpAddProjectModalForEdit(row) {
-    if (!row) return;
-    var form = document.getElementById("ppAddProjectForm");
-    if (!form) return;
-    resetPpProjectFormForAdd();
-    window.__ppFormIsEdit = true;
-    var teamCreateHint = document.getElementById("ppTeamScheduleCreateHint");
-    if (teamCreateHint) teamCreateHint.classList.add("d-none");
+  function ppParseChallengesFromRemarks(remarks) {
+    var out = [];
+    String(remarks || "").split("\n").forEach(function(line) {
+      var s = line.trim();
+      if (s.toLowerCase().indexOf("challenge:") !== 0) return;
+      var body = s.split(":").slice(1).join(":").trim();
+      var sev = "";
+      var m = body.match(/^(.+?)\s*\(Severity:\s*(.+?)\)\s*$/i);
+      if (m) {
+        body = m[1].trim();
+        sev = m[2].trim();
+      }
+      if (body) out.push({ text: body, severity: sev });
+    });
+    return out;
+  }
 
-    var rid = row.dataset.id;
-    var det = detailMap[String(rid)] || detailMap[rid] || {};
-    var fe = det.form_edit || {};
-    var biz = det.biz || {};
-
-    var tid = document.getElementById("ppFormProjectId");
-    if (tid) tid.value = String(rid);
-
-    ppFormSetField(form, "project_name", fe.project_name || row.dataset.name || "");
-    ppFormSetField(form, "company", (row.dataset.company || "").trim());
-    ppFormSetField(form, "project_lead", (row.dataset.projectLead || "").trim());
-    ppFormSetField(form, "project_secondary", (fe.person_name || row.dataset.secondary || "").trim());
-
-    var rsCode = (fe.register_status || row.dataset.registerStatusCode || "").trim();
-    if (window.__PMO_IS_TEAM && rsCode === "approved") rsCode = "";
-    ppFormSetField(form, "register_status", rsCode);
-
-    ppFormSetField(form, "department_id", fe.department_id != null && fe.department_id !== "" ? String(fe.department_id) : "");
-
-    ppFormSetField(form, "objective_sow", (det.objective_sow || "").trim());
-    ppFormSetField(form, "business_benefits", (fe.business_benefits || det.business_benefits || "").trim());
-
-    ppFormSetField(form, "start_date", (fe.start_date_iso || row.dataset.startIso || "").trim());
-    ppFormSetField(form, "planned_deadline", (row.dataset.endIso || "").trim());
-
-    var prog = (fe.progress_pct != null && fe.progress_pct !== "") ? String(fe.progress_pct) : row.dataset.progress;
-    if (prog !== undefined && prog !== null && String(prog).trim() !== "") {
-      ppFormSetField(form, "pct_complete", String(prog).trim());
-    }
-
-    var rk = (fe.register_risk_level || "").trim();
-    if (!rk) rk = ppRemarkLine(det.remarks || "", "risk level:");
-    if (rk && rk !== "—") ppFormSetField(form, "risk_level", rk);
-
-    var pmbokFromRow = (row.dataset.pmbok || "").trim().toUpperCase();
-    var pmbokSelectMap = {
-      INITIATING: "Initiating",
-      PLANNING: "Planning",
-      EXECUTING: "Execution",
-      EXECUTION: "Execution",
-      MONITORING: "Monitoring",
-      CLOSING: "Closing"
-    };
-    var pmbokVal = pmbokSelectMap[pmbokFromRow] || ppRemarkLine(det.remarks || "", "pmbok phase:");
-    if (pmbokVal) ppFormSetField(form, "pmbok_phase", pmbokVal);
-
-    ppPopulateRemarkRows(
-      det.remarks || row.dataset.remarks || "",
-      det.register_remarks || []
-    );
-
-    ppPopulateRepeatRows("ppProcessRows", "pp-process-row", det.process_steps || [], function(tr, step) {
-      var desc = tr.querySelector("input[name=\"process_description\"]");
-      var dl = tr.querySelector("input[name=\"process_deadline\"]");
-      var ow = tr.querySelector("input[name=\"process_owner\"]");
-      if (desc) desc.value = (step.description || "").trim();
-      if (dl) dl.value = (step.deadline_iso || "").trim();
-      if (ow) ow.value = (step.owner || step.owner_name || "").trim();
-    }, false);
-
-    var titleEl = document.getElementById("ppAddProjectModalTitle");
-    var subBtn = document.getElementById("ppSubmitProjectBtn");
-    if (titleEl) titleEl.textContent = "EDIT PROJECT";
-    if (subBtn) subBtn.textContent = "Save changes";
-
+  function ppApplyProjectEditDatePermissions() {
     var dl = document.getElementById("ppInputPlannedDeadline");
     var sd = document.getElementById("ppInputStartDate");
     var hint = document.getElementById("ppDeadlineTeamReadonlyHint");
@@ -2366,10 +2311,136 @@
         if (hint) hint.classList.add("d-none");
       }
     }
+  }
 
+  function fillPpProjectFormForEdit(projectId, rowEl, cardProject) {
+    var form = document.getElementById("ppAddProjectForm");
+    if (!form) return false;
+
+    resetPpProjectFormForAdd();
+    window.__ppFormIsEdit = true;
+    window.__ppFormMode = "project";
+    window.__ppCardEditFallbackId = null;
+
+    var teamCreateHint = document.getElementById("ppTeamScheduleCreateHint");
+    if (teamCreateHint) teamCreateHint.classList.add("d-none");
+
+    var rid = projectId != null ? String(projectId) : "";
+    var det = (rid && (detailMap[rid] || detailMap[projectId])) || {};
+    var hasDetail = det && Object.keys(det).length > 0;
+
+    if (!hasDetail) {
+      if (!cardProject) return false;
+      window.__ppCardEditFallbackId = String(cardProject.id || "");
+      det = {
+        objective_sow: cardProject.description || "",
+        business_benefits: cardProject.business_benefits || "",
+        form_edit: {
+          project_name: cardProject.title || "",
+          project_lead: cardProject.owner || "",
+          register_status: cardProject.status === "delayed" ? "delayed" : (cardProject.status || ""),
+          planned_deadline_iso: cardProject.deadline || "",
+          pmbok_phase: cardProject.phase || "",
+          progress_pct: cardProject.progress,
+        },
+        process_steps: [],
+        remarks: "",
+        register_remarks: [],
+      };
+      rid = "";
+    }
+
+    var ds = rowEl && rowEl.dataset ? rowEl.dataset : {};
+    var fe = det.form_edit || {};
+    var summ = det.summary || {};
+
+    var tid = document.getElementById("ppFormProjectId");
+    if (tid) tid.value = rid ? String(rid) : "";
+
+    ppFormSetField(form, "project_name", fe.project_name || ds.name || (cardProject && cardProject.title) || "");
+    ppFormSetField(form, "company", (fe.company || ds.company || "").trim());
+    ppFormSetField(form, "project_lead", (fe.project_lead || ds.projectLead || (cardProject && cardProject.owner) || "").trim());
+    ppFormSetField(form, "project_secondary", (fe.person_name || ds.secondary || "").trim());
+
+    var rsCode = (fe.register_status || ds.registerStatusCode || (cardProject && cardProject.status) || "").trim();
+    if (window.__PMO_IS_TEAM && rsCode === "approved") rsCode = "";
+    ppFormSetField(form, "register_status", rsCode);
+
+    ppFormSetField(form, "department_id", fe.department_id != null && fe.department_id !== "" ? String(fe.department_id) : "");
+
+    ppFormSetField(form, "objective_sow", (det.objective_sow || "").trim());
+    ppFormSetField(form, "business_benefits", (fe.business_benefits || det.business_benefits || "").trim());
+
+    ppFormSetField(form, "start_date", (fe.start_date_iso || ds.startIso || "").trim());
+    ppFormSetField(form, "planned_deadline", (fe.planned_deadline_iso || ds.endIso || (cardProject && cardProject.deadline) || "").trim());
+
+    var prog = (fe.progress_pct != null && fe.progress_pct !== "") ? String(fe.progress_pct) : ds.progress;
+    if (prog !== undefined && prog !== null && String(prog).trim() !== "") {
+      ppFormSetField(form, "pct_complete", String(prog).trim());
+    }
+
+    var rk = (fe.register_risk_level || "").trim();
+    if (!rk) rk = ppRemarkLine(det.remarks || "", "risk level:");
+    if (rk && rk !== "—") ppFormSetField(form, "risk_level", rk);
+
+    var pmbokFromRow = (ds.pmbok || fe.pmbok_phase || summ.pmbok_label || (cardProject && cardProject.phase) || "").trim().toUpperCase();
+    var pmbokSelectMap = {
+      INITIATING: "Initiating",
+      PLANNING: "Planning",
+      EXECUTING: "Execution",
+      EXECUTION: "Execution",
+      MONITORING: "Monitoring",
+      CLOSING: "Closing"
+    };
+    var pmbokVal = fe.pmbok_phase || pmbokSelectMap[pmbokFromRow] || ppRemarkLine(det.remarks || "", "pmbok phase:");
+    if (pmbokVal) ppFormSetField(form, "pmbok_phase", pmbokVal);
+
+    var challenges = ppParseChallengesFromRemarks(det.remarks || ds.remarks || "");
+    if (challenges[0]) {
+      ppFormSetField(form, "challenge_1", challenges[0].text);
+      if (challenges[0].severity) ppFormSetField(form, "severity_1", challenges[0].severity);
+    }
+    if (challenges[1]) {
+      ppFormSetField(form, "challenge_2", challenges[1].text);
+      if (challenges[1].severity) ppFormSetField(form, "severity_2", challenges[1].severity);
+    }
+
+    ppPopulateRemarkRows(
+      det.remarks || ds.remarks || "",
+      det.register_remarks || []
+    );
+
+    ppPopulateRepeatRows("ppProcessRows", "pp-process-row", det.process_steps || [], function(tr, step) {
+      var desc = tr.querySelector("input[name=\"process_description\"]");
+      var dl = tr.querySelector("input[name=\"process_deadline\"]");
+      var ow = tr.querySelector("input[name=\"process_owner\"]");
+      if (desc) desc.value = (step.description || "").trim();
+      if (dl) dl.value = (step.deadline_iso || step.deadline || "").trim();
+      if (ow) ow.value = (step.owner || step.owner_name || "").trim();
+    }, false);
+
+    var titleEl = document.getElementById("ppAddProjectModalTitle");
+    var subBtn = document.getElementById("ppSubmitProjectBtn");
+    if (titleEl) titleEl.textContent = "EDIT PROJECT";
+    if (subBtn) subBtn.textContent = "Save changes";
+
+    ppApplyProjectEditDatePermissions();
+    return true;
+  }
+
+  function openPpAddProjectModalForEdit(row) {
+    if (!row) return;
+    if (!fillPpProjectFormForEdit(row.dataset.id, row, null)) return;
     var m = getModalInstance();
     if (m) m.show();
   }
+
+  window.__ppOpenEditProject = function(projectId, cardProject) {
+    if (!fillPpProjectFormForEdit(projectId, null, cardProject || null)) return false;
+    var m = getModalInstance();
+    if (m) m.show();
+    return true;
+  };
 
   window.__ppOpenRegisterNewProject = function() {
     resetPpProjectFormForAdd();
@@ -2487,6 +2558,28 @@
         } else {
           taskDone(false, "Task save is not available.");
         }
+        return;
+      }
+
+      if (window.__ppCardEditFallbackId && typeof window.__ppSubmitCardDemoProjectEdit === "function") {
+        window.__ppAddProjectInFlight = true;
+        var demoOriginalText = submitBtn.textContent;
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Saving...";
+        window.__ppSubmitCardDemoProjectEdit(form, function(ok, msg) {
+          window.__ppAddProjectInFlight = false;
+          submitBtn.disabled = false;
+          submitBtn.textContent = demoOriginalText;
+          if (!ok) {
+            if (err && msg) { err.textContent = msg; err.classList.remove("d-none"); }
+            return;
+          }
+          if (modal) modal.hide();
+          setTimeout(hardCleanupModalState, 50);
+          try {
+            if (typeof resetPpProjectFormForAdd === "function") resetPpProjectFormForAdd();
+          } catch (eDemo) {}
+        });
         return;
       }
 

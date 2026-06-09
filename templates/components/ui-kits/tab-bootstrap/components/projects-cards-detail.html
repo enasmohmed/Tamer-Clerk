@@ -72,36 +72,6 @@
   }
   #{{ prefix }}-cards-embed .pr-edit-project-btn:hover { background: #f1f5f9; }
   #{{ prefix }}-cards-embed .pr-detail-header-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-  #{{ prefix }}-cards-embed .pr-field-hint {
-    font-size: 0.72rem; color: var(--pr-muted); margin-top: 0.25rem;
-  }
-  #{{ prefix }}-edit-project-modal.pr-modal-overlay {
-    position: fixed; inset: 0; background: rgba(15,23,42,0.45); z-index: 1300;
-    display: flex; align-items: center; justify-content: center; padding: 1rem;
-  }
-  #{{ prefix }}-edit-project-modal .pr-modal {
-    background: #fff; border-radius: 14px; padding: 1.35rem 1.5rem; width: min(520px, 100%);
-    max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 50px rgba(15,23,42,0.2);
-  }
-  #{{ prefix }}-edit-project-modal label {
-    display: block; font-size: 0.78rem; font-weight: 600; color: var(--pr-muted); margin: 0.6rem 0 0.3rem;
-  }
-  #{{ prefix }}-edit-project-modal input, #{{ prefix }}-edit-project-modal select, #{{ prefix }}-edit-project-modal textarea {
-    width: 100%; border: 1px solid var(--pr-border); border-radius: 8px; padding: 0.5rem 0.65rem; font-size: 0.88rem;
-  }
-  #{{ prefix }}-edit-project-modal textarea { min-height: 72px; resize: vertical; }
-  #{{ prefix }}-edit-project-modal .pr-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-  #{{ prefix }}-edit-project-modal .pr-modal-actions {
-    display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 1rem;
-  }
-  #{{ prefix }}-edit-project-modal .pr-modal-actions button {
-    border-radius: 8px; padding: 0.45rem 0.95rem; font-weight: 600; cursor: pointer;
-  }
-  #{{ prefix }}-edit-project-modal .pr-modal-cancel { border: 1px solid var(--pr-border); background: #fff; }
-  #{{ prefix }}-edit-project-modal .pr-modal-save { border: none; background: var(--pr-blue); color: #fff; }
-  #{{ prefix }}-edit-project-modal .pr-readonly-field {
-    background: #f8fafc; color: var(--pr-muted); cursor: not-allowed;
-  }
   #{{ prefix }}-cards-embed .pr-phase-row { margin-bottom: 1rem; }
   #{{ prefix }}-cards-embed .pr-phase-header { display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 0.35rem; }
   #{{ prefix }}-cards-embed .pr-phase-name { font-weight: 600; }
@@ -174,8 +144,6 @@
     color: var(--pr-muted);
   }
   #{{ prefix }}-cards-embed .pr-automation-meta strong { color: #334155; font-weight: 700; }
-  #{{ prefix }}-cards-embed .pr-time-saving-row { display: flex; gap: 0.5rem; }
-  #{{ prefix }}-cards-embed .pr-time-saving-row select { max-width: 130px; }
 </style>
 
 <div id="{{ prefix }}-detail-view">
@@ -252,60 +220,6 @@
     </div>
   </div>
 
-</div>
-
-<div id="{{ prefix }}-edit-project-modal" class="pr-modal-overlay" style="display:none" aria-hidden="true">
-  <div class="pr-modal">
-    <h4 style="margin:0 0 1rem;font-weight:800;">Edit Project</h4>
-    <label for="{{ prefix }}-edit-title">Project Name *</label>
-    <input type="text" id="{{ prefix }}-edit-title" placeholder="Project name" />
-    <label for="{{ prefix }}-edit-desc">Description</label>
-    <textarea id="{{ prefix }}-edit-desc" placeholder="Project objective or summary"></textarea>
-    <label for="{{ prefix }}-edit-business-benefits">Business Benefits</label>
-    <textarea id="{{ prefix }}-edit-business-benefits" placeholder="Describe the business benefits expected from this project..." rows="3"></textarea>
-    <div class="pr-form-row">
-      <div>
-        <label for="{{ prefix }}-edit-category">Category</label>
-        <select id="{{ prefix }}-edit-category">
-          <option value="automation">Automation</option>
-          <option value="operations">Operations</option>
-          <option value="digital">Digital</option>
-        </select>
-      </div>
-      <div>
-        <label for="{{ prefix }}-edit-status">Status</label>
-        <select id="{{ prefix }}-edit-status">
-          <option value="on_track">ON TRACK</option>
-          <option value="delayed">DELAYED</option>
-        </select>
-      </div>
-    </div>
-    <div class="pr-form-row">
-      <div>
-        <label for="{{ prefix }}-edit-phase">PMBOK Phase</label>
-        <select id="{{ prefix }}-edit-phase">
-          <option value="Initiating">Initiating</option>
-          <option value="Planning">Planning</option>
-          <option value="Executing">Executing</option>
-          <option value="Monitoring">Monitoring</option>
-          <option value="Closing">Closing</option>
-        </select>
-      </div>
-      <div>
-        <label for="{{ prefix }}-edit-owner">PM / Owner</label>
-        <input type="text" id="{{ prefix }}-edit-owner" placeholder="Name or team" />
-      </div>
-    </div>
-    <label for="{{ prefix }}-edit-deadline">Deadline</label>
-    <input type="date" id="{{ prefix }}-edit-deadline" />
-    <p class="pr-field-hint" id="{{ prefix }}-edit-deadline-hint">
-      Deadline can only be changed by a PMO manager after registration.
-    </p>
-    <div class="pr-modal-actions">
-      <button type="button" class="pr-modal-cancel" id="{{ prefix }}-edit-project-cancel">Cancel</button>
-      <button type="button" class="pr-modal-save" id="{{ prefix }}-edit-project-save">Save</button>
-    </div>
-  </div>
 </div>
 
 {% with projects_data_id=prefix|add:"-projects-data" %}
@@ -572,46 +486,62 @@
     if (footerDeadline && p.deadline) footerDeadline.textContent = "Deadline: " + p.deadline;
   }
 
-  function configureEditDeadlineField() {
-    var dl = document.getElementById(PREFIX + "-edit-deadline");
-    var hint = document.getElementById(PREFIX + "-edit-deadline-hint");
-    if (!dl) return;
-    if (IS_MANAGER) {
-      dl.readOnly = false;
-      dl.disabled = false;
-      dl.classList.remove("pr-readonly-field");
-      if (hint) hint.textContent = "As PMO manager you can update the project deadline here.";
-    } else {
-      dl.readOnly = true;
-      dl.disabled = true;
-      dl.classList.add("pr-readonly-field");
-      if (hint) hint.textContent = "Deadline can only be changed by a PMO manager after registration.";
+  function openEditProjectModal() {
+    var p = projectsMap[currentProjectId];
+    if (!p) return;
+    var editId = p.tracker_id || currentProjectId;
+    if (typeof window.__ppOpenEditProject === "function") {
+      window.__ppOpenEditProject(editId, p);
     }
   }
 
-  function openEditProjectModal() {
-    var p = projectsMap[currentProjectId];
-    var modal = document.getElementById(PREFIX + "-edit-project-modal");
-    if (!p || !modal) return;
-    document.getElementById(PREFIX + "-edit-title").value = p.title || "";
-    document.getElementById(PREFIX + "-edit-desc").value = p.description || "";
-    document.getElementById(PREFIX + "-edit-business-benefits").value = p.business_benefits || "";
-    document.getElementById(PREFIX + "-edit-category").value = p.category || "automation";
-    document.getElementById(PREFIX + "-edit-status").value = p.status || "on_track";
-    document.getElementById(PREFIX + "-edit-phase").value = p.phase || "Initiating";
-    document.getElementById(PREFIX + "-edit-owner").value = p.owner || "";
-    document.getElementById(PREFIX + "-edit-deadline").value = p.deadline || "";
-    configureEditDeadlineField();
-    modal.style.display = "flex";
-    modal.setAttribute("aria-hidden", "false");
-  }
-
-  function closeEditProjectModal() {
-    var modal = document.getElementById(PREFIX + "-edit-project-modal");
-    if (!modal) return;
-    modal.style.display = "none";
-    modal.setAttribute("aria-hidden", "true");
-  }
+  window.__ppSubmitCardDemoProjectEdit = function (form, done) {
+    var projectId = window.__ppCardEditFallbackId;
+    if (!projectId || !projectsMap[projectId]) {
+      done(false, "Project not found.");
+      return;
+    }
+    var rs = ppFormFieldValue(form, "register_status") || "on_track";
+    var status = rs;
+    if (status === "at_risk" || status === "blocked") status = "delayed";
+    if (status !== "on_track" && status !== "delayed") status = "on_track";
+    var payload = {
+      project_id: projectId,
+      title: ppFormFieldValue(form, "project_name").trim(),
+      description: ppFormFieldValue(form, "objective_sow").trim(),
+      business_benefits: ppFormFieldValue(form, "business_benefits").trim(),
+      owner: ppFormFieldValue(form, "project_lead").trim(),
+      phase: ppFormFieldValue(form, "pmbok_phase") || projectsMap[projectId].phase || "Initiating",
+      status: status,
+      category: projectsMap[projectId].category || "automation",
+    };
+    if (IS_MANAGER) {
+      payload.deadline = ppFormFieldValue(form, "planned_deadline");
+    }
+    fetch(UPDATE_PROJECT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": getCsrf(),
+        "X-Requested-With": "XMLHttpRequest",
+      },
+      body: JSON.stringify(payload),
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (res) {
+        if (!res.ok || !res.project) {
+          done(false, (res && res.message) || "Could not save project.");
+          return;
+        }
+        var prevTasks = cloneTasks(currentTasks);
+        projectsMap[projectId] = res.project;
+        projectsMap[projectId].tasks = prevTasks;
+        currentTasks = prevTasks;
+        refreshView();
+        done(true);
+      })
+      .catch(function () { done(false, "Network error — try again."); });
+  };
 
   function updateHeader(p) {
     var nameEl = document.getElementById(PREFIX + "-d-project-name");
@@ -1008,47 +938,6 @@
 
   document.getElementById(PREFIX + "-back-btn").addEventListener("click", showRegister);
   document.getElementById(PREFIX + "-edit-project-btn").addEventListener("click", openEditProjectModal);
-  document.getElementById(PREFIX + "-edit-project-cancel").addEventListener("click", closeEditProjectModal);
-  document.getElementById(PREFIX + "-edit-project-modal").addEventListener("click", function (e) {
-    if (e.target.id === PREFIX + "-edit-project-modal") closeEditProjectModal();
-  });
-  document.getElementById(PREFIX + "-edit-project-save").addEventListener("click", function () {
-    if (!currentProjectId) return;
-    var title = document.getElementById(PREFIX + "-edit-title").value.trim();
-    if (!title) return;
-    var payload = {
-      project_id: currentProjectId,
-      title: title,
-      description: document.getElementById(PREFIX + "-edit-desc").value.trim(),
-      business_benefits: document.getElementById(PREFIX + "-edit-business-benefits").value.trim(),
-      category: document.getElementById(PREFIX + "-edit-category").value,
-      status: document.getElementById(PREFIX + "-edit-status").value,
-      phase: document.getElementById(PREFIX + "-edit-phase").value,
-      owner: document.getElementById(PREFIX + "-edit-owner").value.trim(),
-    };
-    if (IS_MANAGER) {
-      payload.deadline = document.getElementById(PREFIX + "-edit-deadline").value;
-    }
-    fetch(UPDATE_PROJECT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": getCsrf(),
-        "X-Requested-With": "XMLHttpRequest",
-      },
-      body: JSON.stringify(payload),
-    })
-      .then(function (r) { return r.json(); })
-      .then(function (res) {
-        if (!res.ok || !res.project) return;
-        var prevTasks = cloneTasks(currentTasks);
-        projectsMap[currentProjectId] = res.project;
-        projectsMap[currentProjectId].tasks = prevTasks;
-        currentTasks = prevTasks;
-        refreshView();
-        closeEditProjectModal();
-      });
-  });
   var filterAssigneeEl = document.getElementById(PREFIX + "-filter-assignee");
   if (filterAssigneeEl) {
     filterAssigneeEl.addEventListener("change", function () {
